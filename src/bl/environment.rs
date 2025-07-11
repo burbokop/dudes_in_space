@@ -1,11 +1,12 @@
 use std::fmt;
 use std::fmt::Formatter;
 use crate::bl::{Vessel, VesselCreateInfo, VesselId};
-use crate::bl::modules::{Module, ModuleSerializerDeserializerRegistry};
+use crate::bl::modules::{Module};
 use serde::ser::SerializeSeq;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::ops::DerefMut;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use crate::bl::utils::dyn_serde::DynDeserializeFactoryRegistry;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Environment {
@@ -35,13 +36,13 @@ impl Environment {
 
     pub(crate) fn deserialize<'de, D>(
         deserializer: D,
-        reg: &ModuleSerializerDeserializerRegistry,
+        reg: &DynDeserializeFactoryRegistry<dyn Module>,
     ) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         struct VesselImpl<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b, 'de> DeserializeSeed<'de> for VesselImpl<'b> {
@@ -56,7 +57,7 @@ impl Environment {
         }
 
         struct VesselSeqVisitor<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b, 'de> Visitor<'de> for VesselSeqVisitor<'b> {
@@ -85,7 +86,7 @@ impl Environment {
 
 
         struct VesselSeqSeed<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b, 'de> DeserializeSeed<'de> for VesselSeqSeed<'b> {
@@ -135,7 +136,7 @@ impl Environment {
 
 
         struct EnvironmentVisitor<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b,'de> Visitor<'de> for EnvironmentVisitor<'b>{

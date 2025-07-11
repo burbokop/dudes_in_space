@@ -3,16 +3,17 @@
 use std::env::home_dir;
 use std::path::Path;
 use crate::bl::Environment;
-use crate::bl::modules::{Assembler, AssemblerDeserializer, ModuleSerializerDeserializerRegistry, ModuleVisitor, PersonnelArea, PersonnelAreaSerializerDeserializer};
+use crate::bl::modules::{Assembler, AssemblerDeserializer, Module, ModuleVisitor, PersonnelArea, PersonnelAreaSerializerDeserializer};
 use rand::rng;
 use serde::Serialize;
+use crate::bl::utils::dyn_serde::DynDeserializeFactoryRegistry;
 use crate::bl::VesselModule::Assembly;
 
 mod bl;
 mod env_presets;
 
 fn env_from_json(
-    registry: &ModuleSerializerDeserializerRegistry,
+    registry: &DynDeserializeFactoryRegistry<dyn Module>,
     bytes: &[u8],
 ) -> Result<Environment, serde_json::Error> {
     let read = serde_json::de::SliceRead::new(bytes);
@@ -24,7 +25,7 @@ fn env_from_json(
 
 fn env_to_json(
     env: &Environment,
-    registry: &ModuleSerializerDeserializerRegistry,
+    registry: &DynDeserializeFactoryRegistry<dyn Module>,
 ) -> Result<Vec<u8>, serde_json::Error> {
     let mut writer = Vec::with_capacity(128);
     let mut ser = serde_json::Serializer::new(&mut writer);
@@ -35,7 +36,7 @@ fn env_to_json(
 fn main() {
     let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
 
-    let module_serializer_deserializer_registry = ModuleSerializerDeserializerRegistry::new()
+    let module_serializer_deserializer_registry = DynDeserializeFactoryRegistry::<dyn Module>::new()
         .with(PersonnelAreaSerializerDeserializer)
         .with(AssemblerDeserializer);
 

@@ -1,7 +1,8 @@
+use std::error::Error;
 use crate::bl::{Person, Recipe};
-use crate::bl::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleSerializerDeserializer, ModuleVisitor, VesselPersonInterface};
-use std::fmt::{Debug, Formatter};
+use crate::bl::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleVisitor, VesselPersonInterface};
 use serde_intermediate::Intermediate;
+use crate::bl::utils::dyn_serde::{DynDeserializeFactory, DynSerialize};
 
 static TYPE_ID: &str = "PersonnelArea";
 
@@ -16,15 +17,17 @@ impl PersonnelArea {
     }
 }
 
-impl Module for PersonnelArea {
+impl DynSerialize for PersonnelArea {
     fn type_id(&self) -> String {
         TYPE_ID.to_string()
     }
 
-    fn serialize(&self) -> Intermediate {
-        serde_intermediate::to_intermediate(&self.personnel).unwrap()
+    fn serialize(&self) -> Result<Intermediate, Box< dyn Error >> {
+        serde_intermediate::to_intermediate(&self.personnel).map_err(|e| Box::new(e) as Box<dyn Error>)
     }
+}
 
+impl Module for PersonnelArea {
     fn proceed(&mut self, v: & dyn VesselPersonInterface) {
         for person in &mut self.personnel {
             person.proceed(v)
@@ -50,12 +53,12 @@ impl Module for PersonnelArea {
 
 pub(crate) struct PersonnelAreaSerializerDeserializer ;
 
-impl ModuleSerializerDeserializer for PersonnelAreaSerializerDeserializer {
+impl DynDeserializeFactory<dyn Module> for PersonnelAreaSerializerDeserializer {
     fn type_id(&self) -> String {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, str: Intermediate) -> Result<Box<dyn Module>, String> {
+    fn deserialize(&self, str: Intermediate) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let personnel: Vec<Person> = serde_intermediate::from_intermediate(&str).map_err(|e| e.to_string())?;
         Ok(Box::new(PersonnelArea{ personnel }))
     }

@@ -1,5 +1,5 @@
 use std::cell::{RefCell, RefMut};
-use crate::bl::modules::{Module, ModuleCapability, ModuleSerializerDeserializerRegistry, ModuleVisitor, VesselPersonInterface};
+use crate::bl::modules::{Module, ModuleCapability, ModuleVisitor, VesselPersonInterface};
 use crate::bl::utils::math::Point;
 use crate::bl::utils::utils::Float;
 use crate::bl::Person;
@@ -8,6 +8,7 @@ use serde::ser::SerializeSeq;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::Formatter;
+use crate::bl::utils::dyn_serde::DynDeserializeFactoryRegistry;
 
 pub(crate) enum VesselModule {
     Cockpit { captain: Option<Person> },
@@ -63,13 +64,13 @@ impl Vessel {
 
     pub(crate) fn deserialize<'de, D>(
         deserializer: D,
-        reg: &ModuleSerializerDeserializerRegistry,
+        reg: &DynDeserializeFactoryRegistry<dyn Module>,
     ) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         struct ModuleImpl<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b, 'de> DeserializeSeed<'de> for ModuleImpl<'b> {
@@ -84,7 +85,7 @@ impl Vessel {
         }
 
         struct ModuleSeqVisitor<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b, 'de> Visitor<'de> for ModuleSeqVisitor<'b> {
@@ -108,7 +109,7 @@ impl Vessel {
 
 
         struct ModuleSeqSeed<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b, 'de> DeserializeSeed<'de> for ModuleSeqSeed<'b> {
@@ -156,7 +157,7 @@ impl Vessel {
         }
 
         struct VesselVisitor<'b> {
-            reg: &'b ModuleSerializerDeserializerRegistry,
+            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
 
         impl<'b,'de> Visitor<'de> for VesselVisitor<'b>{
@@ -241,7 +242,7 @@ impl Serialize for Vessel {
             where
                 S: Serializer,
             {
-                ModuleSerializerDeserializerRegistry::serialize(serializer, self.module)
+                DynDeserializeFactoryRegistry::<dyn Module>::serialize(serializer, self.module)
             }
         }
 
