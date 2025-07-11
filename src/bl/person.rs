@@ -249,13 +249,13 @@ impl Person {
 
             while let Some(next) = passions.pop() {
                 if match next {
-                    Passion::Trade => todo!(),
-                    Passion::Crafting => todo!(),
+                    Passion::Trade => false,
+                    Passion::Crafting => false,
                     Passion::Adventuring => false,
                     Passion::Flying => false,
                     Passion::Ruling => false,
                     Passion::Money => false,
-                    Passion::Drugs => todo!(),
+                    Passion::Drugs => false,
                     Passion::Sex => false,
                 } { break; }
             }
@@ -268,13 +268,13 @@ impl Person {
 
             while let Some(next) = passions.pop() {
                 if match next {
-                    Passion::Trade => todo!(),
-                    Passion::Crafting => todo!(),
+                    Passion::Trade => false,
+                    Passion::Crafting => false,
                     Passion::Adventuring => false,
                     Passion::Flying => {self.state = PersonState::PursuingObjective(CraftingVessels);true},
                     Passion::Ruling => false,
                     Passion::Money => false,
-                    Passion::Drugs => todo!(),
+                    Passion::Drugs => false,
                     Passion::Sex => false,
                 } { break; }
             }

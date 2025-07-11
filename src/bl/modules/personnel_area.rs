@@ -1,6 +1,7 @@
 use crate::bl::{Person, Recipe};
 use crate::bl::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleSerializerDeserializer, ModuleVisitor, VesselPersonInterface};
 use std::fmt::{Debug, Formatter};
+use serde_intermediate::Intermediate;
 
 static TYPE_ID: &str = "PersonnelArea";
 
@@ -20,8 +21,8 @@ impl Module for PersonnelArea {
         TYPE_ID.to_string()
     }
 
-    fn serialize(&self) -> String {
-        serde_json::to_string(&self.personnel).unwrap()
+    fn serialize(&self) -> Intermediate {
+        serde_intermediate::to_intermediate(&self.personnel).unwrap()
     }
 
     fn proceed(&mut self, v: & dyn VesselPersonInterface) {
@@ -54,8 +55,8 @@ impl ModuleSerializerDeserializer for PersonnelAreaSerializerDeserializer {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, str: String) -> Result<Box<dyn Module>, String> {
-        let personnel: Vec<Person> = serde_json::from_str(&str).map_err(|e| e.to_string())?;
+    fn deserialize(&self, str: Intermediate) -> Result<Box<dyn Module>, String> {
+        let personnel: Vec<Person> = serde_intermediate::from_intermediate(&str).map_err(|e| e.to_string())?;
         Ok(Box::new(PersonnelArea{ personnel }))
     }
 }

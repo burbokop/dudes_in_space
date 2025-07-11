@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_intermediate::Intermediate;
 use crate::bl::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleSerializerDeserializer, ModuleVisitor, PersonnelArea, VesselPersonInterface, WorkerControlPanel};
 use crate::bl::{Person, Recipe};
 
@@ -24,8 +25,8 @@ impl Module for Assembler {
         TYPE_ID.to_string()
     }
 
-    fn serialize(&self) -> String {
-        serde_json::to_string(self).unwrap()
+    fn serialize(&self) -> Intermediate {
+        serde_intermediate::to_intermediate(self).unwrap()
     }
 
     fn proceed(&mut self, v: &dyn VesselPersonInterface) {
@@ -58,8 +59,8 @@ impl ModuleSerializerDeserializer for AssemblerDeserializer {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, str: String) -> Result<Box<dyn Module>, String> {
-        let assembler: Assembler = serde_json::from_str(str.as_str()).map_err(|e| e.to_string())?;
+    fn deserialize(&self, str: Intermediate) -> Result<Box<dyn Module>, String> {
+        let assembler: Assembler = serde_intermediate::from_intermediate(&str).map_err(|e| e.to_string())?;
         Ok(Box::new(assembler))
     }
 }

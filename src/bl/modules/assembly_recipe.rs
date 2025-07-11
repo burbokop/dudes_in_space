@@ -14,7 +14,7 @@ pub(crate) trait ModuleFactory : Debug {
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct AssemblyRecipe {
     input: InputRecipe,
-    output: Rc<dyn ModuleFactory>,
+    // output: Rc<dyn ModuleFactory>,
 }
 
 impl AssemblyRecipe {
@@ -22,11 +22,16 @@ impl AssemblyRecipe {
         input: InputRecipe,
         output: Rc<dyn ModuleFactory>,
     ) -> Self {
-        Self { input, output }
+        // Self { input, output }
+        Self { input }
     }
     
     pub(crate) fn create(&self) -> Box<dyn Module> {
-        self.output.create(&self.input)
+        todo!()
+        // self.output.create(&self.input)
     }
-    pub(crate) fn output_capabilities(&self) -> &[ModuleCapability] { self.output.capabilities() }
+    pub(crate) fn output_capabilities(&self) -> &[ModuleCapability] { 
+        todo!()
+        // self.output.capabilities() 
+    }
 }

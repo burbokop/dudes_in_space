@@ -7,10 +7,11 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use serde::ser::SerializeSeq;
+use serde_intermediate::Intermediate;
 
 pub(crate) trait Module: Debug {
     fn type_id(&self) -> String;
-    fn serialize(&self) -> String;
+    fn serialize(&self) -> Intermediate;
     fn proceed(&mut self, v: & dyn VesselPersonInterface);
     fn accept_visitor(&self, v: &dyn ModuleVisitor<Result = ()>) -> Option<()>;
     fn capabilities(&self) -> &[ModuleCapability];
@@ -20,7 +21,7 @@ pub(crate) trait Module: Debug {
 
 pub(crate) trait ModuleSerializerDeserializer {
     fn type_id(&self) -> String;
-    fn deserialize(&self, str: String) -> Result<Box<dyn Module>, String>;
+    fn deserialize(&self, str: Intermediate) -> Result<Box<dyn Module>, String>;
 }
 
 pub(crate) struct ModuleSerializerDeserializerRegistry {
@@ -51,7 +52,7 @@ impl ModuleSerializerDeserializerRegistry {
         #[derive(Serialize)]
         struct Impl {
             tp: ModuleTypeId,
-            payload: String,
+            payload: Intermediate,
         }
         
         Impl{ tp: type_id, payload: module.serialize() }.serialize( serializer)
@@ -61,7 +62,7 @@ impl ModuleSerializerDeserializerRegistry {
         #[derive(Deserialize)]
         struct Impl {
             tp: String,
-            payload: String,
+            payload: Intermediate,
         }
         
         let i = Impl::deserialize(deserializer)?;

@@ -33,7 +33,7 @@ fn env_to_json(
 }
 
 fn main() {
-    let save_path = home_dir().unwrap().join(".spacesim/save.json");
+    let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
 
     let module_serializer_deserializer_registry = ModuleSerializerDeserializerRegistry::new()
         .with(PersonnelAreaSerializerDeserializer)
