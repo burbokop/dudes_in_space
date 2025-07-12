@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 sdl2 = "0.37.0"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 rand = "0.9.1"
 serde_json = "1.0"
 serde-intermediate = "1.0.0"

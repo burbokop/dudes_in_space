@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::bl::Item;
+use serde::{Deserialize, Serialize};
 
 pub(crate) struct Recipe {
     input: Vec<Item>,

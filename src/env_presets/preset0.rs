@@ -1,5 +1,5 @@
 use crate::bl::modules::PersonnelArea;
-use crate::bl::{Environment, Person, Vessel, VesselCreateInfo};
+use crate::bl::{Environment, Person, VesselCreateInfo};
 use rand::Rng;
 
 pub(crate) fn new<R: Rng>(rng: &mut R) -> Environment {
@@ -9,7 +9,10 @@ pub(crate) fn new<R: Rng>(rng: &mut R) -> Environment {
 
     let spawn_station_personnel_area = PersonnelArea::new(vec![person0, person1, person2]);
 
-    let spawn_station = VesselCreateInfo {pos:(0., 0.).into(),modules: vec![spawn_station_personnel_area]};
+    let spawn_station = VesselCreateInfo {
+        pos: (0., 0.).into(),
+        modules: vec![spawn_station_personnel_area],
+    };
 
     Environment::new(vec![spawn_station])
 }

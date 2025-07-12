@@ -1,12 +1,10 @@
+use crate::bl::modules::Module;
+use crate::bl::utils::dyn_serde::DynDeserializeSeedVault;
+use crate::bl::{Vessel, VesselCreateInfo, VesselId, VesselSeed};
+use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::fmt::Formatter;
-use crate::bl::{Vessel, VesselCreateInfo, VesselId, VesselSeed};
-use crate::bl::modules::{Module};
-use serde::ser::SerializeSeq;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use std::ops::DerefMut;
-use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use crate::bl::utils::dyn_serde::DynDeserializeFactoryRegistry;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Environment {
@@ -15,11 +13,11 @@ pub(crate) struct Environment {
 }
 
 pub(crate) struct EnvironmentSeed<'r> {
-    reg: &'r DynDeserializeFactoryRegistry<dyn Module>
+    reg: &'r DynDeserializeSeedVault<dyn Module>,
 }
 
 impl<'r> EnvironmentSeed<'r> {
-    pub(crate) fn new(reg: &'r DynDeserializeFactoryRegistry<dyn Module>) ->Self {
+    pub(crate) fn new(reg: &'r DynDeserializeSeedVault<dyn Module>) -> Self {
         Self { reg }
     }
 }
@@ -29,10 +27,10 @@ impl<'de, 'r> DeserializeSeed<'de> for EnvironmentSeed<'r> {
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         struct VesselSeqVisitor<'b> {
-            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
+            reg: &'b DynDeserializeSeedVault<dyn Module>,
         }
 
         impl<'b, 'de> Visitor<'de> for VesselSeqVisitor<'b> {
@@ -53,9 +51,9 @@ impl<'de, 'r> DeserializeSeed<'de> for EnvironmentSeed<'r> {
                 Ok(vessels)
             }
         }
-        
+
         struct VesselSeqSeed<'b> {
-            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
+            reg: &'b DynDeserializeSeedVault<dyn Module>,
         }
 
         impl<'b, 'de> DeserializeSeed<'de> for VesselSeqSeed<'b> {
@@ -63,13 +61,16 @@ impl<'de, 'r> DeserializeSeed<'de> for EnvironmentSeed<'r> {
 
             fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
             where
-                D: Deserializer<'de>
+                D: Deserializer<'de>,
             {
-                deserializer.deserialize_seq(VesselSeqVisitor {reg: self.reg})
+                deserializer.deserialize_seq(VesselSeqVisitor { reg: self.reg })
             }
         }
-        
-        enum EnvironmentField { NextVesselId, Vessels }
+
+        enum EnvironmentField {
+            NextVesselId,
+            Vessels,
+        }
 
         impl<'de> Deserialize<'de> for EnvironmentField {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -100,12 +101,12 @@ impl<'de, 'r> DeserializeSeed<'de> for EnvironmentSeed<'r> {
                 deserializer.deserialize_identifier(FieldVisitor)
             }
         }
-        
+
         struct EnvironmentVisitor<'b> {
-            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
+            reg: &'b DynDeserializeSeedVault<dyn Module>,
         }
 
-        impl<'b,'de> Visitor<'de> for EnvironmentVisitor<'b>{
+        impl<'b, 'de> Visitor<'de> for EnvironmentVisitor<'b> {
             type Value = Environment;
 
             fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
@@ -134,36 +135,50 @@ impl<'de, 'r> DeserializeSeed<'de> for EnvironmentSeed<'r> {
                         }
                     }
                 }
-                let next_vessel_id = next_vessel_id.ok_or_else(|| de::Error::missing_field("pos"))?;
+                let next_vessel_id =
+                    next_vessel_id.ok_or_else(|| de::Error::missing_field("pos"))?;
                 let vessels = vessels.ok_or_else(|| de::Error::missing_field("modules"))?;
-                Ok(Environment {  vessels, next_vessel_id})
+                Ok(Environment {
+                    vessels,
+                    next_vessel_id,
+                })
             }
         }
 
         const FIELDS: &[&str] = &["next_vessel_id", "vessels"];
 
-        deserializer.deserialize_struct("Environment",FIELDS, EnvironmentVisitor{ reg: self.reg })
+        deserializer.deserialize_struct("Environment", FIELDS, EnvironmentVisitor { reg: self.reg })
     }
 }
 
 impl Environment {
     pub(crate) fn new(vessels: Vec<VesselCreateInfo>) -> Self {
         let mut next_vessel_id = 0;
-        let vessels = vessels.into_iter().map(|ci| { let v = Vessel::new(next_vessel_id, ci);next_vessel_id+=1;v }).collect();
-        Self { vessels, next_vessel_id }
+        let vessels = vessels
+            .into_iter()
+            .map(|ci| {
+                let v = Vessel::new(next_vessel_id, ci);
+                next_vessel_id += 1;
+                v
+            })
+            .collect();
+        Self {
+            vessels,
+            next_vessel_id,
+        }
     }
-    
+
     pub(crate) fn add(&mut self, vessel: VesselCreateInfo) {
         self.vessels.push(Vessel::new(self.next_vessel_id, vessel));
-        self.next_vessel_id+=1;
+        self.next_vessel_id += 1;
     }
-    
-    pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<& Vessel> {
-        self.vessels.iter().find(|v|v.id() == id)
+
+    pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
+        self.vessels.iter().find(|v| v.id() == id)
     }
 
     pub(crate) fn vessel_by_id_mut(&mut self, id: VesselId) -> Option<&mut Vessel> {
-        self.vessels.iter_mut().find(|v|v.id() == id)
+        self.vessels.iter_mut().find(|v| v.id() == id)
     }
 
     pub(crate) fn proceed(&mut self) {

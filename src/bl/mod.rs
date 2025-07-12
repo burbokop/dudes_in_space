@@ -1,11 +1,11 @@
-mod vessel;
 mod environment;
+mod items;
 pub mod modules;
 mod person;
 pub mod utils;
-mod items;
+mod vessel;
 
-pub use vessel::*;
 pub use environment::*;
-pub use person::*;
 pub use items::*;
+pub use person::*;
+pub use vessel::*;

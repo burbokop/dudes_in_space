@@ -1,12 +1,12 @@
-use std::cell::RefMut;
-use rand::{rng, Rng};
+use crate::bl::PersonObjective::CraftingVessels;
+use crate::bl::modules::{Module, ModuleCapability, VesselPersonInterface};
 use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
-use std::collections::BTreeSet;
+use rand::{Rng, rng};
 use sdl2::libc::printf;
 use serde::{Deserialize, Serialize};
-use crate::bl::modules::{Module, ModuleCapability, VesselPersonInterface};
-use crate::bl::PersonObjective::CraftingVessels;
+use std::cell::RefMut;
+use std::collections::BTreeSet;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -61,7 +61,7 @@ fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     }
 }
 
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq,Serialize,Deserialize, Copy, Clone)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Serialize, Deserialize, Copy, Clone)]
 pub(crate) enum Passion {
     Trade,
     Crafting,
@@ -88,7 +88,7 @@ impl Distribution<Passion> for StandardUniform {
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum Morale {
     SickBastard,
     Mercantile,
@@ -112,7 +112,7 @@ impl Distribution<Morale> for StandardUniform {
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum Boldness {
     PantsShittingWorm,
     Unconfident,
@@ -136,7 +136,7 @@ impl Distribution<Boldness> for StandardUniform {
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum Awareness {
     Monkey,
     TrumpSupporter,
@@ -168,7 +168,7 @@ pub(crate) enum Role {
     Worker,
 }
 
-#[derive(Debug, Copy, Clone,Serialize,Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub(crate) enum Gender {
     CisMale,
     CisFemale,
@@ -190,20 +190,18 @@ impl Distribution<Gender> for StandardUniform {
     }
 }
 
-#[derive(Debug, Serialize,Deserialize, Copy, Clone)]
-pub(crate)enum PersonObjective {
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub(crate) enum PersonObjective {
     CraftingVessels,
 }
 
-#[derive(Debug, Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum PersonState {
     Idle,
-    PursuingObjective(PersonObjective)
+    PursuingObjective(PersonObjective),
 }
 
-
-
-#[derive(Debug, Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Person {
     name: String,
     age: u8,
@@ -214,7 +212,6 @@ pub(crate) struct Person {
     awareness: Awareness,
     state: PersonState,
 }
-
 
 impl Person {
     pub(crate) fn random<R: Rng>(rng: &mut R) -> Self {
@@ -235,10 +232,10 @@ impl Person {
         }
     }
 
-    pub(crate) fn proceed(&mut self, v: & dyn VesselPersonInterface) {
+    pub(crate) fn proceed(&mut self, v: &dyn VesselPersonInterface) {
         match &self.state {
             PersonState::Idle => self.decide_objective(),
-            PersonState::PursuingObjective(objective) => self.pursue_objective(v,*objective),
+            PersonState::PursuingObjective(objective) => self.pursue_objective(v, *objective),
         }
     }
 
@@ -257,7 +254,9 @@ impl Person {
                     Passion::Money => false,
                     Passion::Drugs => false,
                     Passion::Sex => false,
-                } { break; }
+                } {
+                    break;
+                }
             }
         }
 
@@ -271,20 +270,27 @@ impl Person {
                     Passion::Trade => false,
                     Passion::Crafting => false,
                     Passion::Adventuring => false,
-                    Passion::Flying => {self.state = PersonState::PursuingObjective(CraftingVessels);true},
+                    Passion::Flying => {
+                        self.state = PersonState::PursuingObjective(CraftingVessels);
+                        true
+                    }
                     Passion::Ruling => false,
                     Passion::Money => false,
                     Passion::Drugs => false,
                     Passion::Sex => false,
-                } { break; }
+                } {
+                    break;
+                }
             }
         }
     }
 
-    fn pursue_objective(&mut self, v: & dyn VesselPersonInterface, objective: PersonObjective) {
-        match objective { 
+    fn pursue_objective(&mut self, v: &dyn VesselPersonInterface, objective: PersonObjective) {
+        match objective {
             CraftingVessels => {
-                let is_crafting_module_suitable = |crafting_module: &Box<dyn Module>, mut needed_caps: Vec<ModuleCapability>|->bool{
+                let is_crafting_module_suitable = |crafting_module: &Box<dyn Module>,
+                                                   mut needed_caps: Vec<ModuleCapability>|
+                 -> bool {
                     for r in crafting_module.assembly_recipes() {
                         for cap in r.output_capabilities() {
                             if let Some(i) = needed_caps.element_offset(&cap) {
@@ -295,16 +301,21 @@ impl Person {
                     needed_caps.is_empty()
                 };
 
-                let needed_caps = vec![ModuleCapability::Cockpit, ModuleCapability::Engine,ModuleCapability::Reactor,ModuleCapability::FuelTank];
+                let needed_caps = vec![
+                    ModuleCapability::Cockpit,
+                    ModuleCapability::Engine,
+                    ModuleCapability::Reactor,
+                    ModuleCapability::FuelTank,
+                ];
 
-                for  crafting_module in v.modules_with_cap(ModuleCapability::Crafting) {
+                for crafting_module in v.modules_with_cap(ModuleCapability::Crafting) {
                     if is_crafting_module_suitable(&crafting_module, needed_caps.clone()) {
                         println!("move to module: {:?}", crafting_module.type_id());
                         return;
                     }
                 }
                 self.state = PersonState::Idle;
-            } 
+            }
         }
     }
 }
