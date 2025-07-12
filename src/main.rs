@@ -2,9 +2,10 @@
 
 use std::env::home_dir;
 use std::path::Path;
-use crate::bl::Environment;
+use crate::bl::{Environment, EnvironmentSeed};
 use crate::bl::modules::{Assembler, AssemblerDeserializer, Module, ModuleVisitor, PersonnelArea, PersonnelAreaSerializerDeserializer};
 use rand::rng;
+use serde::de::DeserializeSeed;
 use serde::Serialize;
 use crate::bl::utils::dyn_serde::DynDeserializeFactoryRegistry;
 use crate::bl::VesselModule::Assembly;
@@ -18,14 +19,13 @@ fn env_from_json(
 ) -> Result<Environment, serde_json::Error> {
     let read = serde_json::de::SliceRead::new(bytes);
     let mut de = serde_json::Deserializer::new(read);
-    let value = Environment::deserialize(&mut de, registry)?;
+    let value = EnvironmentSeed::new(registry).deserialize(&mut de)?;
     de.end()?;
     Ok(value)
 }
 
 fn env_to_json(
     env: &Environment,
-    registry: &DynDeserializeFactoryRegistry<dyn Module>,
 ) -> Result<Vec<u8>, serde_json::Error> {
     let mut writer = Vec::with_capacity(128);
     let mut ser = serde_json::Serializer::new(&mut writer);
@@ -69,7 +69,7 @@ fn main() {
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
     std::fs::write(
         save_path,
-        env_to_json(&environment, &module_serializer_deserializer_registry).unwrap(),
+        env_to_json(&environment).unwrap(),
     )
     .unwrap();
 }

@@ -1,15 +1,13 @@
 use std::cell::{RefCell, RefMut};
-use crate::bl::modules::{Module, ModuleCapability, ModuleVisitor, VesselPersonInterface};
+use crate::bl::modules::{Module,ModuleSeed, ModuleCapability, ModuleVisitor, VesselPersonInterface};
 use crate::bl::utils::math::Point;
 use crate::bl::utils::utils::Float;
 use crate::bl::Person;
-use serde::de::{DeserializeSeed, Error, MapAccess, SeqAccess, Visitor};
-use serde::ser::SerializeSeq;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use std::fmt;
 use std::fmt::Formatter;
-use std::ops::Deref;
-use crate::bl::utils::dyn_serde::{dyn_serialize, DynDeserializeFactoryRegistry, DynSerialize};
+use crate::bl::utils::dyn_serde::{ DynDeserializeFactoryRegistry};
 
 pub(crate) enum VesselModule {
     Cockpit { captain: Option<Person> },
@@ -41,50 +39,23 @@ pub(crate) struct VesselCreateInfo {
     pub(crate)    modules: Vec<Box<dyn Module>>
 }
 
-impl Vessel {
-    pub(crate) fn visit_modules(&self, visitor: &dyn ModuleVisitor<Result=()>) -> Option<()> {
-        for m in &self.modules {
-            if let Some(r) = m.borrow().accept_visitor(visitor) {
-                return Some(r);
-            }
-        }
-        None
-    }
-    
-    pub(crate) fn id(&self) -> VesselId {
-        self.id
-    }
-    
-    pub(crate) fn new(id: VesselId, ci: VesselCreateInfo) -> Self {
-        Self {id, pos:ci.pos, modules: ci.modules.into_iter().map(RefCell::new).collect() }
-    }
-    
-    pub(crate) fn add_module(&mut self, module: Box<dyn Module>) {
-        self.modules.push(RefCell::new(module));   
-    }
+pub(crate) struct VesselSeed<'r> { 
+    reg: &'r DynDeserializeFactoryRegistry<dyn Module>
+}
 
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-        reg: &DynDeserializeFactoryRegistry<dyn Module>,
-    ) -> Result<Self, D::Error>
+impl<'r> VesselSeed<'r> {
+    pub(crate) fn new(reg: &'r DynDeserializeFactoryRegistry<dyn Module>) ->Self {
+        Self { reg }   
+    }
+}
+
+impl<'de,'r> DeserializeSeed<'de> for VesselSeed<'r> {
+    type Value = Vessel;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: Deserializer<'de>,
+        D: Deserializer<'de>
     {
-        struct ModuleImpl<'b> {
-            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
-        }
-
-        impl<'b, 'de> DeserializeSeed<'de> for ModuleImpl<'b> {
-            type Value = Box<dyn Module>;
-
-            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-            where
-                D: Deserializer<'de>,
-            {
-                self.reg.deserialize(deserializer)
-            }
-        }
-
         struct ModuleSeqVisitor<'b> {
             reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
@@ -101,7 +72,7 @@ impl Vessel {
                 A: SeqAccess<'de>,
             {
                 let mut modules: Vec<Box<dyn Module>> = Default::default();
-                while let Some(key) = seq.next_element_seed(ModuleImpl{ reg: self.reg })? {
+                while let Some(key) = seq.next_element_seed(ModuleSeed::new(self.reg))? {
                     modules.push(key);
                 }
                 Ok(modules)
@@ -206,7 +177,30 @@ impl Vessel {
 
         const FIELDS: &[&str] = &["pos", "modules"];
 
-        deserializer.deserialize_struct("Vessel",FIELDS, VesselVisitor{reg })
+        deserializer.deserialize_struct("Vessel",FIELDS, VesselVisitor{ reg: self.reg })
+    }
+}
+
+impl Vessel {
+    pub(crate) fn visit_modules(&self, visitor: &dyn ModuleVisitor<Result=()>) -> Option<()> {
+        for m in &self.modules {
+            if let Some(r) = m.borrow().accept_visitor(visitor) {
+                return Some(r);
+            }
+        }
+        None
+    }
+    
+    pub(crate) fn id(&self) -> VesselId {
+        self.id
+    }
+    
+    pub(crate) fn new(id: VesselId, ci: VesselCreateInfo) -> Self {
+        Self {id, pos:ci.pos, modules: ci.modules.into_iter().map(RefCell::new).collect() }
+    }
+    
+    pub(crate) fn add_module(&mut self, module: Box<dyn Module>) {
+        self.modules.push(RefCell::new(module));   
     }
 
     pub(crate) fn proceed(&mut self) {

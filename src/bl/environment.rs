@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
-use crate::bl::{Vessel, VesselCreateInfo, VesselId};
+use crate::bl::{Vessel, VesselCreateInfo, VesselId, VesselSeed};
 use crate::bl::modules::{Module};
 use serde::ser::SerializeSeq;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -14,48 +14,23 @@ pub(crate) struct Environment {
     next_vessel_id: VesselId,
 }
 
-impl Environment {
-    pub(crate) fn new(vessels: Vec<VesselCreateInfo>) -> Self {
-        let mut next_vessel_id = 0;
-        let vessels = vessels.into_iter().map(|ci| { let v = Vessel::new(next_vessel_id, ci);next_vessel_id+=1;v }).collect();
-        Self { vessels, next_vessel_id }
-    }
-    
-    pub(crate) fn add(&mut self, vessel: VesselCreateInfo) {
-        self.vessels.push(Vessel::new(self.next_vessel_id, vessel));
-        self.next_vessel_id+=1;
-    }
-    
-    pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<& Vessel> {
-        self.vessels.iter().find(|v|v.id() == id)
-    }
+pub(crate) struct EnvironmentSeed<'r> {
+    reg: &'r DynDeserializeFactoryRegistry<dyn Module>
+}
 
-    pub(crate) fn vessel_by_id_mut(&mut self, id: VesselId) -> Option<&mut Vessel> {
-        self.vessels.iter_mut().find(|v|v.id() == id)
+impl<'r> EnvironmentSeed<'r> {
+    pub(crate) fn new(reg: &'r DynDeserializeFactoryRegistry<dyn Module>) ->Self {
+        Self { reg }
     }
+}
 
-    pub(crate) fn deserialize<'de, D>(
-        deserializer: D,
-        reg: &DynDeserializeFactoryRegistry<dyn Module>,
-    ) -> Result<Self, D::Error>
+impl<'de, 'r> DeserializeSeed<'de> for EnvironmentSeed<'r> {
+    type Value = Environment;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: Deserializer<'de>,
+        D: Deserializer<'de>
     {
-        struct VesselImpl<'b> {
-            reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
-        }
-
-        impl<'b, 'de> DeserializeSeed<'de> for VesselImpl<'b> {
-            type Value = Vessel;
-
-            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-            where
-                D: Deserializer<'de>,
-            {
-                Vessel::deserialize(deserializer, self.reg)
-            }
-        }
-
         struct VesselSeqVisitor<'b> {
             reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
@@ -72,19 +47,13 @@ impl Environment {
                 A: SeqAccess<'de>,
             {
                 let mut vessels: Vec<Vessel> = Default::default();
-                while let Some(key) = seq.next_element_seed(VesselImpl{ reg: self.reg })? {
+                while let Some(key) = seq.next_element_seed(VesselSeed::new(self.reg))? {
                     vessels.push(key);
                 }
                 Ok(vessels)
             }
         }
-
-
-
-
-
-
-
+        
         struct VesselSeqSeed<'b> {
             reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
@@ -99,8 +68,7 @@ impl Environment {
                 deserializer.deserialize_seq(VesselSeqVisitor {reg: self.reg})
             }
         }
-
-
+        
         enum EnvironmentField { NextVesselId, Vessels }
 
         impl<'de> Deserialize<'de> for EnvironmentField {
@@ -132,9 +100,7 @@ impl Environment {
                 deserializer.deserialize_identifier(FieldVisitor)
             }
         }
-
-
-
+        
         struct EnvironmentVisitor<'b> {
             reg: &'b DynDeserializeFactoryRegistry<dyn Module>,
         }
@@ -176,7 +142,28 @@ impl Environment {
 
         const FIELDS: &[&str] = &["next_vessel_id", "vessels"];
 
-        deserializer.deserialize_struct("Environment",FIELDS, EnvironmentVisitor{reg })
+        deserializer.deserialize_struct("Environment",FIELDS, EnvironmentVisitor{ reg: self.reg })
+    }
+}
+
+impl Environment {
+    pub(crate) fn new(vessels: Vec<VesselCreateInfo>) -> Self {
+        let mut next_vessel_id = 0;
+        let vessels = vessels.into_iter().map(|ci| { let v = Vessel::new(next_vessel_id, ci);next_vessel_id+=1;v }).collect();
+        Self { vessels, next_vessel_id }
+    }
+    
+    pub(crate) fn add(&mut self, vessel: VesselCreateInfo) {
+        self.vessels.push(Vessel::new(self.next_vessel_id, vessel));
+        self.next_vessel_id+=1;
+    }
+    
+    pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<& Vessel> {
+        self.vessels.iter().find(|v|v.id() == id)
+    }
+
+    pub(crate) fn vessel_by_id_mut(&mut self, id: VesselId) -> Option<&mut Vessel> {
+        self.vessels.iter_mut().find(|v|v.id() == id)
     }
 
     pub(crate) fn proceed(&mut self) {

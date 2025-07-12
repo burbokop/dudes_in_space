@@ -20,7 +20,6 @@ pub(crate) trait Module: Debug + DynSerialize {
 dyn_serialize_trait!(Module);
 
 pub(crate) struct ModuleFactoryRegistry {
-    
     data: BTreeMap<String, Box<dyn ModuleFactory>>,
 }
 
