@@ -1,22 +1,36 @@
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::Error as _;
 use serde::ser::Error as _;
 use serde_intermediate::Intermediate;
-use crate::bl::modules::{Module, ModuleTypeId};
+
+pub(crate) type TypeId = String;
 
 pub(crate) trait DynSerialize {
-    fn type_id(&self) -> String;
+    fn type_id(&self) -> TypeId;
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>>;
 }
 
 pub(crate) trait DynDeserializeFactory<T: ?Sized> {
-    fn type_id(&self) -> String;
+    fn type_id(&self) -> TypeId;
     fn deserialize(&self, intermediate: Intermediate) -> Result<Box<T>, Box<dyn Error>>;
 }
 
+pub(crate) fn dyn_serialize<S: Serializer, T: ?Sized + DynSerialize>(
+    serializer: S,
+    module: &T,
+) -> Result<S::Ok, S::Error> {
+    let type_id = module.type_id();
+
+    #[derive(Serialize)]
+    struct Impl {
+        tp: TypeId,
+        payload: Intermediate,
+    }
+
+    Impl{ tp: type_id, payload: module.serialize().map_err(|e|S::Error::custom(e))? }.serialize( serializer)
+}
 
 pub(crate) struct DynDeserializeFactoryRegistry<T: ?Sized> {
     data: BTreeMap<String, Box<dyn DynDeserializeFactory<T>>>,
@@ -33,23 +47,6 @@ impl<T: ?Sized> DynDeserializeFactoryRegistry<T> {
         let name = sd.type_id();
         self.data.insert(name, Box::new(sd));
         self
-    }
-
-    pub(crate) fn serialize<S: Serializer>(
-        serializer: S,
-        module: &RefCell< Box<T>>,
-    ) -> Result<S::Ok, S::Error> where T:DynSerialize {
-        let module = module.borrow();
-
-        let type_id = module.type_id();
-
-        #[derive(Serialize)]
-        struct Impl {
-            tp: ModuleTypeId,
-            payload: Intermediate,
-        }
-
-        Impl{ tp: type_id, payload: module.serialize().map_err(|e|S::Error::custom(e))? }.serialize( serializer)
     }
 
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(&self, deserializer: D) -> Result<Box<T>, D::Error> {

@@ -8,7 +8,8 @@ use serde::ser::SerializeSeq;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::Formatter;
-use crate::bl::utils::dyn_serde::DynDeserializeFactoryRegistry;
+use std::ops::Deref;
+use crate::bl::utils::dyn_serde::{dyn_serialize, DynDeserializeFactoryRegistry, DynSerialize};
 
 pub(crate) enum VesselModule {
     Cockpit { captain: Option<Person> },
@@ -28,7 +29,7 @@ pub(crate) enum VesselModule {
 
 pub(crate) type VesselId = u32;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Vessel {
     id: VesselId,
     pos: Point<Float>,
@@ -225,43 +226,5 @@ impl VesselPersonInterface for Vessel {
             }
             None
         }).collect()
-    }
-}
-
-impl Serialize for Vessel {
-    fn serialize<'a, S>(&'a self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer
-    {
-        struct ModuleImpl<'a> {
-            module: &'a RefCell<Box<dyn Module>>,
-        }
-
-        impl<'a> Serialize for ModuleImpl<'a> {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: Serializer,
-            {
-                DynDeserializeFactoryRegistry::<dyn Module>::serialize(serializer, self.module)
-            }
-        }
-
-        #[derive(Serialize)]
-        struct Impl<'a> {
-            id: VesselId,
-            pos: Point<Float>,
-            modules: Vec<ModuleImpl<'a>>,
-        }
-
-        Impl::<'a> {
-            id: self.id,
-            pos: self.pos,
-            modules: self
-                .modules
-                .iter()
-                .map(|module| ModuleImpl { module })
-                .collect(),
-        }
-            .serialize(serializer)
     }
 }

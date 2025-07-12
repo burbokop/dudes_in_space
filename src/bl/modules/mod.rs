@@ -4,6 +4,7 @@ use crate::bl::{InputRecipe, Person, Recipe, Role};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Formatter};
+use dudes_in_space_macro::dyn_serialize_trait;
 use serde::de::Error as _;
 use serde::ser::{Error, SerializeSeq};
 use serde_intermediate::Intermediate;
@@ -15,6 +16,8 @@ pub(crate) trait Module: Debug + DynSerialize {
     fn recipes(&self) -> Vec<Recipe>;
     fn assembly_recipes(&self) -> Vec<AssemblyRecipe>;
 }
+
+dyn_serialize_trait!(Module);
 
 pub(crate) struct ModuleFactoryRegistry {
     

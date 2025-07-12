@@ -62,11 +62,21 @@ dependencies = [
 name = "dudes_in_space"
 version = "0.0.1"
 dependencies = [
+ "dudes_in_space_macro",
  "rand",
  "sdl2",
  "serde",
  "serde-intermediate",
  "serde_json",
+]
+
+[[package]]
+name = "dudes_in_space_macro"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
