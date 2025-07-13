@@ -1,17 +1,14 @@
 #![feature(substr_range)]
 
-use crate::bl::modules::{
-    Assembler, AssemblerDynSeed, Module, ModuleFactory, ModuleVisitor, PersonnelArea,
-    PersonnelAreaSerializerDeserializer,
-};
-use crate::bl::utils::dyn_serde::DynDeserializeSeedVault;
-use crate::bl::{Environment, EnvironmentSeed};
 use rand::rng;
 use serde::Serialize;
 use serde::de::DeserializeSeed;
 use std::env::home_dir;
+use dudes_in_space_api::{Environment, Item, EnvironmentSeed};
+use dudes_in_space_api::modules::{AssemblyRecipe, Module, ModuleFactory};
+use dudes_in_space_core::modules::{Assembler, AssemblerDynSeed, ModuleVisitorMut, PersonnelAreaSerializerDeserializer, VisitModules};
+use dyn_serde::DynDeserializeSeedVault;
 
-mod bl;
 mod env_presets;
 
 fn env_from_json(
@@ -52,15 +49,18 @@ fn main() {
     };
 
     struct MyAssVisitor;
-    impl ModuleVisitor for MyAssVisitor {
+    impl ModuleVisitorMut for MyAssVisitor {
         type Result = ();
-        fn visit_assembler(&self, assembler: &Assembler) -> Option<Self::Result> {
+        fn visit_assembler(&self, assembler: &mut Assembler) -> Option<Self::Result> {
+            assembler.add_recipe(AssemblyRecipe::new(
+                vec![Item{ name: "steel".to_string(), count: 10 }].into(),
+                todo!(),
+            ));
             Some(())
-            // assembler.
         }
     }
 
-    // environment.vessel_by_id_mut(0).unwrap().visit_modules(&MyAssVisitor);
+    // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
     environment.proceed();
 
     println!("{:#?}", environment);

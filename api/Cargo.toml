@@ -1,0 +1,12 @@
+[package]
+name = "dudes_in_space_api"
+version = "0.0.1"
+edition = "2024"
+
+
+[dependencies]
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde-intermediate = "1.0.0"
+rand = "0.9.1"
+dyn_serde = { path = "../dyn_serde"}
+dyn_serde_macro = { path = "../dyn_serde_macro"}
