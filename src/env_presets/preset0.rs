@@ -1,6 +1,6 @@
-use rand::Rng;
 use dudes_in_space_api::{Environment, Person, VesselCreateInfo};
 use dudes_in_space_core::modules::PersonnelArea;
+use rand::Rng;
 
 pub(crate) fn new<R: Rng>(rng: &mut R) -> Environment {
     let person0 = Person::random(rng);

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::utils::utils::Float;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Color {

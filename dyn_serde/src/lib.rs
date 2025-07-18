@@ -1,8 +1,8 @@
-use std::cell::RefCell;
 use serde::de::{DeserializeSeed, Error as _, SeqAccess, Visitor};
 use serde::ser::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_intermediate::Intermediate;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::Formatter;
@@ -104,7 +104,9 @@ pub struct VecSeed<T> {
 }
 
 impl<T> VecSeed<T> {
-    pub fn new(element_seed: T) -> Self { Self { element_seed } }
+    pub fn new(element_seed: T) -> Self {
+        Self { element_seed }
+    }
 }
 
 impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for VecSeed<T> {
@@ -112,7 +114,7 @@ impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for VecSeed<T> {
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         struct VecVisitor<T> {
             element_seed: T,
@@ -135,6 +137,8 @@ impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for VecSeed<T> {
             }
         }
 
-        deserializer.deserialize_seq(VecVisitor { element_seed: self.element_seed })
+        deserializer.deserialize_seq(VecVisitor {
+            element_seed: self.element_seed,
+        })
     }
 }

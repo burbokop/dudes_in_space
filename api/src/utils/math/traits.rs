@@ -1,5 +1,5 @@
-use crate::utils::range::RangeInclusive;
 use super::Angle;
+use crate::utils::range::RangeInclusive;
 pub trait Sqr {
     type Output;
     fn sqr(self) -> Self::Output;

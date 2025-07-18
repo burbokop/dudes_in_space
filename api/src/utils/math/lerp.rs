@@ -1,5 +1,5 @@
-use std::ops::{Add, Mul};
 use crate::utils::utils::Float;
+use std::ops::{Add, Mul};
 
 pub(crate) fn lerp<T>(a: T, b: T, t: Float) -> T
 where

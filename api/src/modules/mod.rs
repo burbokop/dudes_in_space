@@ -2,21 +2,27 @@ use serde::ser::{Error, SerializeSeq};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Formatter};
+use uuid::Uuid;
 
 pub type PackageId = String;
+pub type ModuleId = Uuid;
 
 pub trait Module: Debug + DynSerialize {
+    fn id(&self) -> ModuleId;
     fn package_id(&self) -> PackageId;
     fn proceed(&mut self, v: &dyn VesselPersonInterface);
     fn capabilities(&self) -> &[ModuleCapability];
     fn recipes(&self) -> Vec<Recipe>;
     fn assembly_recipes(&self) -> &[AssemblyRecipe];
+    fn extract_person(&mut self, id: PersonId) -> Option<Person>;
+    fn insert_person(&mut self, person: Person) -> bool;
+    fn can_insert_person(&self) -> bool;
+    fn contains_person(&self, id: PersonId) -> bool;
 }
 
 dyn_serde_trait!(Module);
 
-pub(crate) type ModuleTypeId = String;
-
+pub type ModuleTypeId = String;
 
 pub(crate) struct Cockpit {}
 
@@ -67,7 +73,8 @@ mod vessel_person_interfaces;
 pub use vessel_person_interfaces::*;
 
 mod assembly_recipe;
+use crate::items::Recipe;
 pub use assembly_recipe::*;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
-use crate::items::Recipe;
+use crate::{Person, PersonId};

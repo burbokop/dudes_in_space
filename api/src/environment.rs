@@ -1,11 +1,11 @@
+use crate::Vessel;
+use crate::modules::Module;
+use crate::vessel::{VesselCreateInfo, VesselId, VesselSeed};
+use dyn_serde::DynDeserializeSeedVault;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::fmt::Formatter;
-use dyn_serde::DynDeserializeSeedVault;
-use crate::modules::Module;
-use crate::Vessel;
-use crate::vessel::{VesselCreateInfo, VesselId, VesselSeed};
 
 #[derive(Debug, Serialize)]
 pub struct Environment {

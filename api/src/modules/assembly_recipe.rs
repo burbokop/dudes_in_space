@@ -1,15 +1,15 @@
-use std::fmt::Debug;
-use std::rc::Rc;
-use serde::Serialize;
-use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
-use dyn_serde_macro::{dyn_serde_trait, DeserializeSeedXXX};
 use crate::items::InputRecipe;
 use crate::modules::{Module, ModuleCapability, ModuleTypeId};
+use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
+use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
+use serde::Serialize;
+use std::fmt::Debug;
+use std::rc::Rc;
 
 pub trait ModuleFactory: Debug + DynSerialize {
-    fn type_id(&self) -> ModuleTypeId;
+    fn output_type_id(&self) -> ModuleTypeId;
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module>;
-    fn capabilities(&self) -> &[ModuleCapability];
+    fn output_capabilities(&self) -> &[ModuleCapability];
 }
 
 dyn_serde_trait!(ModuleFactory);
@@ -29,7 +29,9 @@ pub struct AssemblyRecipeSeed<'v> {
 
 impl<'v> AssemblyRecipeSeed<'v> {
     pub fn new(vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>) -> Self {
-        Self { module_factory_seed: ModuleFactorySeed::new(vault) }
+        Self {
+            module_factory_seed: ModuleFactorySeed::new(vault),
+        }
     }
 }
 
@@ -42,6 +44,6 @@ impl AssemblyRecipe {
         self.output.create(&self.input)
     }
     pub(crate) fn output_capabilities(&self) -> &[ModuleCapability] {
-        self.output.capabilities()
+        self.output.output_capabilities()
     }
 }

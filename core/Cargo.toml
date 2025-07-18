@@ -7,6 +7,10 @@ edition = "2024"
 dudes_in_space_api = { path = "../api" }
 dyn_serde = { path = "../dyn_serde" }
 dyn_serde_macro = { path = "../dyn_serde_macro" }
-serde = { version = "1.0", features = ["derive", "rc"] }
-serde-intermediate = "1.0.0"
+serde = { version = "1.0.219", features = ["derive", "rc"] }
+serde-intermediate = "1.6.1"
+uuid = { version = "1.17.0", features = ["v4"] }
+
+[dev-dependencies]
+serde_json = "1.0.140"
 rand = "0.9.1"

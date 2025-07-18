@@ -1,17 +1,22 @@
 #![feature(iter_intersperse)]
 
-use proc_macro::TokenStream;
-use std::ops::Deref;
 use convert_case::{Case, Casing};
-use syn::{self, parse::Parse, parse_macro_input, Attribute, Data, DeriveInput, Expr, ExprPath, PatIdent, Path, PathArguments, Type, TypeGroup, TypePath};
-use quote::{format_ident, quote, ToTokens};
-use syn::token::Trait;
-use syn::{Ident, LitInt, Token, ExprGroup};
-use darling::{FromDeriveInput, FromField, FromVariant};
 use darling::util::PathList;
+use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
+use proc_macro::TokenStream;
+use std::fmt::format;
+use std::marker::PhantomData;
+use quote::{ToTokens, format_ident, quote};
+use std::ops::Deref;
+use syn::ReturnType::Default;
 use syn::ext::IdentExt;
 use syn::punctuated::Punctuated;
-use syn::ReturnType::Default;
+use syn::token::Trait;
+use syn::{
+    self, Attribute, Data, DeriveInput, Expr, ExprPath, PatIdent, Path, PathArguments, Type,
+    TypeGroup, TypePath, parse::Parse, parse_macro_input,
+};
+use syn::{ExprGroup, Ident, LitInt, Token};
 
 #[derive(Debug)]
 struct ParsedInput {
@@ -23,7 +28,9 @@ impl Parse for ParsedInput {
         if input.is_empty() {
             panic!("Usage: dyn_serialize_trait!(MyTrait)");
         }
-        Ok(Self { trait_name: input.parse::<Ident>()? })
+        Ok(Self {
+            trait_name: input.parse::<Ident>()?,
+        })
     }
 }
 
@@ -81,6 +88,14 @@ struct DeserializeSeedXXXFieldAttributes {
     seed: Option<Expr>,
 }
 
+#[derive(FromField, Debug)]
+#[darling(attributes(serde), forward_attrs(allow, doc, cfg))]
+struct SerdeFieldAttributes {
+    #[darling(default)]
+    skip: bool,
+    with: Option<String>,
+}
+
 #[proc_macro_derive(DeserializeSeedXXX, attributes(deserialize_seed_xxx))]
 pub fn deserialize_field(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
@@ -109,6 +124,7 @@ pub fn deserialize_field(input: TokenStream) -> TokenStream {
         key_arm: proc_macro2::TokenStream,
         value_arm: proc_macro2::TokenStream,
         check_missing: proc_macro2::TokenStream,
+        skip: bool,
     }
 
     let fields: Vec<FieldRecipe> = fields.into_iter().map(|field| {
@@ -119,8 +135,15 @@ pub fn deserialize_field(input: TokenStream) -> TokenStream {
         let locale_variable_ident = Ident::new(&field_ident.to_string().to_case(Case::Camel), field_ident.span());
         let key_arm = quote! { #field_name => Ok(Field::#variant_ident) };
         let var_decl = quote! { let mut #locale_variable_ident: Option<#field_type> = None; };
+        let serde_options = SerdeFieldAttributes::from_field(field).expect("Wrong serde attributes");
+        let skip = serde_options.skip;
+
+
 
         let value_arm = match DeserializeSeedXXXFieldAttributes::from_field(field).expect("Wrong attributes").seed {
+
+
+
             Some(seed) => quote! {
                 Field::#variant_ident => {
                     if #locale_variable_ident.is_some() {
@@ -129,34 +152,76 @@ pub fn deserialize_field(input: TokenStream) -> TokenStream {
                     #locale_variable_ident = Some(map.next_value_seed(#seed.clone())?.into());
                 }
             },
-            None => quote! {
-                Field::#variant_ident => {
-                    if #locale_variable_ident.is_some() {
-                        return Err(serde::de::Error::duplicate_field(#field_name));
+            None => match serde_options.with {
+                Some(with) => {
+                    let with = Path::from_string(&with).unwrap();
+                    quote! {
+                    Field::#variant_ident => {
+                        struct Seed;
+
+                        impl<'de> serde::de::DeserializeSeed<'de> for Seed {
+                            type Value = #field_type;
+
+                            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                            where
+                                D: serde::de::Deserializer<'de>,
+                            {
+                                #with::deserialize(deserializer)
+                            }
+                        }
+
+
+                        if #locale_variable_ident.is_some() {
+                            return Err(serde::de::Error::duplicate_field(#field_name));
+                        }
+                        #locale_variable_ident = Some(map.next_value_seed(Seed)?);
+                        // #locale_variable_ident = Some(map.next_value_seed(std::marker::PhantomData)?);
                     }
-                    #locale_variable_ident = Some(map.next_value()?);
                 }
-            },
+                },
+                None => quote! {
+                    Field::#variant_ident => {
+                        if #locale_variable_ident.is_some() {
+                            return Err(serde::de::Error::duplicate_field(#field_name));
+                        }
+                        #locale_variable_ident = Some(map.next_value()?);
+                    }
+                }
+            }
         };
 
         let check_missing = quote! {
             let #locale_variable_ident: #field_type = #locale_variable_ident.ok_or_else(|| serde::de::Error::missing_field(#field_name))?;
         };
 
-        FieldRecipe { field_ident, variant_ident, locale_variable_ident, field_name, var_decl, key_arm, value_arm, check_missing }
+        FieldRecipe { field_ident, variant_ident, locale_variable_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
     }).collect();
 
-    let expected_root: String =  format!("struct {}", ident);
-    let expected_key: String = fields.iter().map(|f|format!("`{}`", f.field_name)).intersperse(", ".to_string()).collect();
+    let expected_root: String = format!("struct {}", ident);
+    let expected_key: String = fields
+        .iter()
+        .filter_map(|f| if f.skip { None } else {Some(format!("`{}`", f.field_name))})
+        .intersperse(", ".to_string())
+        .collect();
 
-    let field_idents: Vec<_> = fields.iter().map(|f|f.field_ident.clone()).collect();
-    let variant_idents: Vec<_> = fields.iter().map(|f|f.variant_ident.clone()).collect();
-    let locale_variable_idents: Vec<_> = fields.iter().map(|f|f.locale_variable_ident.clone()).collect();
-    let field_names: Vec<_> = fields.iter().map(|f|f.field_name.clone()).collect();
-    let var_decls: Vec<_> = fields.iter().map(|f|f.var_decl.clone()).collect();
-    let key_arms: Vec<_> = fields.iter().map(|f|f.key_arm.clone()).collect();
-    let value_arms: Vec<_> = fields.iter().map(|f|f.value_arm.clone()).collect();
-    let check_missings: Vec<_> = fields.iter().map(|f|f.check_missing.clone()).collect();
+    let field_assignments: Vec<_> = fields.iter().map(|f|{
+        let field_ident = &f.field_ident;
+        if f.skip {
+            quote! { #field_ident: Default::default() }
+        } else {
+            quote! { #field_ident }
+        }}).collect();
+
+    let variant_idents: Vec<_> = fields.iter().filter_map(|f| if f.skip { None } else { Some( f.variant_ident.clone())}).collect();
+    let locale_variable_idents: Vec<_> = fields
+        .iter()
+        .filter_map(|f| if f.skip { None } else { Some(f.locale_variable_ident.clone())})
+        .collect();
+    let field_names: Vec<_> = fields.iter().filter_map(|f| if f.skip { None } else { Some(  f.field_name.clone())}).collect();
+    let var_decls: Vec<_> = fields.iter().filter_map(|f| if f.skip { None } else { Some( f.var_decl.clone())}).collect();
+    let key_arms: Vec<_> = fields.iter().filter_map(|f| if f.skip { None } else { Some( f.key_arm.clone())}).collect();
+    let value_arms: Vec<_> = fields.iter().filter_map(|f| if f.skip { None } else { Some( f.value_arm.clone())}).collect();
+    let check_missings: Vec<_> = fields.iter().filter_map(|f| if f.skip { None } else { Some( f.check_missing.clone())}).collect();
 
     let output = quote! {
         impl<'de, #(#attr_seed_args),*> serde::de::DeserializeSeed<'de> for #attr_seed {
@@ -222,7 +287,7 @@ pub fn deserialize_field(input: TokenStream) -> TokenStream {
                         }
                         #(#check_missings)*
                         Ok(#ident {
-                            #(#field_idents),*,
+                            #(#field_assignments),*,
                         })
                     }
                 }

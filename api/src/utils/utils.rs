@@ -1,3 +1,5 @@
+use crate::utils::math::NoNeg;
+use crate::utils::range::Range;
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use std::{
     error::Error,
@@ -5,8 +7,6 @@ use std::{
     ops::RangeBounds,
     time::Duration,
 };
-use crate::utils::math::NoNeg;
-use crate::utils::range::Range;
 
 pub type Float = f64;
 

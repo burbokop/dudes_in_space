@@ -5,8 +5,8 @@ use std::{
 };
 
 use super::{Abs, Floor, IsNeg, Pi, Sqrt, Zero};
-use serde::{Deserialize, Serialize};
 use crate::utils::utils::Float;
+use serde::{Deserialize, Serialize};
 
 /// Can not store negative numbers
 #[derive(Clone, Copy, Debug)]

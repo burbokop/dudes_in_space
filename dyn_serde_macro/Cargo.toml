@@ -7,8 +7,8 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-syn = "2.0.82"
-quote = "1"
-proc-macro2 = "1.0.88"
+syn = "2.0.104"
+quote = "1.0.40"
+proc-macro2 = "1.0.95"
 convert_case = "0.8.0"
 darling = "0.21.0"

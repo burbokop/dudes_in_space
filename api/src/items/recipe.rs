@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::items::Item;
+use serde::{Deserialize, Serialize};
 
 pub struct Recipe {
     input: Vec<Item>,
@@ -13,10 +13,16 @@ pub struct InputRecipe {
 
 impl From<Vec<Item>> for InputRecipe {
     fn from(value: Vec<Item>) -> Self {
-        todo!()
+        Self { input: value }
     }
 }
 
 pub(crate) struct OutputRecipe {
     output: Vec<Item>,
+}
+
+impl From<Vec<Item>> for OutputRecipe {
+    fn from(value: Vec<Item>) -> Self {
+        Self { output: value }
+    }
 }

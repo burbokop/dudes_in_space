@@ -1,10 +1,12 @@
+use crate::modules::{ Module, ModuleCapability, ModuleId, VesselPersonInterface};
+use crate::person::CraftingVesselsStage::MovingToCraftingModule;
+use crate::person::PersonObjective::CraftingVessels;
+use rand::Rng;
 use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
-use rand::{Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use crate::modules::{Module, ModuleCapability, VesselPersonInterface};
-use crate::person::PersonObjective::CraftingVessels;
+use uuid::Uuid;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -188,19 +190,52 @@ impl Distribution<Gender> for StandardUniform {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "tp")]
+pub(crate) enum CraftingVesselsStage {
+    SearchingForCraftingModule,
+    MovingToCraftingModule { dst: ModuleId },
+    Crufting,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct CraftingVesselsObjective {
+    stage: CraftingVesselsStage
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct TradingObjective {
+    i: Option<u8>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "objective_tp")]
 pub(crate) enum PersonObjective {
-    CraftingVessels,
+    CraftingVessels(CraftingVesselsObjective),
+    Trading(TradingObjective),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct PersonStateIdle {}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "tp")]
 enum PersonState {
-    Idle,
+    Idle(PersonStateIdle),
     PursuingObjective(PersonObjective),
 }
 
+impl Default for PersonState {
+    fn default() -> Self {
+        Self::Idle(PersonStateIdle{})
+    }
+}
+
+pub type PersonId = Uuid;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Person {
+    id: PersonId,
     name: String,
     age: u8,
     gender: Gender,
@@ -208,13 +243,19 @@ pub struct Person {
     morale: Morale,
     boldness: Boldness,
     awareness: Awareness,
+    #[serde(default)]
     state: PersonState,
 }
 
 impl Person {
+    pub fn id(&self) -> PersonId {
+        self.id
+    }
+    
     pub fn random<R: Rng>(rng: &mut R) -> Self {
         let gender = rng.random();
         Self {
+            id: Uuid::new_v4(),
             name: random_name(rng, gender),
             age: rng.random_range(15..=80),
             gender,
@@ -226,18 +267,22 @@ impl Person {
             morale: rng.random(),
             boldness: rng.random(),
             awareness: rng.random(),
-            state: PersonState::Idle,
+            state: PersonState::Idle(PersonStateIdle{}),
         }
     }
 
     pub fn proceed(&mut self, v: &dyn VesselPersonInterface) {
         match &self.state {
-            PersonState::Idle => self.decide_objective(),
-            PersonState::PursuingObjective(objective) => self.pursue_objective(v, *objective),
+            PersonState::Idle (_) => self.decide_objective(),
+            PersonState::PursuingObjective(objective) => {
+                self.pursue_objective(v, objective.clone())
+            }
         }
     }
 
     fn decide_objective(&mut self) {
+        println!("decide objective: {} -> {:?}", self.name, self.passions);
+
         {
             let mut passions = self.passions.clone();
             passions.shuffle(&mut rand::rng());
@@ -269,7 +314,10 @@ impl Person {
                     Passion::Crafting => false,
                     Passion::Adventuring => false,
                     Passion::Flying => {
-                        self.state = PersonState::PursuingObjective(CraftingVessels);
+                        println!("move to vessel");
+                        self.state = PersonState::PursuingObjective(CraftingVessels(CraftingVesselsObjective {
+                            stage: CraftingVesselsStage::SearchingForCraftingModule {},
+                        }));
                         true
                     }
                     Passion::Ruling => false,
@@ -283,37 +331,50 @@ impl Person {
         }
     }
 
-    fn pursue_objective(&mut self, v: &dyn VesselPersonInterface, objective: PersonObjective) {
+    fn pursue_objective(&mut self, v: & dyn VesselPersonInterface, objective: PersonObjective) {
         match objective {
-            CraftingVessels => {
-                let is_crafting_module_suitable = |crafting_module: &Box<dyn Module>,
-                                                   mut needed_caps: Vec<ModuleCapability>|
-                 -> bool {
-                    for r in crafting_module.assembly_recipes() {
-                        for cap in r.output_capabilities() {
-                            if let Some(i) = needed_caps.element_offset(&cap) {
-                                needed_caps.remove(i);
+            CraftingVessels(objective) => match objective.stage {
+                CraftingVesselsStage::SearchingForCraftingModule {} => {
+                    let is_crafting_module_suitable = |crafting_module: &Box<dyn Module>,
+                                                       mut needed_caps: Vec<ModuleCapability>|
+                     -> bool {
+                        for r in crafting_module.assembly_recipes() {
+                            for cap in r.output_capabilities() {
+                                if let Some(i) = needed_caps.iter().position(|x| *x == *cap) {
+                                    needed_caps.remove(i);
+                                }
                             }
                         }
-                    }
-                    needed_caps.is_empty()
-                };
+                        needed_caps.is_empty()
+                    };
 
-                let needed_caps = vec![
-                    ModuleCapability::Cockpit,
-                    ModuleCapability::Engine,
-                    ModuleCapability::Reactor,
-                    ModuleCapability::FuelTank,
-                ];
+                    let needed_caps = vec![
+                        ModuleCapability::Cockpit,
+                        ModuleCapability::Engine,
+                        ModuleCapability::Reactor,
+                        ModuleCapability::FuelTank,
+                    ];
 
-                for crafting_module in v.modules_with_cap(ModuleCapability::Crafting) {
-                    if is_crafting_module_suitable(&crafting_module, needed_caps.clone()) {
-                        println!("move to module: {:?}", crafting_module.type_id());
-                        return;
+                    for crafting_module in v.modules_with_cap(ModuleCapability::Crafting) {
+                        if is_crafting_module_suitable(&crafting_module, needed_caps.clone()) {
+                            self.state = PersonState::PursuingObjective(CraftingVessels(CraftingVesselsObjective {
+                                stage: MovingToCraftingModule {
+                                    dst: crafting_module.id(),
+                                },
+                            }));
+                            return;
+                        }
                     }
+                    self.state = PersonState::Idle(PersonStateIdle{});
                 }
-                self.state = PersonState::Idle;
-            }
+                CraftingVesselsStage::MovingToCraftingModule { dst } => {
+                    v.move_to_module(self, dst);
+                }
+                CraftingVesselsStage::Crufting {} => {
+                    todo!()
+                }
+            },
+            PersonObjective::Trading(_) => todo!(),
         }
     }
 }

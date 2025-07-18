@@ -1,14 +1,15 @@
+use crate::modules::{Module, ModuleCapability, ModuleId, ModuleSeed, VesselPersonInterface};
+use crate::person::Person;
+use crate::utils::math::Point;
+use crate::utils::utils::Float;
+use dyn_serde::DynDeserializeSeedVault;
+use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::cell::{Ref, RefCell, RefMut};
 use std::fmt::Formatter;
 use std::ops::Deref;
-use dyn_serde::DynDeserializeSeedVault;
-use dyn_serde_macro::DeserializeSeedXXX;
-use crate::modules::{Module, ModuleCapability, ModuleSeed, VesselPersonInterface};
-use crate::person::Person;
-use crate::utils::math::Point;
-use crate::utils::utils::Float;
+use crate::PersonId;
 
 pub(crate) enum VesselModule {
     Cockpit { captain: Option<Person> },
@@ -28,6 +29,14 @@ pub(crate) enum VesselModule {
 
 pub(crate) type VesselId = u32;
 
+#[derive(Debug, Serialize, Deserialize)]
+enum VesselRequest {
+    MoveToModule {
+        person_id: PersonId,
+        module_id: ModuleId,
+    },
+}
+
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::VesselSeed::<'v>)]
 pub struct Vessel {
@@ -35,6 +44,8 @@ pub struct Vessel {
     pos: Point<Float>,
     #[deserialize_seed_xxx(seed = self.seed.module_seq_seed)]
     modules: Vec<RefCell<Box<dyn Module>>>,
+    #[serde(skip)]
+    requests: RefCell<Vec<VesselRequest>>,
 }
 
 pub struct VesselCreateInfo {
@@ -52,15 +63,15 @@ impl<'de, 'v> DeserializeSeed<'de> for ModuleSeqSeed<'v> {
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         struct ModuleSeqVisitor<'v> {
             module_seed: ModuleSeed<'v>,
         }
-            
+
         impl<'b, 'de> Visitor<'de> for ModuleSeqVisitor<'b> {
             type Value = Vec<RefCell<Box<dyn Module>>>;
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result { 
+            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
                 formatter.write_str("list")
             }
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -74,8 +85,10 @@ impl<'de, 'v> DeserializeSeed<'de> for ModuleSeqSeed<'v> {
                 Ok(modules)
             }
         }
-        
-        deserializer.deserialize_seq(ModuleSeqVisitor { module_seed: self.module_seed })
+
+        deserializer.deserialize_seq(ModuleSeqVisitor {
+            module_seed: self.module_seed,
+        })
     }
 }
 
@@ -86,7 +99,11 @@ pub(crate) struct VesselSeed<'v> {
 
 impl<'r> VesselSeed<'r> {
     pub(crate) fn new(reg: &'r DynDeserializeSeedVault<dyn Module>) -> Self {
-        Self { module_seq_seed: ModuleSeqSeed { module_seed: ModuleSeed::new(reg) } }
+        Self {
+            module_seq_seed: ModuleSeqSeed {
+                module_seed: ModuleSeed::new(reg),
+            },
+        }
     }
 }
 
@@ -100,14 +117,15 @@ impl Vessel {
             id,
             pos: ci.pos,
             modules: ci.modules.into_iter().map(RefCell::new).collect(),
+            requests: Default::default(),
         }
     }
 
-    pub fn modules<'a>(&'a self) -> impl Iterator<Item=Ref<'a, Box<dyn Module>>> {
+    pub fn modules<'a>(&'a self) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
         self.modules.iter().map(|module| module.borrow())
     }
 
-    pub fn modules_mut<'a>(&'a self) -> impl Iterator<Item=RefMut<'a, Box<dyn Module>>> {
+    pub fn modules_mut<'a>(&'a self) -> impl Iterator<Item = RefMut<'a, Box<dyn Module>>> {
         self.modules.iter().map(|module| module.borrow_mut())
     }
 
@@ -118,6 +136,28 @@ impl Vessel {
     pub(crate) fn proceed(&mut self) {
         for v in &self.modules {
             v.borrow_mut().proceed(self)
+        }
+        for request in self.requests.take() {
+            match request { 
+                VesselRequest::MoveToModule { person_id, module_id } => {
+                    let src = self.modules.iter().find(|m|m.borrow().contains_person(person_id)).unwrap();
+                    let dst = self.modules.iter().find(|m|m.borrow().id() == module_id).unwrap();
+                    
+                    if src.as_ptr() == dst.as_ptr() {
+                        continue;
+                    }
+                    
+                    let mut src = src.borrow_mut();
+                    let mut dst = dst.borrow_mut();
+                    
+                    if !dst.can_insert_person() {
+                        continue;
+                    }
+                    
+                    let ok = dst.insert_person(src.extract_person(person_id).unwrap() );
+                    assert!(ok)
+                } 
+            }
         }
     }
 }
@@ -135,5 +175,12 @@ impl VesselPersonInterface for Vessel {
                 None
             })
             .collect()
+    }
+
+    fn move_to_module(&self, person: &Person, id: ModuleId) {
+        self.requests.borrow_mut().push(VesselRequest::MoveToModule {
+            person_id: person.id(),
+            module_id: id
+        })
     }
 }

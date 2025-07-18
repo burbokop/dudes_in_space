@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Abs, Cos, DegToRad, IsNeg, NoNeg, Pi, RadToDeg, RemEuclid, Sin, Two, Zero};
+use crate::utils::range::Range;
 use std::{
     fmt::Display,
     ops::{Add, AddAssign, Div, Mul, Rem, Sub},
 };
-use crate::utils::range::Range;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Angle<T>(T);

@@ -1,10 +1,10 @@
 use super::{Clamp, MinusOne, One, Zero};
+use crate::utils::range::{Range, RangeInclusive};
 use std::{
     error::Error,
     fmt::{Debug, Display},
     ops::{Add, Div, Mul, Sub},
 };
-use crate::utils::range::{Range, RangeInclusive};
 
 pub fn map_into_range<T, I, O>(x: T, input: I, output: O) -> T
 where

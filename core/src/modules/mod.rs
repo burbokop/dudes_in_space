@@ -1,8 +1,8 @@
-
-
 mod assembler;
-mod personnel_area;
 mod core_module;
+mod personnel_area;
+mod shuttle;
 pub use assembler::*;
-pub use personnel_area::*;
 pub use core_module::*;
+pub use personnel_area::*;
+pub use shuttle::*;
