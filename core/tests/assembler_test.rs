@@ -1,16 +1,20 @@
-use std::collections::HashMap;
-use rand::rng;
-use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
-use serde_intermediate::TextConfigStyle::Default;
-use dudes_in_space_api::modules::{Module, ModuleFactory};
 use dudes_in_space_api::Person;
+use dudes_in_space_api::modules::{Module, ModuleFactory};
 use dudes_in_space_core::modules::{Assembler, AssemblerSeed};
-use dyn_serde::{from_intermediate_seed, DynDeserializeSeedVault};
+use dyn_serde::{DynDeserializeSeedVault, from_intermediate_seed};
+use rand::rng;
+use serde_intermediate::TextConfigStyle::Default;
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use std::collections::HashMap;
 
-fn map_to_struct(v: Intermediate)-> Intermediate {
-    Intermediate::Struct(v.as_map().unwrap().iter().map(|(k, v)|
-        (k.as_str().unwrap().to_string(), v.clone())
-    ).collect())
+fn map_to_struct(v: Intermediate) -> Intermediate {
+    Intermediate::Struct(
+        v.as_map()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| (k.as_str().unwrap().to_string(), v.clone()))
+            .collect(),
+    )
 }
 
 #[test]
@@ -44,18 +48,18 @@ fn serde() {
 
     let vault = DynDeserializeSeedVault::<dyn ModuleFactory>::new();
 
-    let parsed_assembler: Assembler = from_intermediate_seed(AssemblerSeed::new(&vault), &parsed_intermediate).unwrap();
+    let parsed_assembler: Assembler =
+        from_intermediate_seed(AssemblerSeed::new(&vault), &parsed_intermediate).unwrap();
 }
-
 
 mod xxxxxxx {
 
-
-
     use std::fmt;
 
-    use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess, DeserializeSeed};
     use dudes_in_space_api::Person;
+    use serde::de::{
+        self, Deserialize, DeserializeSeed, Deserializer, MapAccess, SeqAccess, Visitor,
+    };
 
     #[allow(dead_code)]
     struct Duration {
@@ -74,7 +78,10 @@ mod xxxxxxx {
         where
             D: Deserializer<'de>,
         {
-            enum Field { Secs, Nanos };
+            enum Field {
+                Secs,
+                Nanos,
+            };
 
             // This part could also be generated independently by:
             //
@@ -124,9 +131,11 @@ mod xxxxxxx {
                 where
                     V: SeqAccess<'de>,
                 {
-                    let secs = seq.next_element()?
+                    let secs = seq
+                        .next_element()?
                         .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                    let nanos = seq.next_element()?
+                    let nanos = seq
+                        .next_element()?
                         .ok_or_else(|| de::Error::invalid_length(1, &self))?;
                     Ok(Duration::new(secs, nanos))
                 }
@@ -171,12 +180,9 @@ mod xxxxxxx {
 
         fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
         where
-            D: Deserializer<'de>
+            D: Deserializer<'de>,
         {
             todo!()
         }
     }
-
-
-
 }

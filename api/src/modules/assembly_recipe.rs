@@ -39,11 +39,13 @@ impl AssemblyRecipe {
     pub fn new(input: InputRecipe, output: Rc<dyn ModuleFactory>) -> Self {
         Self { input, output }
     }
-
-    pub(crate) fn create(&self) -> Box<dyn Module> {
+    pub fn input(&self) -> &InputRecipe {
+        &self.input
+    }
+    pub fn create(&self) -> Box<dyn Module> {
         self.output.create(&self.input)
     }
-    pub(crate) fn output_capabilities(&self) -> &[ModuleCapability] {
+    pub fn output_capabilities(&self) -> &[ModuleCapability] {
         self.output.output_capabilities()
     }
 }

@@ -1,11 +1,8 @@
 #![feature(substr_range)]
 
-use dudes_in_space_api::modules::{AssemblyRecipe, Module, ModuleFactory};
-use dudes_in_space_api::{Environment, EnvironmentSeed, Item};
-use dudes_in_space_core::modules::{
-    Assembler, AssemblerDynSeed, ModuleVisitorMut, PersonnelAreaDynSeed, ShuttleDynSeed,
-    ShuttleFactoryDynSeed, VisitModules,
-};
+use dudes_in_space_api::modules::{Module, ModuleFactory};
+use dudes_in_space_api::{Environment, EnvironmentSeed};
+use dudes_in_space_core::modules::{ModuleVisitorMut, VisitModules};
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
@@ -34,16 +31,10 @@ fn env_to_json(env: &Environment) -> Result<Vec<u8>, serde_json::Error> {
 
 fn main() {
     let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
-
-    let module_factory_seed_vault = DynDeserializeSeedVault::<dyn ModuleFactory>::new()
-        .with(ShuttleFactoryDynSeed)
-        .into_rc();
-
-    let module_seed_vault = DynDeserializeSeedVault::<dyn Module>::new()
-        .with(PersonnelAreaDynSeed)
-        .with(ShuttleDynSeed)
-        .with(AssemblerDynSeed::new(module_factory_seed_vault));
-
+    
+    let module_factory_seed_vault = dudes_in_space_core::register_module_factories(Default::default()).into_rc();
+    let module_seed_vault = dudes_in_space_core::register_modules(Default::default(), module_factory_seed_vault).into_rc();
+    
     let mut environment = if save_path.exists() {
         env_from_json(
             &module_seed_vault,
@@ -54,29 +45,27 @@ fn main() {
         env_presets::preset0::new(&mut rng())
     };
 
-    struct MyAssVisitor;
-    impl ModuleVisitorMut for MyAssVisitor {
-        type Result = ();
-        fn visit_assembler(&self, assembler: &mut Assembler) -> Option<Self::Result> {
-            assembler.add_recipe(AssemblyRecipe::new(
-                vec![Item {
-                    name: "steel".to_string(),
-                    count: 10,
-                }]
-                .into(),
-                todo!(),
-            ));
-            Some(())
-        }
-    }
+    // struct MyAssVisitor;
+    // impl ModuleVisitorMut for MyAssVisitor {
+    //     type Result = ();
+    //     fn visit_assembler(&self, assembler: &mut Assembler) -> Option<Self::Result> {
+    //         // assembler.add_recipe(AssemblyRecipe::new(
+    //         //     vec![Item {
+    //         //         id: "steel".to_string(),
+    //         //         count: 10,
+    //         //     }]
+    //         //     .into(),
+    //         //     todo!(),
+    //         // ));
+    //         Some(())
+    //     }
+    // }
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
     environment.proceed();
 
-    println!("{:#?}", environment);
+    // println!("{:#?}", environment);
 
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
     std::fs::write(save_path, env_to_json(&environment).unwrap()).unwrap();
-    
-    
 }

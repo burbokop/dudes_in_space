@@ -17,7 +17,7 @@ pub trait DynSerialize {
 
 pub trait DynDeserializeSeed<T: ?Sized> {
     fn type_id(&self) -> TypeId;
-    fn deserialize(&self, intermediate: Intermediate) -> Result<Box<T>, Box<dyn Error>>;
+    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<T>) -> Result<Box<T>, Box<dyn Error>>;
 }
 
 pub fn dyn_serialize<S: Serializer, T: ?Sized + DynSerialize>(
@@ -41,6 +41,14 @@ pub fn dyn_serialize<S: Serializer, T: ?Sized + DynSerialize>(
 
 pub struct DynDeserializeSeedVault<T: ?Sized> {
     data: BTreeMap<String, Box<dyn DynDeserializeSeed<T>>>,
+}
+
+impl<T: ?Sized> Default for DynDeserializeSeedVault<T> {
+    fn default() -> Self {
+        Self {
+            data: BTreeMap::new(),
+        }
+    }
 }
 
 impl<T: ?Sized> DynDeserializeSeedVault<T> {
@@ -78,7 +86,7 @@ impl<T: ?Sized> DynDeserializeSeedVault<T> {
             .expect(&format!("Module with id `{}` not found", i.tp));
 
         Ok(deser
-            .deserialize(i.payload)
+            .deserialize(i.payload, self)
             .map_err(|e| D::Error::custom(e))?)
     }
 }

@@ -1,4 +1,5 @@
-use crate::modules::{Module, ModuleCapability, ModuleId, ModuleSeed, VesselPersonInterface};
+use crate::PersonId;
+use crate::modules::{Module, ModuleCapability, ModuleId, ModuleSeed, VesselModuleInterface, VesselPersonInterface};
 use crate::person::Person;
 use crate::utils::math::Point;
 use crate::utils::utils::Float;
@@ -9,7 +10,6 @@ use serde::{Deserialize, Deserializer, Serialize, de};
 use std::cell::{Ref, RefCell, RefMut};
 use std::fmt::Formatter;
 use std::ops::Deref;
-use crate::PersonId;
 
 pub(crate) enum VesselModule {
     Cockpit { captain: Option<Person> },
@@ -29,12 +29,15 @@ pub(crate) enum VesselModule {
 
 pub(crate) type VesselId = u32;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 enum VesselRequest {
     MoveToModule {
         person_id: PersonId,
         module_id: ModuleId,
     },
+    AddModule {
+        module: Box<dyn Module>,
+    }
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
@@ -138,27 +141,45 @@ impl Vessel {
             v.borrow_mut().proceed(self)
         }
         for request in self.requests.take() {
-            match request { 
-                VesselRequest::MoveToModule { person_id, module_id } => {
-                    let src = self.modules.iter().find(|m|m.borrow().contains_person(person_id)).unwrap();
-                    let dst = self.modules.iter().find(|m|m.borrow().id() == module_id).unwrap();
-                    
-                    if src.as_ptr() == dst.as_ptr() {
-                        continue;
-                    }
-                    
+            match request {
+                VesselRequest::MoveToModule {
+                    person_id,
+                    module_id,
+                } => {
+                    let src = self
+                        .modules
+                        .iter()
+                        .find(|m| m.borrow().contains_person(person_id))
+                        .unwrap();
+                    let dst = self
+                        .modules
+                        .iter()
+                        .find(|m| m.borrow().id() == module_id)
+                        .unwrap();
+                    assert_ne!(src.as_ptr(), dst.as_ptr());
                     let mut src = src.borrow_mut();
                     let mut dst = dst.borrow_mut();
-                    
-                    if !dst.can_insert_person() {
-                        continue;
-                    }
-                    
-                    let ok = dst.insert_person(src.extract_person(person_id).unwrap() );
-                    assert!(ok)
-                } 
+                    assert!(dst.can_insert_person());
+                    let ok = dst.insert_person(src.extract_person(person_id).unwrap());
+                    assert!(ok);
+                    assert!(!src.contains_person(person_id));
+                    assert!(dst.contains_person(person_id));
+                }
+                VesselRequest::AddModule { module } => {
+                    self.modules.push(RefCell::new(module));
+                }
             }
         }
+    }
+}
+
+impl VesselModuleInterface for Vessel {
+    fn add_module(&self, module: Box<dyn Module>) {
+        self.requests.borrow_mut().push(VesselRequest::AddModule { module })
+    }
+
+    fn vessel_person_interface(&self) -> &dyn VesselPersonInterface {
+        self
     }
 }
 
@@ -177,10 +198,12 @@ impl VesselPersonInterface for Vessel {
             .collect()
     }
 
-    fn move_to_module(&self, person: &Person, id: ModuleId) {
-        self.requests.borrow_mut().push(VesselRequest::MoveToModule {
-            person_id: person.id(),
-            module_id: id
-        })
+    fn move_to_module(&self, person_id: PersonId, id: ModuleId) {
+        self.requests
+            .borrow_mut()
+            .push(VesselRequest::MoveToModule {
+                person_id,
+                module_id: id,
+            })
     }
 }

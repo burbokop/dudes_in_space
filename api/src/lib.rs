@@ -1,4 +1,5 @@
 #![feature(substr_range)]
+#![feature(sized_hierarchy)]
 
 mod environment;
 mod items;

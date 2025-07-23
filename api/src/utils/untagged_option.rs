@@ -1,26 +1,25 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "tagged_option_state")]
-enum TaggedOption<T> {
+enum UntaggedOption<T> {
     Some(T),
     None,
 }
 
-impl<T> From<Option<T>> for TaggedOption<T> {
+impl<T> From<Option<T>> for UntaggedOption<T> {
     fn from(value: Option<T>) -> Self {
         match value {
-            Some(value) => TaggedOption::Some(value),
-            None => TaggedOption::None,
+            Some(value) => UntaggedOption::Some(value),
+            None => UntaggedOption::None,
         }
     }
 }
 
-impl<T> From<TaggedOption<T>> for Option<T> {
-    fn from(value: TaggedOption<T>) -> Self {
+impl<T> From<UntaggedOption<T>> for Option<T> {
+    fn from(value: UntaggedOption<T>) -> Self {
         match value {
-            TaggedOption::Some(value) => Some(value),
-            TaggedOption::None => None,
+            UntaggedOption::Some(value) => Some(value),
+            UntaggedOption::None => None,
         }
     }
 }
@@ -30,7 +29,7 @@ where
     S: Serializer,
     T: Serialize,
 {
-    let t: TaggedOption<_> = value.as_ref().into();
+    let t: UntaggedOption<_> = value.as_ref().into();
     t.serialize(s)
 }
 
@@ -38,6 +37,6 @@ pub fn deserialize<'de, T: Deserialize<'de>, D>(deserializer: D) -> Result<Optio
 where
     D: Deserializer<'de>,
 {
-    let t: TaggedOption<T> = Deserialize::deserialize(deserializer)?;
+    let t: UntaggedOption<T> = Deserialize::deserialize(deserializer)?;
     Ok(t.into())
 }

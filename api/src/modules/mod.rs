@@ -1,3 +1,4 @@
+use std::cell::RefMut;
 use serde::ser::{Error, SerializeSeq};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -8,16 +9,26 @@ pub type PackageId = String;
 pub type ModuleId = Uuid;
 
 pub trait Module: Debug + DynSerialize {
+    /// common
     fn id(&self) -> ModuleId;
     fn package_id(&self) -> PackageId;
-    fn proceed(&mut self, v: &dyn VesselPersonInterface);
+    fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface);
     fn capabilities(&self) -> &[ModuleCapability];
+    
+    /// crafting
     fn recipes(&self) -> Vec<Recipe>;
+    /// assembly
     fn assembly_recipes(&self) -> &[AssemblyRecipe];
+    
+    /// persons
     fn extract_person(&mut self, id: PersonId) -> Option<Person>;
     fn insert_person(&mut self, person: Person) -> bool;
     fn can_insert_person(&self) -> bool;
     fn contains_person(&self, id: PersonId) -> bool;
+    
+    /// storage
+    fn storages(&mut self) -> &mut [ItemStorage];
+    fn module_storages(&mut self) -> &mut [ModuleStorage];
 }
 
 dyn_serde_trait!(Module);
@@ -64,6 +75,7 @@ pub enum ModuleCapability {
     WarpDrive,
     Reactor,
     Crafting,
+    Dockyard,
 }
 
 mod module_person_interfaces;
@@ -73,8 +85,13 @@ mod vessel_person_interfaces;
 pub use vessel_person_interfaces::*;
 
 mod assembly_recipe;
-use crate::items::Recipe;
+mod module_storage;
+
 pub use assembly_recipe::*;
+pub use module_storage::*;
+
+use crate::items::Recipe;
+use crate::{ItemStorage, Person, PersonId};
 use dyn_serde::DynSerialize;
-use dyn_serde_macro::dyn_serde_trait;
-use crate::{Person, PersonId};
+use dyn_serde_macro::{dyn_serde_trait, DeserializeSeedXXX};
+
