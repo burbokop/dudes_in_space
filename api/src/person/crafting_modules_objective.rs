@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PointeeSized;
@@ -22,7 +22,7 @@ pub(crate) enum CraftingModulesObjective {
         deploy: bool,
     },
     Crafting {
-        needed_capabilities: VecDeque<ModuleCapability>,
+        needed_capabilities: BTreeSet<ModuleCapability>,
         deploy: bool,
     },
     Done,
@@ -84,7 +84,7 @@ impl CraftingModulesObjective {
             } => {
                 if *dst == this_module.id() {
                     *self = Self::Crafting {
-                        needed_capabilities: std::mem::take(needed_capabilities).into(),
+                        needed_capabilities: BTreeSet::from_iter(std::mem::take(needed_capabilities)),
                         deploy: *deploy,
                     };
                 } else {
@@ -102,12 +102,14 @@ impl CraftingModulesObjective {
                     } else {
                         Ok(ObjectiveStatus::InProgress)
                     }
-                } else if let Some(cap) = needed_capabilities.front() {
+                } else if let Some(cap) = needed_capabilities.first() {
                     if let Some(recipe) = this_module.recipe_by_output_capability(*cap) {
                         if this_module.has_resources_for_recipe(recipe) {
                             let ok = this_module.start_assembly(recipe,*deploy);
                             assert!(ok);
-                            needed_capabilities.pop_front();
+                            for c in this_module.recipe_output_capabilities(recipe) {
+                                needed_capabilities.remove(c);
+                            }
                             Ok(ObjectiveStatus::InProgress)
                         } else {
                             todo!()

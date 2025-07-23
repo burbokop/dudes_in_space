@@ -16,6 +16,7 @@ pub trait ModulePersonInterface {
     fn id(&self) -> ModuleId;
     // returns index in array. TODO replace with uuid
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
+    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;
     fn active_recipe(&self) -> Option<usize>;
@@ -42,6 +43,10 @@ impl ModulePersonInterface for DefaultModulePersonInterface {
     }
 
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
         todo!()
     }
 

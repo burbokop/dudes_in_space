@@ -17,6 +17,20 @@ impl ModuleStorage {
             content: Vec::new(),
         }
     }
+
+    /// TODO: add capacity
+    pub fn has_space(&self) -> bool {
+        true
+    }
+
+    pub fn add(&mut self, module: Box<dyn Module>) -> bool {
+        if !self.has_space() {
+            return false;       
+        }
+        
+        self.content.push(module);
+        true
+    }
     
     pub(crate) fn contains_modules_with_cap(&self, cap: ModuleCapability) -> bool {
         self.content.iter().any(|module| module.capabilities().contains(&cap))

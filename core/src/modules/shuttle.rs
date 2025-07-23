@@ -1,14 +1,19 @@
-use crate::modules::PersonnelArea;
-use dudes_in_space_api::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleFactory, ModuleId, ModuleStorage, ModuleTypeId, PackageId, VesselModuleInterface, VesselPersonInterface};
+use dudes_in_space_api::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleFactory, ModuleId, ModuleStorage, ModuleTypeId, PackageId, VesselModuleInterface};
 use dudes_in_space_api::{InputRecipe, ItemStorage, Person, PersonId, Recipe};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, to_intermediate};
+use serde_intermediate::{Intermediate, to_intermediate, from_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
+static CAPABILITIES: &[ModuleCapability] = &[            
+    ModuleCapability::Cockpit,
+    ModuleCapability::Engine,
+    ModuleCapability::Reactor,
+    ModuleCapability::FuelTank,
+];
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Shuttle {}
@@ -37,7 +42,7 @@ impl Module for Shuttle {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -80,8 +85,12 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        todo!()
+    fn deserialize(&self, intermediate: Intermediate, _: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let obj: Shuttle =
+            from_intermediate(&intermediate)
+                .map_err(|e| e.to_string())?;
+
+        Ok(Box::new(obj))
     }
 }
 
@@ -122,11 +131,6 @@ impl ModuleFactory for ShuttleFactory {
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {
-        &[
-            ModuleCapability::Cockpit,
-            ModuleCapability::Engine,
-            ModuleCapability::Reactor,
-            ModuleCapability::FuelTank,
-        ]
+        CAPABILITIES
     }
 }

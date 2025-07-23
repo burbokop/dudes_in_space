@@ -10,6 +10,7 @@ pub struct Recipe {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct InputRecipe {
+    #[serde(flatten)]
     input: BTreeMap<ItemId, ItemCount>,
 }
 

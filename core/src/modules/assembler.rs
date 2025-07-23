@@ -5,12 +5,25 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
+use std::ops::Deref;
 use std::rc::Rc;
+use crate::modules::assembler::AssemblerState::Idle;
 
 static TYPE_ID: &str = "Assembler";
+static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting, ModuleCapability::ItemStorage];
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "tp")]
+enum AssemblerState {
+    Idle,
+    Assembling {
+        recipe_index: usize,
+        deploy: bool,
+    },
+}
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v>)]
@@ -18,8 +31,7 @@ pub struct Assembler {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.assembly_recipe_seq_seed)]
     recipes: Vec<AssemblyRecipe>,
-    #[serde(with = "dudes_in_space_api::utils::untagged_option")]
-    active_recipe: Option<(usize, bool)>,
+    state: AssemblerState,
     storage: ItemStorage,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     operator: Option<Person>,
@@ -45,7 +57,7 @@ impl Assembler {
         Box::new(Self {
             id: ModuleId::new_v4(),
             recipes,
-            active_recipe: None,
+            state: Idle,
             storage: Default::default(),
             operator: None,
         })
@@ -75,7 +87,7 @@ struct AssemblerPersonInterface<'a> {
     id: PersonId,
     recipes: &'a [AssemblyRecipe],
     requests: Vec<AssemblerRequest>,
-    active_recipe: &'a mut Option<(usize, bool)>,
+    state: &'a mut AssemblerState,
     storage: &'a mut ItemStorage,
 }
 
@@ -90,30 +102,40 @@ impl<'a> ModulePersonInterface for AssemblerPersonInterface<'a> {
             .position(|recipe| recipe.output_capabilities().contains(&capability))
     }
 
+    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
+        self.recipes[index].output_capabilities()
+    }
+
     fn has_resources_for_recipe(&self, index: usize) -> bool {
         self.storage
             .contains_for_input(self.recipes[index].input().clone())
     }
 
     fn active_recipe(&self) -> Option<usize> {
-        self.active_recipe.map(|x|x.0)
+        match self.state.deref() {
+            Idle => None,
+            AssemblerState::Assembling { recipe_index, .. } => Some(*recipe_index),
+        }
     }
 
     fn start_assembly(&mut self, index: usize, deploy: bool) -> bool {
-        *self.active_recipe = Some((index,deploy));
+        *self.state = AssemblerState::Assembling { recipe_index: index, deploy };
         true
     }
 
     fn interact(&mut self) -> bool {
-        println!("xxx_interact: {:?}", self.active_recipe);
+        let is_recipe_valid = |state: &AssemblerState| {
+            match state {
+                Idle => false,
+                AssemblerState::Assembling { recipe_index,.. } => *recipe_index < self.recipes.len(),
+            }
+        };
 
-        if !self
-            .active_recipe
-            .map(|(i, _)| i < self.recipes.len())
-            .unwrap_or(false)
+        if !is_recipe_valid(self.state)
         {
             return false;
         }
+
         self.requests.push(AssemblerRequest::Interact);
         true
     }
@@ -137,7 +159,7 @@ impl Module for Assembler {
             id: self.id,
             recipes: &self.recipes,
             requests: vec![],
-            active_recipe: &mut self.active_recipe,
+            state: &mut self.state,
             storage: &mut self.storage,
         };
 
@@ -151,17 +173,28 @@ impl Module for Assembler {
                     todo!()
                 }
                 AssemblerRequest::Interact => {
-                    let (active_recipe_index, deploy) = self.active_recipe.unwrap();
-                    let active_recipe = &self.recipes[active_recipe_index];
+                    match self.state {
+                        Idle => todo!(),
+                        AssemblerState::Assembling { recipe_index, deploy } => {
+                            let active_recipe = &self.recipes[recipe_index];
 
-                    let ok = self.storage.try_consume(active_recipe.input().clone());
-                    assert!(ok);
+                            let ok = self.storage.try_consume(active_recipe.input().clone());
+                            assert!(ok);
 
-                    if deploy {
-                        this_vessel.add_module(active_recipe.create());
-                        self.active_recipe = None;
-                    } else {
-                        todo!("Store to nearest module storage")
+                            if deploy {
+                                this_vessel.add_module(active_recipe.create());
+                                self.state = Idle;
+                            } else {
+                                let mut storage_modules = this_vessel.vessel_person_interface().modules_with_cap(ModuleCapability::ModuleStorage);
+                                assert!(!storage_modules.is_empty());
+                                assert!(!storage_modules[0].module_storages().is_empty());
+                                let storage = &mut storage_modules[0].module_storages()[0];
+                                assert!(storage.has_space());
+                                let ok = storage.add(active_recipe.create());
+                                assert!(ok);
+                                self.state = Idle;
+                            }
+                        }
                     }
                 }
             }
@@ -169,7 +202,7 @@ impl Module for Assembler {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        &[ModuleCapability::Crafting]
+        CAPABILITIES
     }
 
     fn recipes(&self) -> Vec<Recipe> {

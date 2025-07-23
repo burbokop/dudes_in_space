@@ -9,7 +9,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
-static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Dockyard];
+static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Dockyard, ModuleCapability::ModuleStorage];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v>)]
@@ -73,6 +73,10 @@ impl ModulePersonInterface for DockyardPersonInterface {
         todo!()
     }
 
+    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
+        todo!()
+    }
+
     fn has_resources_for_recipe(&self, index: usize) -> bool {
         todo!()
     }
@@ -84,7 +88,6 @@ impl ModulePersonInterface for DockyardPersonInterface {
     fn start_assembly(&mut self, index: usize, deploy: bool) -> bool {
         todo!()
     }
-
 
     fn interact(&mut self) -> bool {
         todo!()

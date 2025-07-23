@@ -66,7 +66,8 @@ impl WorkerControlPanel for Workshop {}
 #[derive(Debug, PartialOrd, PartialEq, Eq, Ord, Hash, Clone, Copy, Serialize, Deserialize)]
 pub enum ModuleCapability {
     Cockpit,
-    Cargo,
+    ModuleStorage,
+    ItemStorage,
     FuelTank,
     Radar,
     Engine,
