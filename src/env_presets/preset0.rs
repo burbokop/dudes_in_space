@@ -1,4 +1,5 @@
-use dudes_in_space_api::{Environment, Person, VesselCreateInfo};
+use dudes_in_space_api::environment::Environment;
+use dudes_in_space_api::person::Person;
 use rand::Rng;
 
 pub(crate) fn new<R: Rng>(rng: &mut R) -> Environment {

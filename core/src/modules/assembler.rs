@@ -1,6 +1,12 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
-use dudes_in_space_api::modules::{AssemblyRecipe, AssemblyRecipeSeed, Module, ModuleCapability, ModuleFactory, ModuleId, ModulePersonInterface, ModuleStorage, PackageId, VesselModuleInterface, VesselPersonInterface, WorkerControlPanel};
-use dudes_in_space_api::{Item, ItemStorage, Person, PersonId, Recipe};
+use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::module::{
+    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, PackageId, ProcessToken, ProcessTokenMut,
+};
+use dudes_in_space_api::person::{Person, PersonId};
+use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
+use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
@@ -10,10 +16,10 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::modules::assembler::AssemblerState::Idle;
 
 static TYPE_ID: &str = "Assembler";
-static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting, ModuleCapability::ItemStorage];
+static CAPABILITIES: &[ModuleCapability] =
+    &[ModuleCapability::Crafting, ModuleCapability::ItemStorage];
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "tp")]
@@ -22,6 +28,7 @@ enum AssemblerState {
     Assembling {
         recipe_index: usize,
         deploy: bool,
+        process_token: ProcessTokenMut,
     },
 }
 
@@ -50,14 +57,12 @@ impl<'v> AssemblerSeed<'v> {
     }
 }
 
-impl WorkerControlPanel for Assembler {}
-
 impl Assembler {
     pub fn new(recipes: Vec<AssemblyRecipe>) -> Box<Self> {
         Box::new(Self {
             id: ModuleId::new_v4(),
             recipes,
-            state: Idle,
+            state: AssemblerState::Idle,
             storage: Default::default(),
             operator: None,
         })
@@ -83,7 +88,7 @@ enum AssemblerRequest {
     Interact,
 }
 
-struct AssemblerPersonInterface<'a> {
+struct Console<'a> {
     id: PersonId,
     recipes: &'a [AssemblyRecipe],
     requests: Vec<AssemblerRequest>,
@@ -91,11 +96,74 @@ struct AssemblerPersonInterface<'a> {
     storage: &'a mut ItemStorage,
 }
 
-impl<'a> ModulePersonInterface for AssemblerPersonInterface<'a> {
+impl<'a> ModuleConsole for Console<'a> {
     fn id(&self) -> ModuleId {
         self.id
     }
 
+    fn interact(&mut self) -> bool {
+        let is_recipe_valid = |state: &AssemblerState| match state {
+            AssemblerState::Idle => false,
+            AssemblerState::Assembling { recipe_index, .. } => *recipe_index < self.recipes.len(),
+        };
+
+        if !is_recipe_valid(self.state) {
+            return false;
+        }
+
+        self.requests.push(AssemblerRequest::Interact);
+        true
+    }
+
+    fn in_progress(&self) -> bool {
+        match self.state {
+            AssemblerState::Idle => false,
+            AssemblerState::Assembling { .. } => true,
+        }
+    }
+
+    fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
+        Some(self)
+    }
+
+    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
+        Some(self)
+    }
+
+    fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
+    }
+
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        &[]
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        &mut []
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+}
+
+impl<'a> AssemblyConsole for Console<'a> {
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize> {
         self.recipes
             .iter()
@@ -113,34 +181,24 @@ impl<'a> ModulePersonInterface for AssemblerPersonInterface<'a> {
 
     fn active_recipe(&self) -> Option<usize> {
         match self.state.deref() {
-            Idle => None,
+            AssemblerState::Idle => None,
             AssemblerState::Assembling { recipe_index, .. } => Some(*recipe_index),
         }
     }
 
-    fn start_assembly(&mut self, index: usize, deploy: bool) -> bool {
-        *self.state = AssemblerState::Assembling { recipe_index: index, deploy };
-        true
-    }
+    fn start(&mut self, index: usize, deploy: bool) -> Option<ProcessToken> {
+        let (token, token_mut) = ProcessTokenMut::new();
 
-    fn interact(&mut self) -> bool {
-        let is_recipe_valid = |state: &AssemblerState| {
-            match state {
-                Idle => false,
-                AssemblerState::Assembling { recipe_index,.. } => *recipe_index < self.recipes.len(),
-            }
+        *self.state = AssemblerState::Assembling {
+            recipe_index: index,
+            deploy,
+            process_token: token_mut,
         };
 
-        if !is_recipe_valid(self.state)
-        {
-            return false;
-        }
-
-        self.requests.push(AssemblerRequest::Interact);
-        true
+        Some(token)
     }
 
-    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+    fn recipes(&self) -> &[AssemblyRecipe] {
         self.recipes
     }
 }
@@ -155,7 +213,7 @@ impl Module for Assembler {
     }
 
     fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface) {
-        let mut person_interface = AssemblerPersonInterface {
+        let mut console = Console {
             id: self.id,
             recipes: &self.recipes,
             requests: vec![],
@@ -164,39 +222,43 @@ impl Module for Assembler {
         };
 
         if let Some(operator) = &mut self.operator {
-            operator.proceed(&mut person_interface, this_vessel.vessel_person_interface())
+            operator.proceed(&mut console, this_vessel.console())
         }
 
-        for request in std::mem::take(&mut person_interface.requests) {
+        for request in std::mem::take(&mut console.requests) {
             match request {
                 AssemblerRequest::SetRecipe(_) => {
                     todo!()
                 }
-                AssemblerRequest::Interact => {
-                    match self.state {
-                        Idle => todo!(),
-                        AssemblerState::Assembling { recipe_index, deploy } => {
-                            let active_recipe = &self.recipes[recipe_index];
+                AssemblerRequest::Interact => match &self.state {
+                    AssemblerState::Idle => todo!(),
+                    AssemblerState::Assembling {
+                        recipe_index,
+                        deploy,
+                        process_token,
+                    } => {
+                        let active_recipe = &self.recipes[*recipe_index];
 
-                            let ok = self.storage.try_consume(active_recipe.input().clone());
+                        let ok = self.storage.try_consume(active_recipe.input().clone());
+                        assert!(ok);
+
+                        if *deploy {
+                            this_vessel.add_module(active_recipe.create());
+                            self.state = AssemblerState::Idle;
+                        } else {
+                            let mut storage_modules = this_vessel
+                                .console()
+                                .modules_with_cap(ModuleCapability::ModuleStorage);
+                            assert!(!storage_modules.is_empty());
+                            assert!(!storage_modules[0].module_storages().is_empty());
+                            let storage = &mut storage_modules[0].module_storages()[0];
+                            assert!(storage.has_space());
+                            let ok = storage.add(active_recipe.create());
                             assert!(ok);
-
-                            if deploy {
-                                this_vessel.add_module(active_recipe.create());
-                                self.state = Idle;
-                            } else {
-                                let mut storage_modules = this_vessel.vessel_person_interface().modules_with_cap(ModuleCapability::ModuleStorage);
-                                assert!(!storage_modules.is_empty());
-                                assert!(!storage_modules[0].module_storages().is_empty());
-                                let storage = &mut storage_modules[0].module_storages()[0];
-                                assert!(storage.has_space());
-                                let ok = storage.add(active_recipe.create());
-                                assert!(ok);
-                                self.state = Idle;
-                            }
+                            self.state = AssemblerState::Idle;
                         }
                     }
-                }
+                },
             }
         }
     }
@@ -214,7 +276,16 @@ impl Module for Assembler {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
@@ -271,7 +342,11 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, _: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        _: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Assembler =
             from_intermediate_seed(AssemblerSeed::new(&self.seed_vault), &intermediate)
                 .map_err(|e| e.to_string())?;

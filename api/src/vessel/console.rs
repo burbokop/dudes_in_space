@@ -1,0 +1,15 @@
+use crate::module::{Module, ModuleCapability, ModuleId};
+use crate::person::PersonId;
+use std::cell::RefMut;
+
+/// interface through which a module can interact with a vessel it is contained in
+pub trait VesselModuleInterface {
+    fn add_module(&self, module: Box<dyn Module>);
+    fn console(&self) -> &dyn VesselConsole;
+}
+
+/// interface through which a person can interact with a vessel
+pub trait VesselConsole {
+    fn modules_with_cap(&self, cap: ModuleCapability) -> Vec<RefMut<Box<dyn Module>>>;
+    fn move_to_module(&self, person: PersonId, id: ModuleId);
+}

@@ -1,7 +1,5 @@
-use crate::CORE_PACKAGE_ID;
 use crate::modules::{Assembler, PersonnelArea};
-use dudes_in_space_api::Vessel;
-use dudes_in_space_api::modules::Module;
+use dudes_in_space_api::module::Module;
 
 pub(crate) trait CoreModule: Module {
     fn accept_visitor(&self, v: &dyn ModuleVisitor<Result = ()>) -> Option<()>;

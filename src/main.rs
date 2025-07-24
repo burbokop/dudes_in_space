@@ -1,8 +1,6 @@
-#![feature(substr_range)]
-
-use dudes_in_space_api::modules::{Module, ModuleFactory};
-use dudes_in_space_api::{Environment, EnvironmentSeed};
-use dudes_in_space_core::modules::{ModuleVisitorMut, VisitModules};
+use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
+use dudes_in_space_api::module::Module;
+use dudes_in_space_core::modules::VisitModules;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
@@ -31,10 +29,13 @@ fn env_to_json(env: &Environment) -> Result<Vec<u8>, serde_json::Error> {
 
 fn main() {
     let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
-    
-    let module_factory_seed_vault = dudes_in_space_core::register_module_factories(Default::default()).into_rc();
-    let module_seed_vault = dudes_in_space_core::register_modules(Default::default(), module_factory_seed_vault).into_rc();
-    
+
+    let module_factory_seed_vault =
+        dudes_in_space_core::register_module_factories(Default::default()).into_rc();
+    let module_seed_vault =
+        dudes_in_space_core::register_modules(Default::default(), module_factory_seed_vault)
+            .into_rc();
+
     let mut environment = if save_path.exists() {
         env_from_json(
             &module_seed_vault,

@@ -1,19 +1,13 @@
-use crate::modules::{
-    AssemblyRecipe, Module, ModuleCapability, ModuleId, ModulePersonInterface,
-    VesselPersonInterface,
-};
+use crate::module::{ModuleCapability, ModuleConsole};
+use crate::person::crafting_vessels_objective::CraftingVesselsObjective;
+use crate::person::objective::{Objective, ObjectiveStatus};
+use crate::vessel::VesselConsole;
 use rand::Rng;
 use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, VecDeque};
-use std::ops::DerefMut;
+use std::collections::BTreeSet;
 use uuid::Uuid;
-use crate::person::crafting_modules_objective::{CraftingModulesObjective, CraftingModulesObjectiveError};
-use crate::person::crafting_vessels_objective::CraftingVesselsObjective;
-use crate::person::objective::Objective;
-use crate::person::objective::ObjectiveStatus::Done;
-use crate::person::trading_objective::TradingObjective;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -252,13 +246,23 @@ impl Person {
 
     pub fn proceed(
         &mut self,
-        this_module: &mut dyn ModulePersonInterface,
-        this_vessel: &dyn VesselPersonInterface,
+        this_module: &mut dyn ModuleConsole,
+        this_vessel: &dyn VesselConsole,
     ) {
         match &mut self.state {
             PersonState::Idle => self.decide_objective(),
             PersonState::PursuingObjective(objective) => {
-                Self::pursue_objective(self.id, this_module, this_vessel, objective)
+                match objective.pursue(self.id, this_module, this_vessel) {
+                    Ok(ObjectiveStatus::InProgress) => {}
+                    Ok(ObjectiveStatus::Done) => todo!(),
+                    Err(err) => {
+                        eprintln!(
+                            "Objective performed by person {} ({}) failed: {}",
+                            self.id, self.name, err
+                        );
+                        self.state = PersonState::Idle
+                    }
+                }
             }
         }
     }
@@ -304,7 +308,9 @@ impl Person {
                             ModuleCapability::FuelTank,
                         ];
 
-                        self.state = PersonState::PursuingObjective(Objective::CraftingVessels(CraftingVesselsObjective::new(needed_caps)));
+                        self.state = PersonState::PursuingObjective(Objective::CraftingVessels(
+                            CraftingVesselsObjective::new(needed_caps),
+                        ));
                         true
                     }
                     Passion::Ruling => false,
@@ -315,23 +321,6 @@ impl Person {
                     break;
                 }
             }
-        }
-    }
-
-    fn pursue_objective(
-        self_id: PersonId,
-        this_module: &mut dyn ModulePersonInterface,
-        this_vessel: &dyn VesselPersonInterface,
-        objective: &mut Objective,
-    ) {
-        match objective {
-            Objective::CraftingVessels(objective) => {
-                if objective.pursue(self_id, this_module, this_vessel).unwrap() == Done {
-                    todo!()
-                }
-            },
-            Objective::CraftingModules(_) => todo!(),
-            Objective::Trading(_) => todo!(),
         }
     }
 }

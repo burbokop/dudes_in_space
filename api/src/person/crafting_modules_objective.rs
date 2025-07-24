@@ -1,13 +1,13 @@
+use crate::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
+use crate::person::PersonId;
+use crate::person::crafting_modules_objective::CraftingModulesObjective::Done;
+use crate::person::objective::ObjectiveStatus;
+use crate::recipe::AssemblyRecipe;
+use crate::vessel::VesselConsole;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, VecDeque};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::marker::PointeeSized;
-use std::ops::Deref;
-use serde::{Serialize, Deserialize};
-use crate::modules::{AssemblyRecipe, ModuleCapability, ModuleId, ModulePersonInterface, VesselPersonInterface};
-use crate::{Person, PersonId};
-use crate::person::crafting_modules_objective::CraftingModulesObjective::Done;
-use crate::person::objective::ObjectiveStatus;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "crafting_modules_objective_stage")]
@@ -24,55 +24,59 @@ pub(crate) enum CraftingModulesObjective {
     Crafting {
         needed_capabilities: BTreeSet<ModuleCapability>,
         deploy: bool,
+        process_token: Option<ProcessToken>,
     },
     Done,
 }
 
 impl CraftingModulesObjective {
     pub(crate) fn new(needed_capabilities: Vec<ModuleCapability>, deploy: bool) -> Self {
-        Self::SearchingForCraftingModule { needed_capabilities, deploy }
+        Self::SearchingForCraftingModule {
+            needed_capabilities,
+            deploy,
+        }
     }
-    
-    pub(crate) fn is_done(&self) -> bool {todo!()}
-    
-    pub(crate) fn pursue(&mut self,
-                         this_person: PersonId,
-                         this_module: &mut dyn ModulePersonInterface,
-                         this_vessel: &dyn VesselPersonInterface,
+
+    pub(crate) fn is_done(&self) -> bool {
+        todo!()
+    }
+
+    pub(crate) fn pursue(
+        &mut self,
+        this_person: PersonId,
+        this_module: &mut dyn ModuleConsole,
+        this_vessel: &dyn VesselConsole,
     ) -> Result<ObjectiveStatus, CraftingModulesObjectiveError> {
         match self {
-            Self::SearchingForCraftingModule { needed_capabilities,deploy } => {
-                let is_recipe_set_suitable = |recipes: &[AssemblyRecipe],
-                                              mut needed_caps: Vec<ModuleCapability>|
-                                              -> bool {
-                    for r in recipes {
-                        for cap in r.output_capabilities() {
-                            if let Some(i) = needed_caps.iter().position(|x| *x == *cap) {
-                                needed_caps.remove(i);
-                            }
-                        }
+            Self::SearchingForCraftingModule {
+                needed_capabilities,
+                deploy,
+            } => {
+                if let Some(assembly_console) = this_module.assembly_console() {
+                    if Self::is_recipe_set_suitable(
+                        assembly_console.recipes(),
+                        needed_capabilities.clone(),
+                    ) {
+                        *self = Self::MovingToCraftingModule {
+                            dst: this_module.id(),
+                            needed_capabilities: std::mem::take(needed_capabilities),
+                            deploy: *deploy,
+                        };
+                        return Ok(ObjectiveStatus::InProgress);
                     }
-                    needed_caps.is_empty()
-                };
-
-                if is_recipe_set_suitable(this_module.assembly_recipes(), needed_capabilities.clone()) {
-                    *self = Self::MovingToCraftingModule {
-                        dst: this_module.id(),
-                        needed_capabilities: std::mem::take(needed_capabilities),
-                        deploy: *deploy,
-                    };
-                    return Ok(ObjectiveStatus::InProgress)
                 }
 
-                for crafting_module in this_vessel.modules_with_cap(ModuleCapability::Crafting)
-                {
-                    if is_recipe_set_suitable(crafting_module.assembly_recipes(), needed_capabilities.clone()) {
+                for crafting_module in this_vessel.modules_with_cap(ModuleCapability::Crafting) {
+                    if Self::is_recipe_set_suitable(
+                        crafting_module.assembly_recipes(),
+                        needed_capabilities.clone(),
+                    ) {
                         *self = Self::MovingToCraftingModule {
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
-                            deploy: *deploy
+                            deploy: *deploy,
                         };
-                        return Ok(ObjectiveStatus::InProgress)
+                        return Ok(ObjectiveStatus::InProgress);
                     }
                 }
                 Err(CraftingModulesObjectiveError::CanNotFindCraftingModule)
@@ -84,8 +88,11 @@ impl CraftingModulesObjective {
             } => {
                 if *dst == this_module.id() {
                     *self = Self::Crafting {
-                        needed_capabilities: BTreeSet::from_iter(std::mem::take(needed_capabilities)),
+                        needed_capabilities: BTreeSet::from_iter(std::mem::take(
+                            needed_capabilities,
+                        )),
                         deploy: *deploy,
+                        process_token: None,
                     };
                 } else {
                     this_vessel.move_to_module(this_person, *dst);
@@ -95,35 +102,61 @@ impl CraftingModulesObjective {
             Self::Crafting {
                 needed_capabilities,
                 deploy,
-            } => {
-                if this_module.active_recipe().is_some() {
+                process_token,
+            } => match process_token {
+                None => {
+                    if let Some(cap) = needed_capabilities.first() {
+                        let assembly_console = this_module.assembly_console_mut().unwrap();
+                        if let Some(recipe) = assembly_console.recipe_by_output_capability(*cap) {
+                            if assembly_console.has_resources_for_recipe(recipe) {
+                                assert!(process_token.is_none());
+                                *process_token =
+                                    Some(assembly_console.start(recipe, *deploy).unwrap());
+                                for c in assembly_console.recipe_output_capabilities(recipe) {
+                                    needed_capabilities.remove(c);
+                                }
+                                Ok(ObjectiveStatus::InProgress)
+                            } else {
+                                todo!()
+                            }
+                        } else {
+                            todo!()
+                        }
+                    } else {
+                        *self = Done;
+                        Ok(ObjectiveStatus::Done)
+                    }
+                }
+                Some(process_token) => {
+                    assert!(this_module.in_progress());
+
+                    if process_token.is_completed().unwrap() {
+                        todo!()
+                    }
+
                     if !this_module.interact() {
                         todo!()
                     } else {
                         Ok(ObjectiveStatus::InProgress)
                     }
-                } else if let Some(cap) = needed_capabilities.first() {
-                    if let Some(recipe) = this_module.recipe_by_output_capability(*cap) {
-                        if this_module.has_resources_for_recipe(recipe) {
-                            let ok = this_module.start_assembly(recipe,*deploy);
-                            assert!(ok);
-                            for c in this_module.recipe_output_capabilities(recipe) {
-                                needed_capabilities.remove(c);
-                            }
-                            Ok(ObjectiveStatus::InProgress)
-                        } else {
-                            todo!()
-                        }
-                    } else {
-                        todo!()
-                    }
-                } else {
-                    *self = Done;
-                    Ok(ObjectiveStatus::Done)
                 }
-            }
+            },
             Done => Ok(ObjectiveStatus::Done),
         }
+    }
+
+    fn is_recipe_set_suitable(
+        recipes: &[AssemblyRecipe],
+        mut needed_caps: Vec<ModuleCapability>,
+    ) -> bool {
+        for r in recipes {
+            for cap in r.output_capabilities() {
+                if let Some(i) = needed_caps.iter().position(|x| *x == *cap) {
+                    needed_caps.remove(i);
+                }
+            }
+        }
+        needed_caps.is_empty()
     }
 }
 

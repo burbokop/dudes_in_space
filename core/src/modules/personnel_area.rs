@@ -1,7 +1,12 @@
 use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
-use dudes_in_space_api::modules::{AssemblyRecipe, DefaultModulePersonInterface, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, VesselModuleInterface, VesselPersonInterface};
-use dudes_in_space_api::{ItemStorage, Person, PersonId, Recipe};
+use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::module::{
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
+};
+use dudes_in_space_api::person::{Person, PersonId};
+use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
+use dudes_in_space_api::vessel::VesselModuleInterface;
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
@@ -44,9 +49,9 @@ impl Module for PersonnelArea {
     }
 
     fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface) {
-        let mut person_interface = DefaultModulePersonInterface::new(self.id);
+        let mut person_interface = DefaultModuleConsole::new(self.id);
         for person in &mut self.personnel {
-            person.proceed(&mut person_interface, this_vessel.vessel_person_interface())
+            person.proceed(&mut person_interface, this_vessel.console())
         }
     }
 
@@ -85,7 +90,7 @@ impl Module for PersonnelArea {
         todo!()
     }
 
-    fn module_storages(& mut self) -> &mut [ModuleStorage] {
+    fn module_storages(&mut self) -> &mut [ModuleStorage] {
         todo!()
     }
 }
@@ -107,7 +112,11 @@ impl DynDeserializeSeed<dyn Module> for PersonnelAreaDynSeed {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: PersonnelArea = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))

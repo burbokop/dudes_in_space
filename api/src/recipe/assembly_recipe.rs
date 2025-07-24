@@ -1,5 +1,5 @@
-use crate::items::InputRecipe;
-use crate::modules::{Module, ModuleCapability, ModuleTypeId};
+use crate::module::{Module, ModuleCapability, ModuleTypeId};
+use crate::recipe::InputRecipe;
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
 use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
 use serde::Serialize;
@@ -15,7 +15,7 @@ pub trait ModuleFactory: Debug + DynSerialize {
 dyn_serde_trait!(ModuleFactory);
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::assembly_recipe::AssemblyRecipeSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::recipe::AssemblyRecipeSeed::<'v>)]
 pub struct AssemblyRecipe {
     input: InputRecipe,
     #[deserialize_seed_xxx(seed = self.seed.module_factory_seed)]

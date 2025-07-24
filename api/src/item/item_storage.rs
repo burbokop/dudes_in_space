@@ -1,4 +1,5 @@
-use crate::{DuplicateItemError, InputRecipe, Item, ItemCount, ItemId};
+use crate::item::{DuplicateItemError, Item, ItemCount, ItemId};
+use crate::recipe::InputRecipe;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -31,7 +32,7 @@ impl ItemStorage {
         todo!()
     }
 
-    /// returns true if item was added, false if not due to full storage
+    /// returns true if an item was added, false if not due to full storage
     pub fn try_add_item(&mut self, item: Item) -> bool {
         todo!()
     }
@@ -41,7 +42,7 @@ impl ItemStorage {
         todo!()
     }
 
-    /// returns true if item was removed, false if not due to not enough item count in storage
+    /// returns true if an item  was removed, false if not due to not enough item count in storage
     pub fn try_remove_item(&mut self, item: Item) -> bool {
         todo!()
     }

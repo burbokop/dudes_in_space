@@ -1,14 +1,21 @@
-use dudes_in_space_api::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleFactory, ModuleId, ModuleStorage, ModuleTypeId, PackageId, VesselModuleInterface};
-use dudes_in_space_api::{InputRecipe, ItemStorage, Person, PersonId, Recipe};
-use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::module::{
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
+};
+use dudes_in_space_api::person::{Person, PersonId};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::vessel::VesselModuleInterface;
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, to_intermediate, from_intermediate};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
-static CAPABILITIES: &[ModuleCapability] = &[            
+static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Cockpit,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
@@ -16,7 +23,9 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Shuttle {}
+struct Shuttle {
+    id: ModuleId,
+}
 
 impl DynSerialize for Shuttle {
     fn type_id(&self) -> TypeId {
@@ -24,13 +33,13 @@ impl DynSerialize for Shuttle {
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        to_intermediate(self).map_err(|e| e.into())   
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
 impl Module for Shuttle {
     fn id(&self) -> ModuleId {
-        todo!()
+        self.id
     }
 
     fn package_id(&self) -> PackageId {
@@ -73,7 +82,7 @@ impl Module for Shuttle {
         todo!()
     }
 
-    fn module_storages(& mut self) -> &mut [ModuleStorage] {
+    fn module_storages(&mut self) -> &mut [ModuleStorage] {
         todo!()
     }
 }
@@ -85,10 +94,12 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, _: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Shuttle =
-            from_intermediate(&intermediate)
-                .map_err(|e| e.to_string())?;
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        _: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let obj: Shuttle = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))
     }
@@ -114,7 +125,11 @@ impl DynDeserializeSeed<dyn ModuleFactory> for ShuttleFactoryDynSeed {
         FACTORY_TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
+    ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
         let r: Box<ShuttleFactory> =
             serde_intermediate::from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)
@@ -127,7 +142,9 @@ impl ModuleFactory for ShuttleFactory {
     }
 
     fn create(&self, _: &InputRecipe) -> Box<dyn Module> {
-        Box::new(Shuttle {})
+        Box::new(Shuttle {
+            id: ModuleId::new_v4(),
+        })
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {

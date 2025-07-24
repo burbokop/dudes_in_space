@@ -1,22 +1,45 @@
-use dudes_in_space_api::modules::{AssemblyRecipe, Module, ModuleCapability, ModuleFactory, ModuleId, ModulePersonInterface, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, VesselModuleInterface};
-use dudes_in_space_api::{InputRecipe, ItemStorage, Person, PersonId, Recipe};
-use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
-use serde_intermediate::{to_intermediate, Intermediate};
+use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::module::{
+    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenMut,
+};
+use dudes_in_space_api::person::{Person, PersonId};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, Vessel, VesselModuleInterface};
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
+use serde::{Deserialize, Serialize};
+use serde_intermediate::{Intermediate, to_intermediate};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
-use serde::{Deserialize, Serialize};
-use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
-static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Dockyard, ModuleCapability::ModuleStorage];
+static CAPABILITIES: &[ModuleCapability] =
+    &[ModuleCapability::Dockyard, ModuleCapability::ModuleStorage];
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "tp")]
+enum DockyardState {
+    Idle,
+    Building {
+        modules: BTreeSet<ModuleId>,
+        process_token: ProcessTokenMut,
+    },
+}
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v>)]
 pub struct Dockyard {
     id: ModuleId,
+    state: DockyardState,
     #[deserialize_seed_xxx(seed = self.seed.module_storage_seed)]
     module_storage: ModuleStorage,
+    #[deserialize_seed_xxx(seed = self.seed.docking_clamp_seed)]
+    docking_clamp: DockingClamp,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     operator: Option<Person>,
 }
@@ -25,7 +48,9 @@ impl Dockyard {
     fn new() -> Self {
         Self {
             id: ModuleId::new_v4(),
+            state: DockyardState::Idle,
             module_storage: Default::default(),
+            docking_clamp: Default::default(),
             operator: None,
         }
     }
@@ -34,12 +59,14 @@ impl Dockyard {
 #[derive(Clone)]
 struct DockyardSeed<'v> {
     module_storage_seed: ModuleStorageSeed<'v>,
+    docking_clamp_seed: DockingClampSeed<'v>,
 }
 
 impl<'v> DockyardSeed<'v> {
     fn new(vault: &'v DynDeserializeSeedVault<dyn Module>) -> Self {
         Self {
             module_storage_seed: ModuleStorageSeed::new(vault),
+            docking_clamp_seed: DockingClampSeed::new(vault),
         }
     }
 }
@@ -50,7 +77,7 @@ impl DynSerialize for Dockyard {
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        to_intermediate(self)  .map_err(|e|e.into())
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
@@ -59,48 +86,97 @@ enum DockyardRequest {
     Interact,
 }
 
-struct DockyardPersonInterface {
+struct Console<'a> {
     id: PersonId,
     requests: Vec<DockyardRequest>,
+    state: &'a mut DockyardState,
+    module_storage: &'a mut ModuleStorage,
 }
 
-impl ModulePersonInterface for DockyardPersonInterface {
+impl<'a> ModuleConsole for Console<'a> {
     fn id(&self) -> ModuleId {
-        todo!()
-    }
-
-    fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize> {
-        todo!()
-    }
-
-    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
-        todo!()
-    }
-
-    fn has_resources_for_recipe(&self, index: usize) -> bool {
-        todo!()
-    }
-
-    fn active_recipe(&self) -> Option<usize> {
-        todo!()
-    }
-
-    fn start_assembly(&mut self, index: usize, deploy: bool) -> bool {
-        todo!()
+        self.id
     }
 
     fn interact(&mut self) -> bool {
+        let is_state_valid = |state: &DockyardState| match state {
+            DockyardState::Idle => false,
+            DockyardState::Building {
+                modules,
+                process_token,
+            } => !modules.is_empty(),
+        };
+
+        if !is_state_valid(self.state) {
+            return false;
+        }
+
+        self.requests.push(DockyardRequest::Interact);
+        true
+    }
+
+    fn in_progress(&self) -> bool {
+        match self.state {
+            DockyardState::Idle => false,
+            DockyardState::Building { .. } => true,
+        }
+    }
+
+    fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
+        None
+    }
+
+    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
         todo!()
     }
 
-    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+    fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
         todo!()
+    }
+
+    fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole> {
+        Some(self)
+    }
+
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
+    }
+
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        std::slice::from_ref(self.module_storage)
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+}
+
+impl<'a> DockyardConsole for Console<'a> {
+    fn start(&mut self, modules: BTreeSet<ModuleId>) -> Option<ProcessToken> {
+        let (token, token_mut) = ProcessTokenMut::new();
+        *self.state = DockyardState::Building {
+            modules,
+            process_token: token_mut,
+        };
+        Some(token)
     }
 }
 
 impl Module for Dockyard {
     fn id(&self) -> ModuleId {
-        todo!()
+        self.id
     }
 
     fn package_id(&self) -> PackageId {
@@ -108,13 +184,15 @@ impl Module for Dockyard {
     }
 
     fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface) {
-        let mut person_interface = DockyardPersonInterface {
+        let mut person_interface = Console {
             id: self.id,
             requests: vec![],
+            state: &mut self.state,
+            module_storage: &mut self.module_storage,
         };
 
         if let Some(operator) = &mut self.operator {
-            operator.proceed(&mut person_interface, this_vessel.vessel_person_interface())
+            operator.proceed(&mut person_interface, this_vessel.console())
         }
 
         for request in std::mem::take(&mut person_interface.requests) {
@@ -122,9 +200,25 @@ impl Module for Dockyard {
                 DockyardRequest::SetRecipe(_) => {
                     todo!()
                 }
-                DockyardRequest::Interact => {
-                    todo!()
-                }
+                DockyardRequest::Interact => match &mut self.state {
+                    DockyardState::Idle => todo!(),
+                    DockyardState::Building {
+                        modules,
+                        process_token,
+                    } => {
+                        if !self.docking_clamp.is_docked() {
+                            let modules = self.module_storage.try_take(modules.iter()).unwrap();
+                            let ok = self
+                                .docking_clamp
+                                .dock(Vessel::new((0., 0.).into(), modules));
+                            assert!(ok);
+                            process_token.mark_completed();
+                            self.state = DockyardState::Idle;
+                        } else {
+                            todo!()
+                        }
+                    }
+                },
             }
         }
     }
@@ -142,19 +236,36 @@ impl Module for Dockyard {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
+        if self.operator.is_none() {
+            self.operator = Some(person);
+            true
+        } else {
+            false
+        }
     }
 
     fn can_insert_person(&self) -> bool {
-        todo!()
+        self.operator.is_none()
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
-        todo!()
+        self.operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
     }
 
     fn storages(&mut self) -> &mut [ItemStorage] {
@@ -200,10 +311,13 @@ impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Dockyard =
-            from_intermediate_seed(DockyardSeed::new(this_vault), &intermediate)
-                .map_err(|e| e.to_string())?;
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let obj: Dockyard = from_intermediate_seed(DockyardSeed::new(this_vault), &intermediate)
+            .map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))
     }
@@ -213,10 +327,14 @@ pub(crate) struct DockyardFactoryDynSeed;
 
 impl DynDeserializeSeed<dyn ModuleFactory> for DockyardFactoryDynSeed {
     fn type_id(&self) -> TypeId {
-       FACTORY_TYPE_ID.to_string()
+        FACTORY_TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
+    ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
         let r: Box<DockyardFactory> =
             serde_intermediate::from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)

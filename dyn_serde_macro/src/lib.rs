@@ -41,7 +41,7 @@ pub fn dyn_serde_trait(input: TokenStream) -> TokenStream {
     let seed_name = format_ident!("{}Seed", trait_name);
 
     quote! {
-        impl Serialize for dyn #trait_name {
+        impl serde::Serialize for dyn #trait_name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: serde::Serializer
@@ -175,7 +175,6 @@ pub fn deserialize_field(input: TokenStream) -> TokenStream {
                             return Err(serde::de::Error::duplicate_field(#field_name));
                         }
                         #locale_variable_ident = Some(map.next_value_seed(Seed)?);
-                        // #locale_variable_ident = Some(map.next_value_seed(std::marker::PhantomData)?);
                     }
                 }
                 },

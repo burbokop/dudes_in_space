@@ -1,33 +1,17 @@
-use crate::PersonId;
-use crate::modules::{Module, ModuleCapability, ModuleId, ModuleSeed, VesselModuleInterface, VesselPersonInterface};
-use crate::person::Person;
+use crate::module::{Module, ModuleCapability, ModuleId, ModuleSeed};
+use crate::person::{Person, PersonId};
 use crate::utils::math::Point;
 use crate::utils::utils::Float;
+use crate::vessel::{VesselConsole, VesselModuleInterface};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::cell::{Ref, RefCell, RefMut};
 use std::fmt::Formatter;
-use std::ops::Deref;
+use uuid::Uuid;
 
-pub(crate) enum VesselModule {
-    Cockpit { captain: Option<Person> },
-    Cargo,
-    FuelTank,
-    Radar { navigator: Option<Person> },
-    Engine,
-    DockingPort,
-    ProjectileGun,
-    MissileRack,
-    WarpDrive,
-    Radiators,
-    Reactor { engineer: Option<Person> },
-    Workshop { worker: Option<Person> },
-    Assembly { worker: Option<Person> },
-}
-
-pub(crate) type VesselId = u32;
+pub(crate) type VesselId = Uuid;
 
 #[derive(Debug)]
 enum VesselRequest {
@@ -37,7 +21,7 @@ enum VesselRequest {
     },
     AddModule {
         module: Box<dyn Module>,
-    }
+    },
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
@@ -49,11 +33,6 @@ pub struct Vessel {
     modules: Vec<RefCell<Box<dyn Module>>>,
     #[serde(skip)]
     requests: RefCell<Vec<VesselRequest>>,
-}
-
-pub struct VesselCreateInfo {
-    pub pos: Point<Float>,
-    pub modules: Vec<Box<dyn Module>>,
 }
 
 #[derive(Clone)]
@@ -100,11 +79,11 @@ pub(crate) struct VesselSeed<'v> {
     module_seq_seed: ModuleSeqSeed<'v>,
 }
 
-impl<'r> VesselSeed<'r> {
-    pub(crate) fn new(reg: &'r DynDeserializeSeedVault<dyn Module>) -> Self {
+impl<'v> VesselSeed<'v> {
+    pub(crate) fn new(vault: &'v DynDeserializeSeedVault<dyn Module>) -> Self {
         Self {
             module_seq_seed: ModuleSeqSeed {
-                module_seed: ModuleSeed::new(reg),
+                module_seed: ModuleSeed::new(vault),
             },
         }
     }
@@ -115,11 +94,11 @@ impl Vessel {
         self.id
     }
 
-    pub(crate) fn new(id: VesselId, ci: VesselCreateInfo) -> Self {
+    pub fn new(pos: Point<Float>, modules: Vec<Box<dyn Module>>) -> Self {
         Self {
-            id,
-            pos: ci.pos,
-            modules: ci.modules.into_iter().map(RefCell::new).collect(),
+            id: VesselId::new_v4(),
+            pos,
+            modules: modules.into_iter().map(RefCell::new).collect(),
             requests: Default::default(),
         }
     }
@@ -175,15 +154,17 @@ impl Vessel {
 
 impl VesselModuleInterface for Vessel {
     fn add_module(&self, module: Box<dyn Module>) {
-        self.requests.borrow_mut().push(VesselRequest::AddModule { module })
+        self.requests
+            .borrow_mut()
+            .push(VesselRequest::AddModule { module })
     }
 
-    fn vessel_person_interface(&self) -> &dyn VesselPersonInterface {
+    fn console(&self) -> &dyn VesselConsole {
         self
     }
 }
 
-impl VesselPersonInterface for Vessel {
+impl VesselConsole for Vessel {
     fn modules_with_cap(&self, cap: ModuleCapability) -> Vec<RefMut<Box<dyn Module>>> {
         self.modules
             .iter()

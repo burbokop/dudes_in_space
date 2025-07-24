@@ -1,4 +1,4 @@
-use serde::de::{DeserializeSeed, Error as _, SeqAccess, Visitor};
+use serde::de::{DeserializeSeed, Error as _, SeqAccess, Unexpected, Visitor};
 use serde::ser::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_intermediate::Intermediate;
@@ -17,7 +17,11 @@ pub trait DynSerialize {
 
 pub trait DynDeserializeSeed<T: ?Sized> {
     fn type_id(&self) -> TypeId;
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<T>) -> Result<Box<T>, Box<dyn Error>>;
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<T>,
+    ) -> Result<Box<T>, Box<dyn Error>>;
 }
 
 pub fn dyn_serialize<S: Serializer, T: ?Sized + DynSerialize>(
@@ -148,5 +152,76 @@ impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for VecSeed<T> {
         deserializer.deserialize_seq(VecVisitor {
             element_seed: self.element_seed,
         })
+    }
+}
+
+#[derive(Clone)]
+pub struct OptionSeed<T> {
+    element_seed: T,
+}
+
+impl<T> OptionSeed<T> {
+    pub fn new(element_seed: T) -> Self {
+        Self { element_seed }
+    }
+}
+
+impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for OptionSeed<T> {
+    type Value = Option<T::Value>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct OptionVisitor<T> {
+            element_seed: T,
+        }
+
+        impl<'de, T: DeserializeSeed<'de>> Visitor<'de> for OptionVisitor<T> {
+            type Value = Option<T::Value>;
+            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+                formatter.write_str("option")
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(None)
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                Ok(Some(self.element_seed.deserialize(deserializer)?))
+            }
+        }
+
+        deserializer.deserialize_option(OptionVisitor {
+            element_seed: self.element_seed,
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct BoxSeed<T> {
+    element_seed: T,
+}
+
+impl<T> BoxSeed<T> {
+    pub fn new(element_seed: T) -> Self {
+        Self { element_seed }
+    }
+}
+
+impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for BoxSeed<T> {
+    type Value = Box<T::Value>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Box::new(self.element_seed.deserialize(deserializer)?))
     }
 }
