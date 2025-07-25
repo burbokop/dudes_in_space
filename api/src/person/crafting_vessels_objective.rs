@@ -1,4 +1,4 @@
-use crate::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
+use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleStorage, ProcessTokenContext};
 use crate::person::PersonId;
 use crate::person::building_vessels_objective::{
     BuildingVesselsObjective, BuildingVesselsObjectiveError,
@@ -34,6 +34,10 @@ pub(crate) enum CraftingVesselsObjective {
     Done,
 }
 
+struct DockyardRef<'x> {
+    module_storages: &'x [ModuleStorage],
+}
+
 impl CraftingVesselsObjective {
     pub(crate) fn new(needed_capabilities: Vec<ModuleCapability>) -> Self {
         Self::CheckingAllPrerequisites {
@@ -46,11 +50,11 @@ impl CraftingVesselsObjective {
     // }
 
     fn find_dockyard_with_suitable_modules_in_storage<'a>(
-        dockyards: Vec<RefMut<'a, Box<dyn Module>>>,
+        dockyards: Vec<DockyardRef<'a>>,
         needed_capabilities: &[ModuleCapability],
-    ) -> Option<RefMut<'a, Box<dyn Module>>> {
+    ) -> Option<DockyardRef<'a>> {
         for mut dockyard in dockyards {
-            for storage in dockyard.module_storages() {
+            for storage in dockyard.module_storages {
                 if needed_capabilities
                     .iter()
                     .all(|c| storage.contains_modules_with_cap(*c))
@@ -74,6 +78,25 @@ impl CraftingVesselsObjective {
                 needed_capabilities,
             } => {
                 let dockyards = this_vessel.modules_with_cap(ModuleCapability::Dockyard);
+
+                let dockyards: Vec<_> = dockyards
+                    .iter()
+                    .map(|x| DockyardRef {
+                        module_storages: x.module_storages(),
+                    })
+                    .chain(std::iter::from_fn(|| {
+                        if this_module
+                            .capabilities()
+                            .contains(&ModuleCapability::Dockyard)
+                        {
+                            Some(DockyardRef {
+                                module_storages: this_module.module_storages(),
+                            })
+                        } else {
+                            None
+                        }
+                    }))
+                    .collect();
 
                 if dockyards.is_empty() {
                     *self = Self::CraftingDockyard {
@@ -152,16 +175,11 @@ impl CraftingVesselsObjective {
                     .pursue(this_person, this_module, this_vessel, process_token_context)
                     .map_err(CraftingVesselsObjectiveError::BuildingVessel)?
                 {
-                    ObjectiveStatus::InProgress => {}
-                    ObjectiveStatus::Done => {
-                        *self = Self::CheckingAllPrerequisites {
-                            needed_capabilities: std::mem::take(needed_capabilities),
-                        }
-                    }
+                    ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
+                    ObjectiveStatus::Done => {*self = Self::Done; Ok(ObjectiveStatus::Done)},
                 }
-                Ok(ObjectiveStatus::InProgress)
             }
-            Self::Done => todo!(),
+            Self::Done => Ok(ObjectiveStatus::Done),
         }
     }
 }

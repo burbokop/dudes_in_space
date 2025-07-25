@@ -124,15 +124,23 @@ impl CraftingModulesObjective {
                             todo!()
                         }
                     } else {
-                        *self = Done;
-                        Ok(ObjectiveStatus::Done)
-                    }
-                }
-                Some(process_token) => {
-                    if process_token.is_completed(process_token_context).unwrap_or(true) {
                         todo!()
                     }
-                    
+                }
+                Some(some_process_token) => {
+                    if some_process_token
+                        .is_completed(process_token_context)
+                        .unwrap_or(true)
+                    {
+                        return if needed_capabilities.is_empty() {
+                            *self = Done;
+                            Ok(ObjectiveStatus::Done)
+                        } else {
+                            *process_token = None;
+                            Ok(ObjectiveStatus::InProgress)
+                        };
+                    }
+
                     assert!(this_module.in_progress());
                     if !this_module.interact() {
                         todo!()

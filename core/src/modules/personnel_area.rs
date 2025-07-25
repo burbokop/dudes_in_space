@@ -2,8 +2,8 @@ use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
-    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
-    ProcessTokenContext,
+    DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
+    PackageId, ProcessTokenContext,
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
@@ -14,6 +14,7 @@ use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 
 static TYPE_ID: &str = "PersonnelArea";
+static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct PersonnelArea {
@@ -41,12 +42,20 @@ impl DynSerialize for PersonnelArea {
 }
 
 impl Module for PersonnelArea {
-    fn id(&self) -> ModuleId {
-        self.id
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
     }
 
-    fn package_id(&self) -> PackageId {
-        CORE_PACKAGE_ID.to_string()
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
     }
 
     fn proceed(
@@ -62,10 +71,6 @@ impl Module for PersonnelArea {
                 process_token_context,
             )
         }
-    }
-
-    fn capabilities(&self) -> &[ModuleCapability] {
-        &[]
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -95,12 +100,16 @@ impl Module for PersonnelArea {
         self.personnel.iter().find(|p| (*p).id() == id).is_some()
     }
 
-    fn storages(&mut self) -> &mut [ItemStorage] {
+    fn id(&self) -> ModuleId {
+        self.id
+    }
+
+    fn package_id(&self) -> PackageId {
         todo!()
     }
 
-    fn module_storages(&mut self) -> &mut [ModuleStorage] {
-        todo!()
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
     }
 }
 

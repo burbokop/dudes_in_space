@@ -112,7 +112,10 @@ impl BuildingVesselsObjective {
                     }
                 }
                 Some(process_token) => {
-                    if process_token.is_completed(process_token_context).unwrap() {
+                    if process_token
+                        .is_completed(process_token_context)
+                        .unwrap_or(true)
+                    {
                         *self = Self::Done;
                         return Ok(ObjectiveStatus::Done);
                     }

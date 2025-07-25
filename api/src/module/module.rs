@@ -16,12 +16,12 @@ pub trait Module: Debug + DynSerialize {
     /// common
     fn id(&self) -> ModuleId;
     fn package_id(&self) -> PackageId;
+    fn capabilities(&self) -> &[ModuleCapability];
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
     );
-    fn capabilities(&self) -> &[ModuleCapability];
 
     /// crafting
     fn recipes(&self) -> Vec<Recipe>;
@@ -35,8 +35,11 @@ pub trait Module: Debug + DynSerialize {
     fn contains_person(&self, id: PersonId) -> bool;
 
     /// storage
-    fn storages(&mut self) -> &mut [ItemStorage];
-    fn module_storages(&mut self) -> &mut [ModuleStorage];
+    fn storages(&self) -> &[ItemStorage];
+    fn storages_mut(&mut self) -> &mut [ItemStorage];
+
+    fn module_storages(&self) -> &[ModuleStorage];
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
 }
 
 dyn_serde_trait!(Module);

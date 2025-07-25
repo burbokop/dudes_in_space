@@ -20,8 +20,11 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
-static CAPABILITIES: &[ModuleCapability] =
-    &[ModuleCapability::Dockyard, ModuleCapability::ModuleStorage];
+static CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::Dockyard,
+    ModuleCapability::ModuleStorage,
+    ModuleCapability::PersonnelRoom,
+];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardStateSeed::<'context>)]
@@ -121,6 +124,14 @@ impl<'a> ModuleConsole for Console<'a> {
         self.id
     }
 
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
     fn interact(&mut self) -> bool {
         let is_state_valid = |state: &DockyardState| match state {
             DockyardState::Idle => false,
@@ -206,6 +217,10 @@ impl Module for Dockyard {
         todo!()
     }
 
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
+    }
+
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
@@ -254,10 +269,6 @@ impl Module for Dockyard {
         }
     }
 
-    fn capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
-    }
-
     fn recipes(&self) -> Vec<Recipe> {
         todo!()
     }
@@ -299,11 +310,19 @@ impl Module for Dockyard {
             .unwrap_or(false)
     }
 
-    fn storages(&mut self) -> &mut [ItemStorage] {
+    fn storages(&self) -> &[ItemStorage] {
         todo!()
     }
 
-    fn module_storages(&mut self) -> &mut [ModuleStorage] {
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        std::slice::from_ref(&self.module_storage)
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
         std::slice::from_mut(&mut self.module_storage)
     }
 }

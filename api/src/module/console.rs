@@ -1,6 +1,6 @@
 use crate::item::ItemStorage;
 use crate::module::module::ModuleId;
-use crate::module::{ModuleCapability, ModuleStorage, ProcessToken};
+use crate::module::{ModuleCapability, ModuleStorage, PackageId, ProcessToken};
 use crate::person::Role;
 use crate::recipe::AssemblyRecipe;
 use crate::utils::math::Vector;
@@ -12,9 +12,14 @@ use std::ops::Deref;
 pub trait ModuleConsole {
     /// common
     fn id(&self) -> ModuleId;
+    fn package_id(&self) -> PackageId;
+    fn capabilities(&self) -> &[ModuleCapability];
+
+    /// interact
     fn interact(&mut self) -> bool;
     fn in_progress(&self) -> bool;
 
+    /// consoles
     fn assembly_console(&self) -> Option<&dyn AssemblyConsole>;
     fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole>;
 
@@ -44,6 +49,14 @@ impl DefaultModuleConsole {
 impl ModuleConsole for DefaultModuleConsole {
     fn id(&self) -> ModuleId {
         self.id
+    }
+
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
     }
 
     fn interact(&mut self) -> bool {
@@ -94,6 +107,8 @@ impl ModuleConsole for DefaultModuleConsole {
         todo!()
     }
 }
+
+pub trait ModuleInfoConsole {}
 
 pub trait AssemblyConsole {
     // returns index in array. TODO replace with uuid

@@ -2,9 +2,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialOrd, PartialEq, Eq, Ord, Hash, Clone, Copy, Serialize, Deserialize)]
 pub enum ModuleCapability {
-    Cockpit,
     ModuleStorage,
     ItemStorage,
+    Dockyard,
+    Crafting,
+    PersonnelRoom,
+
+    Cockpit,
     FuelTank,
     Radar,
     Engine,
@@ -12,6 +16,4 @@ pub enum ModuleCapability {
     Weapon,
     WarpDrive,
     Reactor,
-    Crafting,
-    Dockyard,
 }

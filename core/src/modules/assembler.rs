@@ -19,8 +19,11 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 static TYPE_ID: &str = "Assembler";
-static CAPABILITIES: &[ModuleCapability] =
-    &[ModuleCapability::Crafting, ModuleCapability::ItemStorage];
+static CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::Crafting,
+    ModuleCapability::ItemStorage,
+    ModuleCapability::PersonnelRoom,
+];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]
@@ -121,6 +124,14 @@ struct Console<'a> {
 impl<'a> ModuleConsole for Console<'a> {
     fn id(&self) -> ModuleId {
         self.id
+    }
+
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -234,6 +245,10 @@ impl Module for Assembler {
         todo!()
     }
 
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
+    }
+
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
@@ -277,7 +292,7 @@ impl Module for Assembler {
                                 .modules_with_cap(ModuleCapability::ModuleStorage);
                             assert!(!storage_modules.is_empty());
                             assert!(!storage_modules[0].module_storages().is_empty());
-                            let storage = &mut storage_modules[0].module_storages()[0];
+                            let storage = &mut storage_modules[0].module_storages_mut()[0];
                             assert!(storage.has_space());
                             let ok = storage.add(active_recipe.create());
                             assert!(ok);
@@ -287,10 +302,6 @@ impl Module for Assembler {
                 },
             }
         }
-    }
-
-    fn capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -334,11 +345,19 @@ impl Module for Assembler {
             .unwrap_or(false)
     }
 
-    fn storages(&mut self) -> &mut [ItemStorage] {
+    fn storages(&self) -> &[ItemStorage] {
         todo!()
     }
 
-    fn module_storages(&mut self) -> &mut [ModuleStorage] {
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
         todo!()
     }
 }

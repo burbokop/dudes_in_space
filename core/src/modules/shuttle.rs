@@ -1,6 +1,7 @@
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext,
+    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
+    ProcessTokenContext,
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
@@ -38,11 +39,19 @@ impl DynSerialize for Shuttle {
 }
 
 impl Module for Shuttle {
-    fn id(&self) -> ModuleId {
-        self.id
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
     }
 
-    fn package_id(&self) -> PackageId {
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
         todo!()
     }
 
@@ -52,10 +61,6 @@ impl Module for Shuttle {
         process_token_context: &ProcessTokenContext,
     ) {
         todo!()
-    }
-
-    fn capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -82,12 +87,16 @@ impl Module for Shuttle {
         todo!()
     }
 
-    fn storages(&mut self) -> &mut [ItemStorage] {
+    fn id(&self) -> ModuleId {
+        self.id
+    }
+
+    fn package_id(&self) -> PackageId {
         todo!()
     }
 
-    fn module_storages(&mut self) -> &mut [ModuleStorage] {
-        todo!()
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
     }
 }
 

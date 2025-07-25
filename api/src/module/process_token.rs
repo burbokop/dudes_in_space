@@ -24,15 +24,15 @@ impl ProcessToken {
         match &self.completed {
             None => {
                 let data = context.data.borrow();
-                
+
                 let weak = data.get(&self.id).ok_or(ProcessTokenExpiredError)?;
-                
+
                 self.completed = Some(weak.clone());
                 match weak.upgrade() {
                     None => {
                         context.data.borrow_mut().remove(&self.id);
                         Err(ProcessTokenExpiredError)
-                    },
+                    }
                     Some(rc) => Ok(*rc.borrow()),
                 }
             }
