@@ -2,7 +2,8 @@ use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, PackageId, ProcessToken, ProcessTokenMut,
+    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
+    ProcessTokenMutSeed,
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
@@ -21,10 +22,12 @@ static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] =
     &[ModuleCapability::Crafting, ModuleCapability::ItemStorage];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]
 #[serde(tag = "tp")]
-enum AssemblerState {
+pub enum AssemblerState {
     Idle,
+    #[deserialize_seed_xxx(seeds = [(process_token, self.seed.seed.process_token_seed)])]
     Assembling {
         recipe_index: usize,
         deploy: bool,
@@ -32,12 +35,26 @@ enum AssemblerState {
     },
 }
 
+#[derive(Clone)]
+struct AssemblerStateSeed<'context> {
+    process_token_seed: ProcessTokenMutSeed<'context>,
+}
+
+impl<'context> AssemblerStateSeed<'context> {
+    pub fn new(context: &'context ProcessTokenContext) -> Self {
+        Self {
+            process_token_seed: ProcessTokenMutSeed::new(context),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'context>)]
 pub struct Assembler {
     id: ModuleId,
-    #[deserialize_seed_xxx(seed = self.seed.assembly_recipe_seq_seed)]
+    #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
     recipes: Vec<AssemblyRecipe>,
+    #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: AssemblerState,
     storage: ItemStorage,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
@@ -45,14 +62,19 @@ pub struct Assembler {
 }
 
 #[derive(Clone)]
-pub struct AssemblerSeed<'v> {
-    assembly_recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
+pub struct AssemblerSeed<'v, 'context> {
+    recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
+    state_seed: AssemblerStateSeed<'context>,
 }
 
-impl<'v> AssemblerSeed<'v> {
-    pub fn new(vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>) -> Self {
+impl<'v, 'context> AssemblerSeed<'v, 'context> {
+    pub fn new(
+        vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
+        context: &'context ProcessTokenContext,
+    ) -> Self {
         Self {
-            assembly_recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(vault)),
+            recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(vault)),
+            state_seed: AssemblerStateSeed::new(context),
         }
     }
 }
@@ -212,7 +234,11 @@ impl Module for Assembler {
         todo!()
     }
 
-    fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface) {
+    fn proceed(
+        &mut self,
+        this_vessel: &dyn VesselModuleInterface,
+        process_token_context: &ProcessTokenContext,
+    ) {
         let mut console = Console {
             id: self.id,
             recipes: &self.recipes,
@@ -222,7 +248,7 @@ impl Module for Assembler {
         };
 
         if let Some(operator) = &mut self.operator {
-            operator.proceed(&mut console, this_vessel.console())
+            operator.proceed(&mut console, this_vessel.console(), process_token_context)
         }
 
         for request in std::mem::take(&mut console.requests) {
@@ -329,11 +355,18 @@ impl CoreModule for Assembler {
 
 pub(crate) struct AssemblerDynSeed {
     seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+    context: Rc<ProcessTokenContext>,
 }
 
 impl AssemblerDynSeed {
-    pub fn new(seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>) -> Self {
-        Self { seed_vault }
+    pub fn new(
+        seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+        context: Rc<ProcessTokenContext>,
+    ) -> Self {
+        Self {
+            seed_vault,
+            context,
+        }
     }
 }
 
@@ -347,9 +380,11 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
         intermediate: Intermediate,
         _: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Assembler =
-            from_intermediate_seed(AssemblerSeed::new(&self.seed_vault), &intermediate)
-                .map_err(|e| e.to_string())?;
+        let obj: Assembler = from_intermediate_seed(
+            AssemblerSeed::new(&self.seed_vault, &self.context),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))
     }

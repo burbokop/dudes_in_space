@@ -1,5 +1,5 @@
 use crate::item::ItemStorage;
-use crate::module::{ModuleCapability, ModuleStorage};
+use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext};
 use crate::person::{Person, PersonId};
 use crate::recipe::{AssemblyRecipe, Recipe};
 use crate::vessel::VesselModuleInterface;
@@ -16,7 +16,11 @@ pub trait Module: Debug + DynSerialize {
     /// common
     fn id(&self) -> ModuleId;
     fn package_id(&self) -> PackageId;
-    fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface);
+    fn proceed(
+        &mut self,
+        this_vessel: &dyn VesselModuleInterface,
+        process_token_context: &ProcessTokenContext,
+    );
     fn capabilities(&self) -> &[ModuleCapability];
 
     /// crafting

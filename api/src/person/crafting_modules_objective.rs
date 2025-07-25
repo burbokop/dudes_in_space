@@ -1,4 +1,4 @@
-use crate::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
+use crate::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext};
 use crate::person::PersonId;
 use crate::person::crafting_modules_objective::CraftingModulesObjective::Done;
 use crate::person::objective::ObjectiveStatus;
@@ -46,6 +46,7 @@ impl CraftingModulesObjective {
         this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
+        process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, CraftingModulesObjectiveError> {
         match self {
             Self::SearchingForCraftingModule {
@@ -128,12 +129,11 @@ impl CraftingModulesObjective {
                     }
                 }
                 Some(process_token) => {
-                    assert!(this_module.in_progress());
-
-                    if process_token.is_completed().unwrap() {
+                    if process_token.is_completed(process_token_context).unwrap_or(true) {
                         todo!()
                     }
-
+                    
+                    assert!(this_module.in_progress());
                     if !this_module.interact() {
                         todo!()
                     } else {

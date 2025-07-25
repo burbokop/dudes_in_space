@@ -1,4 +1,4 @@
-use crate::module::ModuleConsole;
+use crate::module::{ModuleConsole, ProcessTokenContext};
 use crate::person::PersonId;
 use crate::person::crafting_modules_objective::{
     CraftingModulesObjective, CraftingModulesObjectiveError,
@@ -32,13 +32,14 @@ impl Objective {
         person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
+        process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, ObjectiveError> {
         match self {
             Self::CraftingModules(objective) => objective
-                .pursue(person, this_module, this_vessel)
+                .pursue(person, this_module, this_vessel, process_token_context)
                 .map_err(ObjectiveError::CraftingModules),
             Self::CraftingVessels(objective) => objective
-                .pursue(person, this_module, this_vessel)
+                .pursue(person, this_module, this_vessel, process_token_context)
                 .map_err(ObjectiveError::CraftingVessels),
             Self::Trading(objective) => todo!(),
         }

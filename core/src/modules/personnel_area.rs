@@ -3,6 +3,7 @@ use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
+    ProcessTokenContext,
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
@@ -48,10 +49,18 @@ impl Module for PersonnelArea {
         CORE_PACKAGE_ID.to_string()
     }
 
-    fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface) {
+    fn proceed(
+        &mut self,
+        this_vessel: &dyn VesselModuleInterface,
+        process_token_context: &ProcessTokenContext,
+    ) {
         let mut person_interface = DefaultModuleConsole::new(self.id);
         for person in &mut self.personnel {
-            person.proceed(&mut person_interface, this_vessel.console())
+            person.proceed(
+                &mut person_interface,
+                this_vessel.console(),
+                process_token_context,
+            )
         }
     }
 

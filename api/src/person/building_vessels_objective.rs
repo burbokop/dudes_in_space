@@ -1,4 +1,6 @@
-use crate::module::{ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ProcessToken};
+use crate::module::{
+    ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ProcessToken, ProcessTokenContext,
+};
 use crate::person::PersonId;
 use crate::person::objective::ObjectiveStatus;
 use crate::vessel::VesselConsole;
@@ -40,6 +42,7 @@ impl BuildingVesselsObjective {
         this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
+        process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, BuildingVesselsObjectiveError> {
         match self {
             BuildingVesselsObjective::SearchingForDockyard {
@@ -109,7 +112,7 @@ impl BuildingVesselsObjective {
                     }
                 }
                 Some(process_token) => {
-                    if process_token.is_completed().unwrap() {
+                    if process_token.is_completed(process_token_context).unwrap() {
                         *self = Self::Done;
                         return Ok(ObjectiveStatus::Done);
                     }

@@ -1,7 +1,8 @@
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenMut,
+    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
+    ProcessTokenMut, ProcessTokenMutSeed,
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
@@ -15,26 +16,43 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
 static CAPABILITIES: &[ModuleCapability] =
     &[ModuleCapability::Dockyard, ModuleCapability::ModuleStorage];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardStateSeed::<'context>)]
 #[serde(tag = "tp")]
 enum DockyardState {
     Idle,
+    #[deserialize_seed_xxx(seeds = [(process_token, self.seed.seed.process_token_seed)])]
     Building {
         modules: BTreeSet<ModuleId>,
         process_token: ProcessTokenMut,
     },
 }
 
+#[derive(Clone)]
+struct DockyardStateSeed<'context> {
+    process_token_seed: ProcessTokenMutSeed<'context>,
+}
+
+impl<'context> DockyardStateSeed<'context> {
+    pub fn new(context: &'context ProcessTokenContext) -> Self {
+        Self {
+            process_token_seed: ProcessTokenMutSeed::new(context),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v, 'context>)]
 pub struct Dockyard {
     id: ModuleId,
+    #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: DockyardState,
     #[deserialize_seed_xxx(seed = self.seed.module_storage_seed)]
     module_storage: ModuleStorage,
@@ -57,16 +75,21 @@ impl Dockyard {
 }
 
 #[derive(Clone)]
-struct DockyardSeed<'v> {
+struct DockyardSeed<'v, 'context> {
     module_storage_seed: ModuleStorageSeed<'v>,
     docking_clamp_seed: DockingClampSeed<'v>,
+    state_seed: DockyardStateSeed<'context>,
 }
 
-impl<'v> DockyardSeed<'v> {
-    fn new(vault: &'v DynDeserializeSeedVault<dyn Module>) -> Self {
+impl<'v, 'context> DockyardSeed<'v, 'context> {
+    fn new(
+        vault: &'v DynDeserializeSeedVault<dyn Module>,
+        context: &'context ProcessTokenContext,
+    ) -> Self {
         Self {
             module_storage_seed: ModuleStorageSeed::new(vault),
             docking_clamp_seed: DockingClampSeed::new(vault),
+            state_seed: DockyardStateSeed::new(context),
         }
     }
 }
@@ -183,7 +206,11 @@ impl Module for Dockyard {
         todo!()
     }
 
-    fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface) {
+    fn proceed(
+        &mut self,
+        this_vessel: &dyn VesselModuleInterface,
+        process_token_context: &ProcessTokenContext,
+    ) {
         let mut person_interface = Console {
             id: self.id,
             requests: vec![],
@@ -192,7 +219,11 @@ impl Module for Dockyard {
         };
 
         if let Some(operator) = &mut self.operator {
-            operator.proceed(&mut person_interface, this_vessel.console())
+            operator.proceed(
+                &mut person_interface,
+                this_vessel.console(),
+                process_token_context,
+            )
         }
 
         for request in std::mem::take(&mut person_interface.requests) {
@@ -212,7 +243,7 @@ impl Module for Dockyard {
                                 .docking_clamp
                                 .dock(Vessel::new((0., 0.).into(), modules));
                             assert!(ok);
-                            process_token.mark_completed();
+                            process_token.mark_completed(process_token_context);
                             self.state = DockyardState::Idle;
                         } else {
                             todo!()
@@ -304,7 +335,15 @@ impl ModuleFactory for DockyardFactory {
     }
 }
 
-pub(crate) struct DockyardDynSeed;
+pub(crate) struct DockyardDynSeed {
+    context: Rc<ProcessTokenContext>,
+}
+
+impl DockyardDynSeed {
+    pub fn new(context: Rc<ProcessTokenContext>) -> Self {
+        Self { context }
+    }
+}
 
 impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
     fn type_id(&self) -> TypeId {
@@ -316,8 +355,9 @@ impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Dockyard = from_intermediate_seed(DockyardSeed::new(this_vault), &intermediate)
-            .map_err(|e| e.to_string())?;
+        let obj: Dockyard =
+            from_intermediate_seed(DockyardSeed::new(this_vault, &self.context), &intermediate)
+                .map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))
     }

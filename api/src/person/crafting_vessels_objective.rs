@@ -1,4 +1,4 @@
-use crate::module::{Module, ModuleCapability, ModuleConsole};
+use crate::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
 use crate::person::PersonId;
 use crate::person::building_vessels_objective::{
     BuildingVesselsObjective, BuildingVesselsObjectiveError,
@@ -67,6 +67,7 @@ impl CraftingVesselsObjective {
         this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
+        process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, CraftingVesselsObjectiveError> {
         match self {
             Self::CheckingAllPrerequisites {
@@ -114,7 +115,7 @@ impl CraftingVesselsObjective {
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_person, this_module, this_vessel)
+                    .pursue(this_person, this_module, this_vessel, process_token_context)
                     .map_err(CraftingVesselsObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
@@ -131,7 +132,7 @@ impl CraftingVesselsObjective {
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_person, this_module, this_vessel)
+                    .pursue(this_person, this_module, this_vessel, process_token_context)
                     .map_err(CraftingVesselsObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
@@ -148,7 +149,7 @@ impl CraftingVesselsObjective {
                 building_objective,
             } => {
                 match building_objective
-                    .pursue(this_person, this_module, this_vessel)
+                    .pursue(this_person, this_module, this_vessel, process_token_context)
                     .map_err(CraftingVesselsObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => {}

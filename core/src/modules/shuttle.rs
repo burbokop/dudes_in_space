@@ -1,6 +1,6 @@
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext,
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
@@ -46,7 +46,11 @@ impl Module for Shuttle {
         todo!()
     }
 
-    fn proceed(&mut self, v: &dyn VesselModuleInterface) {
+    fn proceed(
+        &mut self,
+        v: &dyn VesselModuleInterface,
+        process_token_context: &ProcessTokenContext,
+    ) {
         todo!()
     }
 

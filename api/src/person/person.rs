@@ -1,4 +1,4 @@
-use crate::module::{ModuleCapability, ModuleConsole};
+use crate::module::{ModuleCapability, ModuleConsole, ProcessTokenContext};
 use crate::person::crafting_vessels_objective::CraftingVesselsObjective;
 use crate::person::objective::{Objective, ObjectiveStatus};
 use crate::vessel::VesselConsole;
@@ -248,11 +248,12 @@ impl Person {
         &mut self,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
+        process_token_context: &ProcessTokenContext,
     ) {
         match &mut self.state {
             PersonState::Idle => self.decide_objective(),
             PersonState::PursuingObjective(objective) => {
-                match objective.pursue(self.id, this_module, this_vessel) {
+                match objective.pursue(self.id, this_module, this_vessel, process_token_context) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => todo!(),
                     Err(err) => {
