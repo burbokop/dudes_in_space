@@ -2,7 +2,7 @@ use crate::item::ItemStorage;
 use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext};
 use crate::person::{Person, PersonId};
 use crate::recipe::{AssemblyRecipe, Recipe};
-use crate::vessel::VesselModuleInterface;
+use crate::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
@@ -17,6 +17,8 @@ pub trait Module: Debug + DynSerialize {
     fn id(&self) -> ModuleId;
     fn package_id(&self) -> PackageId;
     fn capabilities(&self) -> &[ModuleCapability];
+    fn primary_capabilities(&self) -> &[ModuleCapability];
+
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
@@ -40,6 +42,8 @@ pub trait Module: Debug + DynSerialize {
 
     fn module_storages(&self) -> &[ModuleStorage];
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
+
+    fn docking_clamps(&self) -> &[DockingClamp];
 }
 
 dyn_serde_trait!(Module);

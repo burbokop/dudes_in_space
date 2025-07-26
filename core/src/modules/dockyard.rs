@@ -24,6 +24,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Dockyard,
     ModuleCapability::ModuleStorage,
     ModuleCapability::PersonnelRoom,
+    ModuleCapability::DockingClamp,
 ];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
@@ -129,6 +130,10 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
         todo!()
     }
 
@@ -221,6 +226,10 @@ impl Module for Dockyard {
         CAPABILITIES
     }
 
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
@@ -254,9 +263,11 @@ impl Module for Dockyard {
                     } => {
                         if !self.docking_clamp.is_docked() {
                             let modules = self.module_storage.try_take(modules.iter()).unwrap();
-                            let ok = self
-                                .docking_clamp
-                                .dock(Vessel::new((0., 0.).into(), modules));
+                            let ok = self.docking_clamp.dock(Vessel::new(
+                                this_vessel.owner(),
+                                (0., 0.).into(),
+                                modules,
+                            ));
                             assert!(ok);
                             process_token.mark_completed(process_token_context);
                             self.state = DockyardState::Idle;
@@ -324,6 +335,10 @@ impl Module for Dockyard {
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
         std::slice::from_mut(&mut self.module_storage)
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
     }
 }
 

@@ -134,6 +134,10 @@ impl<'a> ModuleConsole for Console<'a> {
         CAPABILITIES
     }
 
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
     fn interact(&mut self) -> bool {
         let is_recipe_valid = |state: &AssemblerState| match state {
             AssemblerState::Idle => false,
@@ -249,6 +253,10 @@ impl Module for Assembler {
         CAPABILITIES
     }
 
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
@@ -358,6 +366,10 @@ impl Module for Assembler {
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
         todo!()
     }
 }

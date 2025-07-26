@@ -8,6 +8,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::BTreeSet;
 use std::fmt::Formatter;
 use uuid::Uuid;
 
@@ -28,6 +29,7 @@ enum VesselRequest {
 #[deserialize_seed_xxx(seed = crate::vessel::VesselSeed::<'v>)]
 pub struct Vessel {
     id: VesselId,
+    owner: PersonId,
     pos: Point<Float>,
     #[deserialize_seed_xxx(seed = self.seed.module_seq_seed)]
     modules: Vec<RefCell<Box<dyn Module>>>,
@@ -93,10 +95,14 @@ impl Vessel {
     pub(crate) fn id(&self) -> VesselId {
         self.id
     }
+    pub(crate) fn owner(&self) -> PersonId {
+        self.owner
+    }
 
-    pub fn new(pos: Point<Float>, modules: Vec<Box<dyn Module>>) -> Self {
+    pub fn new(owner: PersonId, pos: Point<Float>, modules: Vec<Box<dyn Module>>) -> Self {
         Self {
             id: VesselId::new_v4(),
+            owner,
             pos,
             modules: modules.into_iter().map(RefCell::new).collect(),
             requests: Default::default(),
@@ -159,6 +165,10 @@ impl VesselModuleInterface for Vessel {
             .push(VesselRequest::AddModule { module })
     }
 
+    fn owner(&self) -> PersonId {
+        todo!()
+    }
+
     fn console(&self) -> &dyn VesselConsole {
         self
     }
@@ -186,5 +196,25 @@ impl VesselConsole for Vessel {
                 person_id,
                 module_id: id,
             })
+    }
+
+    fn capabilities(&self) -> BTreeSet<ModuleCapability> {
+        self.modules
+            .iter()
+            .filter_map(|module| {
+                if let Ok(module) = module.try_borrow() {
+                    Some(
+                        module
+                            .capabilities()
+                            .into_iter()
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    )
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect()
     }
 }

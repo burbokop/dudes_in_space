@@ -14,6 +14,7 @@ pub trait ModuleConsole {
     fn id(&self) -> ModuleId;
     fn package_id(&self) -> PackageId;
     fn capabilities(&self) -> &[ModuleCapability];
+    fn primary_capabilities(&self) -> &[ModuleCapability];
 
     /// interact
     fn interact(&mut self) -> bool;
@@ -56,6 +57,10 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
         todo!()
     }
 

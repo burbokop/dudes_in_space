@@ -5,7 +5,7 @@ use dudes_in_space_api::module::{
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
-use dudes_in_space_api::vessel::VesselModuleInterface;
+use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -97,6 +97,14 @@ impl Module for Shuttle {
 
     fn capabilities(&self) -> &[ModuleCapability] {
         CAPABILITIES
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
     }
 }
 

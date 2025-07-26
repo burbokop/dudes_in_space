@@ -7,7 +7,7 @@ use dudes_in_space_api::module::{
 };
 use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
-use dudes_in_space_api::vessel::VesselModuleInterface;
+use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
@@ -110,6 +110,14 @@ impl Module for PersonnelArea {
 
     fn capabilities(&self) -> &[ModuleCapability] {
         CAPABILITIES
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
     }
 }
 

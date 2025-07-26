@@ -1,12 +1,10 @@
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleStorage, ProcessTokenContext};
 use crate::person::PersonId;
-use crate::person::building_vessels_objective::{
-    BuildingVesselsObjective, BuildingVesselsObjectiveError,
+use crate::person::objective::crafting::{
+    BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
+    CraftModulesObjectiveError,
 };
-use crate::person::crafting_modules_objective::{
-    CraftingModulesObjective, CraftingModulesObjectiveError,
-};
-use crate::person::objective::ObjectiveStatus;
+use crate::person::objective::{Objective, ObjectiveStatus};
 use crate::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
@@ -15,21 +13,21 @@ use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "crafting_vessels_objective_stage")]
-pub(crate) enum CraftingVesselsObjective {
+pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
         needed_capabilities: Vec<ModuleCapability>,
     },
     CraftingDockyard {
         needed_capabilities: Vec<ModuleCapability>,
-        crafting_objective: CraftingModulesObjective,
+        crafting_objective: CraftModulesObjective,
     },
     CraftingVesselModules {
         needed_capabilities: Vec<ModuleCapability>,
-        crafting_objective: CraftingModulesObjective,
+        crafting_objective: CraftModulesObjective,
     },
     BuildingVessel {
         needed_capabilities: Vec<ModuleCapability>,
-        building_objective: BuildingVesselsObjective,
+        building_objective: BuildVesselObjective,
     },
     Done,
 }
@@ -37,17 +35,12 @@ pub(crate) enum CraftingVesselsObjective {
 struct DockyardRef<'x> {
     module_storages: &'x [ModuleStorage],
 }
-
-impl CraftingVesselsObjective {
+impl CraftVesselFromScratchObjective {
     pub(crate) fn new(needed_capabilities: Vec<ModuleCapability>) -> Self {
         Self::CheckingAllPrerequisites {
             needed_capabilities,
         }
     }
-
-    // pub(crate) fn is_done(&self) -> bool {
-    //     todo!()
-    // }
 
     fn find_dockyard_with_suitable_modules_in_storage<'a>(
         dockyards: Vec<DockyardRef<'a>>,
@@ -65,14 +58,18 @@ impl CraftingVesselsObjective {
         }
         None
     }
+}
 
-    pub(crate) fn pursue(
+impl Objective for CraftVesselFromScratchObjective {
+    type Error = CraftVesselFromScratchObjectiveError;
+
+    fn pursue(
         &mut self,
         this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-    ) -> Result<ObjectiveStatus, CraftingVesselsObjectiveError> {
+    ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CheckingAllPrerequisites {
                 needed_capabilities,
@@ -101,7 +98,7 @@ impl CraftingVesselsObjective {
                 if dockyards.is_empty() {
                     *self = Self::CraftingDockyard {
                         needed_capabilities: std::mem::take(needed_capabilities),
-                        crafting_objective: CraftingModulesObjective::new(
+                        crafting_objective: CraftModulesObjective::new(
                             vec![ModuleCapability::Dockyard],
                             true,
                         ),
@@ -117,7 +114,7 @@ impl CraftingVesselsObjective {
                 if dockyard.is_none() {
                     *self = Self::CraftingVesselModules {
                         needed_capabilities: needed_capabilities.clone(),
-                        crafting_objective: CraftingModulesObjective::new(
+                        crafting_objective: CraftModulesObjective::new(
                             std::mem::take(needed_capabilities),
                             false,
                         ),
@@ -127,7 +124,7 @@ impl CraftingVesselsObjective {
 
                 *self = Self::BuildingVessel {
                     needed_capabilities: needed_capabilities.clone(),
-                    building_objective: BuildingVesselsObjective::new(std::mem::take(
+                    building_objective: BuildVesselObjective::new(std::mem::take(
                         needed_capabilities,
                     )),
                 };
@@ -139,7 +136,7 @@ impl CraftingVesselsObjective {
             } => {
                 match crafting_objective
                     .pursue(this_person, this_module, this_vessel, process_token_context)
-                    .map_err(CraftingVesselsObjectiveError::CraftingDockyard)?
+                    .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
@@ -156,7 +153,7 @@ impl CraftingVesselsObjective {
             } => {
                 match crafting_objective
                     .pursue(this_person, this_module, this_vessel, process_token_context)
-                    .map_err(CraftingVesselsObjectiveError::CraftingVesselModules)?
+                    .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
@@ -173,10 +170,13 @@ impl CraftingVesselsObjective {
             } => {
                 match building_objective
                     .pursue(this_person, this_module, this_vessel, process_token_context)
-                    .map_err(CraftingVesselsObjectiveError::BuildingVessel)?
+                    .map_err(CraftVesselFromScratchObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
-                    ObjectiveStatus::Done => {*self = Self::Done; Ok(ObjectiveStatus::Done)},
+                    ObjectiveStatus::Done => {
+                        *self = Self::Done;
+                        Ok(ObjectiveStatus::Done)
+                    }
                 }
             }
             Self::Done => Ok(ObjectiveStatus::Done),
@@ -185,16 +185,16 @@ impl CraftingVesselsObjective {
 }
 
 #[derive(Debug)]
-pub(crate) enum CraftingVesselsObjectiveError {
-    CraftingDockyard(CraftingModulesObjectiveError),
-    CraftingVesselModules(CraftingModulesObjectiveError),
-    BuildingVessel(BuildingVesselsObjectiveError),
+pub(crate) enum CraftVesselFromScratchObjectiveError {
+    CraftingDockyard(CraftModulesObjectiveError),
+    CraftingVesselModules(CraftModulesObjectiveError),
+    BuildingVessel(BuildVesselObjectiveError),
 }
 
-impl Display for CraftingVesselsObjectiveError {
+impl Display for CraftVesselFromScratchObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
-impl Error for CraftingVesselsObjectiveError {}
+impl Error for CraftVesselFromScratchObjectiveError {}

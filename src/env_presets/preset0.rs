@@ -16,5 +16,5 @@ pub(crate) fn new<R: Rng>(rng: &mut R) -> Environment {
 
     // Environment::new(vec![spawn_station])
 
-    Environment::new(vec![])
+    Environment::new(vec![], vec![])
 }

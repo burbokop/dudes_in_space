@@ -1,7 +1,6 @@
 use crate::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext};
 use crate::person::PersonId;
-use crate::person::crafting_modules_objective::CraftingModulesObjective::Done;
-use crate::person::objective::ObjectiveStatus;
+use crate::person::objective::{Objective, ObjectiveStatus};
 use crate::recipe::AssemblyRecipe;
 use crate::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
@@ -11,7 +10,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "crafting_modules_objective_stage")]
-pub(crate) enum CraftingModulesObjective {
+pub(crate) enum CraftModulesObjective {
     SearchingForCraftingModule {
         needed_capabilities: Vec<ModuleCapability>,
         deploy: bool,
@@ -28,8 +27,7 @@ pub(crate) enum CraftingModulesObjective {
     },
     Done,
 }
-
-impl CraftingModulesObjective {
+impl CraftModulesObjective {
     pub(crate) fn new(needed_capabilities: Vec<ModuleCapability>, deploy: bool) -> Self {
         Self::SearchingForCraftingModule {
             needed_capabilities,
@@ -37,17 +35,31 @@ impl CraftingModulesObjective {
         }
     }
 
-    pub(crate) fn is_done(&self) -> bool {
-        todo!()
+    fn is_recipe_set_suitable(
+        recipes: &[AssemblyRecipe],
+        mut needed_caps: Vec<ModuleCapability>,
+    ) -> bool {
+        for r in recipes {
+            for cap in r.output_capabilities() {
+                if let Some(i) = needed_caps.iter().position(|x| *x == *cap) {
+                    needed_caps.remove(i);
+                }
+            }
+        }
+        needed_caps.is_empty()
     }
+}
 
-    pub(crate) fn pursue(
+impl Objective for CraftModulesObjective {
+    type Error = CraftModulesObjectiveError;
+
+    fn pursue(
         &mut self,
         this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-    ) -> Result<ObjectiveStatus, CraftingModulesObjectiveError> {
+    ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {
                 needed_capabilities,
@@ -80,7 +92,7 @@ impl CraftingModulesObjective {
                         return Ok(ObjectiveStatus::InProgress);
                     }
                 }
-                Err(CraftingModulesObjectiveError::CanNotFindCraftingModule)
+                Err(CraftModulesObjectiveError::CanNotFindCraftingModule)
             }
             Self::MovingToCraftingModule {
                 dst,
@@ -133,7 +145,7 @@ impl CraftingModulesObjective {
                         .unwrap_or(true)
                     {
                         return if needed_capabilities.is_empty() {
-                            *self = Done;
+                            *self = Self::Done;
                             Ok(ObjectiveStatus::Done)
                         } else {
                             *process_token = None;
@@ -149,34 +161,20 @@ impl CraftingModulesObjective {
                     }
                 }
             },
-            Done => Ok(ObjectiveStatus::Done),
+            Self::Done => Ok(ObjectiveStatus::Done),
         }
-    }
-
-    fn is_recipe_set_suitable(
-        recipes: &[AssemblyRecipe],
-        mut needed_caps: Vec<ModuleCapability>,
-    ) -> bool {
-        for r in recipes {
-            for cap in r.output_capabilities() {
-                if let Some(i) = needed_caps.iter().position(|x| *x == *cap) {
-                    needed_caps.remove(i);
-                }
-            }
-        }
-        needed_caps.is_empty()
     }
 }
 
 #[derive(Debug)]
-pub(crate) enum CraftingModulesObjectiveError {
+pub(crate) enum CraftModulesObjectiveError {
     CanNotFindCraftingModule,
 }
 
-impl Display for CraftingModulesObjectiveError {
+impl Display for CraftModulesObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
-impl Error for CraftingModulesObjectiveError {}
+impl Error for CraftModulesObjectiveError {}

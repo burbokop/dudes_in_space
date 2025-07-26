@@ -1,3 +1,4 @@
+use crate::environment::Nebula;
 use crate::module::{Module, ProcessTokenContext};
 use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
@@ -12,6 +13,7 @@ use std::fmt::Formatter;
 pub struct Environment {
     #[deserialize_seed_xxx(seed = self.seed.vessel_seed)]
     vessels: Vec<Vessel>,
+    nebulae: Vec<Nebula>,
 }
 
 pub struct EnvironmentSeed<'v> {
@@ -27,8 +29,8 @@ impl<'v> EnvironmentSeed<'v> {
 }
 
 impl Environment {
-    pub fn new(vessels: Vec<Vessel>) -> Self {
-        Self { vessels }
+    pub fn new(vessels: Vec<Vessel>, nebulae: Vec<Nebula>) -> Self {
+        Self { vessels, nebulae }
     }
 
     pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {

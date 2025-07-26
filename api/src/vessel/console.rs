@@ -1,10 +1,12 @@
 use crate::module::{Module, ModuleCapability, ModuleId};
 use crate::person::PersonId;
 use std::cell::RefMut;
+use std::collections::BTreeSet;
 
 /// interface through which a module can interact with a vessel it is contained in
 pub trait VesselModuleInterface {
     fn add_module(&self, module: Box<dyn Module>);
+    fn owner(&self) -> PersonId;
     fn console(&self) -> &dyn VesselConsole;
 }
 
@@ -12,4 +14,5 @@ pub trait VesselModuleInterface {
 pub trait VesselConsole {
     fn modules_with_cap(&self, cap: ModuleCapability) -> Vec<RefMut<Box<dyn Module>>>;
     fn move_to_module(&self, person: PersonId, id: ModuleId);
+    fn capabilities(&self) -> BTreeSet<ModuleCapability>;
 }
