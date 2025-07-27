@@ -1,9 +1,12 @@
-use crate::item::ItemStorage;
+use crate::item::{
+    BuyOffer, ItemCount, ItemId, ItemStorage, Money, SellOffer, WeakBuyOrder, WeakSellOrder,
+};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, PackageId, ProcessToken};
 use crate::person::Role;
 use crate::recipe::AssemblyRecipe;
 use crate::utils::math::Vector;
+use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
 use std::collections::BTreeSet;
 use std::ops::Deref;
@@ -26,6 +29,12 @@ pub trait ModuleConsole {
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole>;
     fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole>;
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole>;
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole>;
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole>;
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole>;
 
     fn storages(&self) -> &[ItemStorage];
     fn storages_mut(&mut self) -> &mut [ItemStorage];
@@ -88,6 +97,22 @@ impl ModuleConsole for DefaultModuleConsole {
         todo!()
     }
 
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+        todo!()
+    }
+
     fn storages(&self) -> &[ItemStorage] {
         todo!()
     }
@@ -130,6 +155,28 @@ pub trait AssemblyConsole {
 
 pub trait DockyardConsole {
     fn start(&mut self, modules: BTreeSet<ModuleId>) -> Option<ProcessToken>;
+}
+
+pub trait TradingConsole {
+    fn buy_offers(&self) -> &[BuyOffer];
+    fn sell_offers(&self) -> &[SellOffer];
+    fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder>;
+    fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
+}
+
+pub trait TradingAdminConsole {
+    fn place_buy_offer(
+        &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer>;
+    fn place_sell_offer(
+        &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&SellOffer>;
 }
 
 pub(crate) trait CaptainControlPanel {

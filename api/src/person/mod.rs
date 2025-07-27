@@ -1,6 +1,7 @@
 mod person;
 pub use person::*;
 
-pub mod objective;
+mod objective;
+pub use objective::*;
 
 mod utils;

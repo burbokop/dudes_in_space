@@ -1,6 +1,6 @@
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
-use dudes_in_space_core::modules::VisitModules;
+use dudes_in_space_api::person::DynObjective;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
@@ -33,11 +33,17 @@ fn main() {
 
     let process_token_context = Rc::new(ProcessTokenContext::new());
 
+    let objectives_seed_vault = dudes_in_space_core::register_objectives(Default::default());
+    let objectives_decider_vault =
+        dudes_in_space_core::register_objective_deciders(Default::default());
+
     let module_factory_seed_vault =
         dudes_in_space_core::register_module_factories(Default::default()).into_rc();
+
     let module_seed_vault = dudes_in_space_core::register_modules(
         Default::default(),
         module_factory_seed_vault,
+        objectives_seed_vault.into_rc(),
         process_token_context.clone(),
     )
     .into_rc();
@@ -70,7 +76,7 @@ fn main() {
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
 
-    environment.proceed(&process_token_context);
+    environment.proceed(&process_token_context, &objectives_decider_vault);
 
     // println!("{:#?}", environment);
 

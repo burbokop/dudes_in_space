@@ -1,9 +1,6 @@
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
-    ProcessTokenContext,
-};
-use dudes_in_space_api::person::{Person, PersonId};
+use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole};
+use dudes_in_space_api::person::{ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{
@@ -59,6 +56,7 @@ impl Module for Shuttle {
         &mut self,
         v: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
     ) {
         todo!()
     }
@@ -104,6 +102,14 @@ impl Module for Shuttle {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
         todo!()
     }
 }

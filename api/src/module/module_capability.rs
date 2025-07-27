@@ -10,6 +10,7 @@ pub enum ModuleCapability {
     Crafting,
     PersonnelRoom,
     DockingClamp,
+    TradingTerminal,
 
     Cockpit,
     FuelTank,

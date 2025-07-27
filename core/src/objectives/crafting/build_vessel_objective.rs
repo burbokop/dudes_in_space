@@ -1,9 +1,8 @@
-use crate::module::{
+use dudes_in_space_api::module::{
     ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ProcessToken, ProcessTokenContext,
 };
-use crate::person::PersonId;
-use crate::person::objective::{Objective, ObjectiveStatus};
-use crate::vessel::VesselConsole;
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId};
+use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -13,9 +12,11 @@ use std::fmt::{Display, Formatter};
 #[serde(tag = "building_vessels_objective_stage")]
 pub(crate) enum BuildVesselObjective {
     SearchingForDockyard {
+        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
     },
     MovingToDockyardModule {
+        this_person: PersonId,
         dst: ModuleId,
         needed_capabilities: Vec<ModuleCapability>,
     },
@@ -27,8 +28,9 @@ pub(crate) enum BuildVesselObjective {
 }
 
 impl BuildVesselObjective {
-    pub(crate) fn new(needed_capabilities: Vec<ModuleCapability>) -> Self {
+    pub(crate) fn new(this_person: PersonId, needed_capabilities: Vec<ModuleCapability>) -> Self {
         Self::SearchingForDockyard {
+            this_person,
             needed_capabilities,
         }
     }
@@ -80,13 +82,13 @@ impl Objective for BuildVesselObjective {
 
     fn pursue(
         &mut self,
-        this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             BuildVesselObjective::SearchingForDockyard {
+                this_person,
                 needed_capabilities,
             } => {
                 if Self::are_module_storages_suitable(
@@ -94,6 +96,7 @@ impl Objective for BuildVesselObjective {
                     needed_capabilities.clone(),
                 ) {
                     *self = Self::MovingToDockyardModule {
+                        this_person: std::mem::take(this_person),
                         dst: this_module.id(),
                         needed_capabilities: std::mem::take(needed_capabilities),
                     };
@@ -107,6 +110,7 @@ impl Objective for BuildVesselObjective {
                         needed_capabilities.clone(),
                     ) {
                         *self = Self::MovingToDockyardModule {
+                            this_person: std::mem::take(this_person),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                         };
@@ -116,6 +120,7 @@ impl Objective for BuildVesselObjective {
                 Err(BuildVesselObjectiveError::CanNotFindDockyard)
             }
             BuildVesselObjective::MovingToDockyardModule {
+                this_person,
                 dst,
                 needed_capabilities,
             } => {
@@ -127,7 +132,7 @@ impl Objective for BuildVesselObjective {
                         process_token: None,
                     };
                 } else {
-                    this_vessel.move_to_module(this_person, *dst);
+                    this_vessel.move_to_module(*this_person, *dst);
                 }
                 Ok(ObjectiveStatus::InProgress)
             }

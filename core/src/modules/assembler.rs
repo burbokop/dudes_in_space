@@ -1,17 +1,17 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{
-    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
-    ProcessTokenMutSeed,
+use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::person::{
+    DynObjective, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
-use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
@@ -61,22 +61,26 @@ pub struct Assembler {
     state: AssemblerState,
     storage: ItemStorage,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
 
 #[derive(Clone)]
 pub struct AssemblerSeed<'v, 'context> {
     recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
     state_seed: AssemblerStateSeed<'context>,
 }
 
 impl<'v, 'context> AssemblerSeed<'v, 'context> {
     pub fn new(
-        vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
+        module_factory_vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
+        objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
-            recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(vault)),
+            recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(module_factory_vault)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
             state_seed: AssemblerStateSeed::new(context),
         }
     }
@@ -175,6 +179,22 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+        todo!()
+    }
+
     fn storages(&self) -> &[ItemStorage] {
         todo!()
     }
@@ -261,6 +281,7 @@ impl Module for Assembler {
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
     ) {
         let mut console = Console {
             id: self.id,
@@ -271,7 +292,13 @@ impl Module for Assembler {
         };
 
         if let Some(operator) = &mut self.operator {
-            operator.proceed(&mut console, this_vessel.console(), process_token_context)
+            operator.proceed(
+                &mut rng(),
+                &mut console,
+                this_vessel.console(),
+                process_token_context,
+                decider_vault,
+            )
         }
 
         for request in std::mem::take(&mut console.requests) {
@@ -372,6 +399,14 @@ impl Module for Assembler {
     fn docking_clamps(&self) -> &[DockingClamp] {
         todo!()
     }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
 }
 
 impl CoreModule for Assembler {
@@ -385,17 +420,20 @@ impl CoreModule for Assembler {
 }
 
 pub(crate) struct AssemblerDynSeed {
-    seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+    factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+    objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     context: Rc<ProcessTokenContext>,
 }
 
 impl AssemblerDynSeed {
     pub fn new(
-        seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+        factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+        objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
-            seed_vault,
+            factory_seed_vault,
+            objective_seed_vault,
             context,
         }
     }
@@ -412,7 +450,11 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
         _: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Assembler = from_intermediate_seed(
-            AssemblerSeed::new(&self.seed_vault, &self.context),
+            AssemblerSeed::new(
+                &self.factory_seed_vault,
+                &self.objective_seed_vault,
+                &self.context,
+            ),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

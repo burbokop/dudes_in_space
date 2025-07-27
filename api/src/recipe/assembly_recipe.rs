@@ -12,7 +12,7 @@ pub trait ModuleFactory: Debug + DynSerialize {
     fn output_capabilities(&self) -> &[ModuleCapability];
 }
 
-dyn_serde_trait!(ModuleFactory);
+dyn_serde_trait!(ModuleFactory, ModuleFactorySeed);
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::recipe::AssemblyRecipeSeed::<'v>)]

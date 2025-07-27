@@ -6,3 +6,6 @@ pub use item_storage::*;
 
 mod order;
 pub use order::*;
+
+mod offer;
+pub use offer::*;

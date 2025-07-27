@@ -1,17 +1,20 @@
 use crate::module::{
-    ConcatModuleCapabilities, ModuleCapability, ModuleConsole, ProcessTokenContext,
+    ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ProcessTokenContext,
 };
-use crate::person::objective::crafting::CraftVesselFromScratchObjective;
-use crate::person::objective::{AdventuringObjective, EitherObjective, Objective, ObjectiveStatus};
+use crate::person::objective::{Objective, ObjectiveSeed, ObjectiveStatus};
+use crate::person::{DynObjective, ObjectiveDeciderVault};
+use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
+use dyn_serde::DynDeserializeSeedVault;
+use dyn_serde_macro::DeserializeSeedXXX;
 use rand::Rng;
 use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
+use serde::de::DeserializeSeed;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use uuid::Uuid;
-use dyn_serde_macro::DeserializeSeedXXX;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -67,7 +70,7 @@ fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
 }
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Serialize, Deserialize, Copy, Clone)]
-pub(crate) enum Passion {
+pub enum Passion {
     Trade,
     Crafting,
     Adventuring,
@@ -93,8 +96,8 @@ impl Distribution<Passion> for StandardUniform {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) enum Morale {
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub enum Morale {
     SickBastard,
     Mercantile,
     TheEndJustifiesTheMeans,
@@ -117,8 +120,8 @@ impl Distribution<Morale> for StandardUniform {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) enum Boldness {
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub enum Boldness {
     PantsShittingWorm,
     Unconfident,
     Cautious,
@@ -141,8 +144,8 @@ impl Distribution<Boldness> for StandardUniform {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) enum Awareness {
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub enum Awareness {
     Monkey,
     TrumpSupporter,
     Dummy,
@@ -174,7 +177,7 @@ pub(crate) enum Role {
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub(crate) enum Gender {
+pub enum Gender {
     CisMale,
     CisFemale,
     MTFTrans,
@@ -198,6 +201,7 @@ impl Distribution<Gender> for StandardUniform {
 pub type PersonId = Uuid;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v>)]
 pub struct Person {
     id: PersonId,
     name: String,
@@ -207,7 +211,22 @@ pub struct Person {
     morale: Morale,
     boldness: Boldness,
     awareness: Awareness,
-    objective: Option<Box<dyn Objective<Error = Box<dyn Error>>>>,
+    #[serde(with = "crate::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
+    objective: Option<Box<dyn DynObjective>>,
+}
+
+#[derive(Clone)]
+pub struct PersonSeed<'v> {
+    objective_seed: TaggedOptionSeed<ObjectiveSeed<'v>>,
+}
+
+impl<'v> PersonSeed<'v> {
+    pub fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+        Self {
+            objective_seed: TaggedOptionSeed::new(ObjectiveSeed::new(vault)),
+        }
+    }
 }
 
 impl Person {
@@ -230,114 +249,46 @@ impl Person {
             morale: rng.random(),
             boldness: rng.random(),
             awareness: rng.random(),
-            state: PersonState::Idle,
+            objective: None,
         }
     }
 
-    pub fn proceed(
+    pub fn proceed<R: Rng>(
         &mut self,
+        rng: &mut R,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
     ) {
-        match &mut self.state {
-            PersonState::Idle => self.decide_objective(this_module, this_vessel),
-            PersonState::PursuingObjective(objective) => {
-                match objective.pursue(self.id, this_module, this_vessel, process_token_context) {
+        match &mut self.objective {
+            None => {
+                self.objective = Some(
+                    decider_vault
+                        .decide(
+                            rng,
+                            self.id,
+                            self.age,
+                            self.gender,
+                            &self.passions,
+                            self.morale,
+                            self.boldness,
+                            self.awareness,
+                        )
+                        .unwrap(),
+                )
+            }
+            Some(objective) => {
+                match objective.pursue(this_module, this_vessel, process_token_context) {
                     Ok(ObjectiveStatus::InProgress) => {}
-                    Ok(ObjectiveStatus::Done) => todo!(),
+                    Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {
                         eprintln!(
                             "Objective performed by person {} ({}) failed: {}",
                             self.id, self.name, err
                         );
-                        self.state = PersonState::Idle
+                        self.objective = None
                     }
-                }
-            }
-        }
-    }
-
-    fn decide_objective(
-        &mut self,
-        this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
-    ) {
-        println!("decide objective: {} -> {:?}", self.name, self.passions);
-
-        {
-            let mut passions = self.passions.clone();
-            passions.shuffle(&mut rand::rng());
-
-            while let Some(next) = passions.pop() {
-                if match next {
-                    Passion::Trade => false,
-                    Passion::Crafting => false,
-                    Passion::Adventuring => {
-                        let this_vessel_caps = this_vessel
-                            .capabilities()
-                            .concat(this_module.capabilities());
-                        let needed_caps = vec![
-                            ModuleCapability::Cockpit,
-                            ModuleCapability::Engine,
-                            ModuleCapability::Reactor,
-                            ModuleCapability::FuelTank,
-                        ];
-
-                        if needed_caps.iter().all(|cap| this_vessel_caps.contains(cap)) {
-                            self.state = PersonState::PursuingObjective(
-                                EitherObjective::Adventuring(AdventuringObjective::new()),
-                            );
-
-                            true
-                        } else {
-                            let docking_clamps =
-                                this_vessel.modules_with_cap(ModuleCapability::DockingClamp);
-
-                            false
-                        }
-                    }
-                    Passion::Flying => false,
-                    Passion::Ruling => false,
-                    Passion::Money => false,
-                    Passion::Drugs => false,
-                    Passion::Sex => false,
-                } {
-                    break;
-                }
-            }
-        }
-
-        // Fallback choice
-        {
-            let mut passions = self.passions.clone();
-            passions.shuffle(&mut rand::rng());
-
-            while let Some(next) = passions.pop() {
-                if match next {
-                    Passion::Trade => false,
-                    Passion::Crafting => false,
-                    Passion::Adventuring => false,
-                    Passion::Flying => {
-                        let needed_caps = vec![
-                            ModuleCapability::Cockpit,
-                            ModuleCapability::Engine,
-                            ModuleCapability::Reactor,
-                            ModuleCapability::FuelTank,
-                        ];
-
-                        self.state =
-                            PersonState::PursuingObjective(EitherObjective::CraftingVessels(
-                                CraftVesselFromScratchObjective::new(needed_caps),
-                            ));
-                        true
-                    }
-                    Passion::Ruling => false,
-                    Passion::Money => false,
-                    Passion::Drugs => false,
-                    Passion::Sex => false,
-                } {
-                    break;
                 }
             }
         }

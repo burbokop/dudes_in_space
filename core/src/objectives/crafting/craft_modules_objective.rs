@@ -1,8 +1,9 @@
-use crate::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext};
-use crate::person::PersonId;
-use crate::person::objective::{Objective, ObjectiveStatus};
-use crate::recipe::AssemblyRecipe;
-use crate::vessel::VesselConsole;
+use dudes_in_space_api::module::{
+    ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext,
+};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId};
+use dudes_in_space_api::recipe::AssemblyRecipe;
+use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, VecDeque};
 use std::error::Error;
@@ -12,10 +13,12 @@ use std::fmt::{Debug, Display, Formatter};
 #[serde(tag = "crafting_modules_objective_stage")]
 pub(crate) enum CraftModulesObjective {
     SearchingForCraftingModule {
+        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         deploy: bool,
     },
     MovingToCraftingModule {
+        this_person: PersonId,
         dst: ModuleId,
         needed_capabilities: Vec<ModuleCapability>,
         deploy: bool,
@@ -28,8 +31,9 @@ pub(crate) enum CraftModulesObjective {
     Done,
 }
 impl CraftModulesObjective {
-    pub(crate) fn new(needed_capabilities: Vec<ModuleCapability>, deploy: bool) -> Self {
+    pub(crate) fn new(this_person: PersonId, needed_capabilities: Vec<ModuleCapability>, deploy: bool) -> Self {
         Self::SearchingForCraftingModule {
+            this_person,
             needed_capabilities,
             deploy,
         }
@@ -55,13 +59,13 @@ impl Objective for CraftModulesObjective {
 
     fn pursue(
         &mut self,
-        this_person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {
+                this_person,
                 needed_capabilities,
                 deploy,
             } => {
@@ -71,6 +75,7 @@ impl Objective for CraftModulesObjective {
                         needed_capabilities.clone(),
                     ) {
                         *self = Self::MovingToCraftingModule {
+                            this_person: std::mem::take(this_person),
                             dst: this_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             deploy: *deploy,
@@ -85,6 +90,7 @@ impl Objective for CraftModulesObjective {
                         needed_capabilities.clone(),
                     ) {
                         *self = Self::MovingToCraftingModule {
+                            this_person: std::mem::take(this_person),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             deploy: *deploy,
@@ -95,6 +101,7 @@ impl Objective for CraftModulesObjective {
                 Err(CraftModulesObjectiveError::CanNotFindCraftingModule)
             }
             Self::MovingToCraftingModule {
+                this_person,
                 dst,
                 needed_capabilities,
                 deploy,
@@ -108,7 +115,7 @@ impl Objective for CraftModulesObjective {
                         process_token: None,
                     };
                 } else {
-                    this_vessel.move_to_module(this_person, *dst);
+                    this_vessel.move_to_module(*this_person, *dst);
                 }
                 Ok(ObjectiveStatus::InProgress)
             }

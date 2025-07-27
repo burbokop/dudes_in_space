@@ -1,12 +1,12 @@
 use crate::item::Item;
 use crate::vessel::VesselId;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Weak;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-type Money = usize;
+pub(crate) type Money = usize;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {

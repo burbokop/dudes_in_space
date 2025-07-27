@@ -1,7 +1,9 @@
-use crate::module::{ModuleConsole, ProcessTokenContext};
-use crate::person::PersonId;
-use crate::person::objective::{Objective, ObjectiveStatus};
-use crate::vessel::VesselConsole;
+use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::person::{
+    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
+    ObjectiveStatus, Passion, PersonId,
+};
+use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -14,11 +16,27 @@ impl Objective for MineAsteroidsObjective {
 
     fn pursue(
         &mut self,
-        person: PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
     ) -> Result<ObjectiveStatus, Self::Error> {
+        todo!()
+    }
+}
+
+pub(crate) struct MineAsteroidsObjectiveDecider;
+
+impl ObjectiveDecider for MineAsteroidsObjectiveDecider {
+    fn consider(
+        &self,
+        person_id: PersonId,
+        age: u8,
+        gender: Gender,
+        passions: &[Passion],
+        morale: Morale,
+        boldness: Boldness,
+        awareness: Awareness,
+    ) -> Option<Box<dyn DynObjective>> {
         todo!()
     }
 }

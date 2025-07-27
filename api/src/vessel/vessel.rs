@@ -1,5 +1,5 @@
 use crate::module::{Module, ModuleCapability, ModuleId, ModuleSeed, ProcessTokenContext};
-use crate::person::{Person, PersonId};
+use crate::person::{ObjectiveDeciderVault, Person, PersonId};
 use crate::utils::math::Point;
 use crate::utils::utils::Float;
 use crate::vessel::{VesselConsole, VesselModuleInterface};
@@ -121,9 +121,14 @@ impl Vessel {
         self.modules.push(RefCell::new(module));
     }
 
-    pub(crate) fn proceed(&mut self, process_token_context: &ProcessTokenContext) {
+    pub(crate) fn proceed(
+        &mut self,
+        process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
+    ) {
         for v in &self.modules {
-            v.borrow_mut().proceed(self, process_token_context)
+            v.borrow_mut()
+                .proceed(self, process_token_context, decider_vault)
         }
         for request in self.requests.take() {
             match request {

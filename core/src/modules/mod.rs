@@ -8,6 +8,7 @@ pub use assembler::*;
 pub use core_module::*;
 pub use dockyard::*;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
+use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
 use dyn_serde::DynDeserializeSeedVault;
 pub use personnel_area::*;
@@ -25,14 +26,19 @@ pub fn register_module_factories(
 pub fn register_modules(
     vault: DynDeserializeSeedVault<dyn Module>,
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
+    objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     process_token_context: Rc<ProcessTokenContext>,
 ) -> DynDeserializeSeedVault<dyn Module> {
     vault
-        .with(PersonnelAreaDynSeed)
+        .with(PersonnelAreaDynSeed::new(objective_seed_vault.clone()))
         .with(ShuttleDynSeed)
-        .with(DockyardDynSeed::new(process_token_context.clone()))
+        .with(DockyardDynSeed::new(
+            objective_seed_vault.clone(),
+            process_token_context.clone(),
+        ))
         .with(AssemblerDynSeed::new(
             factory_seed_vault,
+            objective_seed_vault,
             process_token_context,
         ))
 }

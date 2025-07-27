@@ -56,7 +56,7 @@ impl ModuleStorage {
         Some(result)
     }
 
-    pub(crate) fn contains_modules_with_cap(&self, cap: ModuleCapability) -> bool {
+    pub fn contains_modules_with_cap(&self, cap: ModuleCapability) -> bool {
         self.content
             .iter()
             .any(|module| module.capabilities().contains(&cap))

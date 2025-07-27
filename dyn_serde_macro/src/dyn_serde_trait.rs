@@ -3,26 +3,13 @@ use quote::{ToTokens, format_ident, quote};
 use syn::Ident;
 use syn::{self, parse::Parse, parse_macro_input};
 
-#[derive(Debug)]
-struct ParsedInput {
-    trait_name: Ident,
-}
-
-impl Parse for ParsedInput {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.is_empty() {
-            panic!("Usage: dyn_serialize_trait!(MyTrait)");
-        }
-        Ok(Self {
-            trait_name: input.parse::<Ident>()?,
-        })
-    }
-}
+#[derive(deluxe::ParseMetaItem, Debug)]
+#[deluxe(attributes(serde))]
+struct Input(Ident, Ident);
 
 pub(crate) fn dyn_serde_trait_impl(input: TokenStream) -> TokenStream {
-    let input: ParsedInput = parse_macro_input!(input);
-    let trait_name = input.trait_name;
-    let seed_name = format_ident!("{}Seed", trait_name);
+    let input: Input = deluxe::parse(input).expect("Wrong macro input.");
+    let Input(trait_name, seed_name) = input;
 
     quote! {
         impl serde::Serialize for dyn #trait_name {

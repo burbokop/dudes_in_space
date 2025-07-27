@@ -1,6 +1,6 @@
 use crate::item::ItemStorage;
-use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext};
-use crate::person::{Person, PersonId};
+use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext, TradingConsole};
+use crate::person::{ObjectiveDeciderVault, Person, PersonId};
 use crate::recipe::{AssemblyRecipe, Recipe};
 use crate::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::DynSerialize;
@@ -23,6 +23,7 @@ pub trait Module: Debug + DynSerialize {
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
     );
 
     /// crafting
@@ -44,6 +45,9 @@ pub trait Module: Debug + DynSerialize {
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
 
     fn docking_clamps(&self) -> &[DockingClamp];
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole>;
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole>;
 }
 
-dyn_serde_trait!(Module);
+dyn_serde_trait!(Module, ModuleSeed);

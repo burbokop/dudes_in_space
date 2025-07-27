@@ -1,25 +1,45 @@
 use crate::CORE_PACKAGE_ID;
-use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
+use crate::modules::{CoreModule, DockyardDynSeed, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{
-    DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
-    PackageId, ProcessTokenContext,
+use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, PackageId, ProcessTokenContext, TradingConsole};
+use dudes_in_space_api::person::{
+    DynObjective, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
-use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
-use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize};
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
+use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, VesselModuleInterface};
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
+use std::rc::Rc;
 
 static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v>)]
 pub(crate) struct PersonnelArea {
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     personnel: Vec<Person>,
     id: ModuleId,
+}
+
+#[derive(Clone)]
+struct PersonnelAreaSeed<'v> {
+    person_seed: VecSeed<PersonSeed<'v>>,
+}
+
+impl<'v> PersonnelAreaSeed<'v> {
+    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+        Self {
+            person_seed: VecSeed::new(PersonSeed::new(objective_vault)),
+        }
+    }
 }
 
 impl PersonnelArea {
@@ -62,13 +82,16 @@ impl Module for PersonnelArea {
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
     ) {
         let mut person_interface = DefaultModuleConsole::new(self.id);
         for person in &mut self.personnel {
             person.proceed(
+                &mut rng(),
                 &mut person_interface,
                 this_vessel.console(),
                 process_token_context,
+                decider_vault,
             )
         }
     }
@@ -119,6 +142,14 @@ impl Module for PersonnelArea {
     fn primary_capabilities(&self) -> &[ModuleCapability] {
         todo!()
     }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
 }
 
 impl CoreModule for PersonnelArea {
@@ -131,7 +162,17 @@ impl CoreModule for PersonnelArea {
     }
 }
 
-pub(crate) struct PersonnelAreaDynSeed;
+pub(crate) struct PersonnelAreaDynSeed {
+    objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+}
+
+impl PersonnelAreaDynSeed {
+    pub fn new(objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+        Self {
+            objective_seed_vault,
+        }
+    }
+}
 
 impl DynDeserializeSeed<dyn Module> for PersonnelAreaDynSeed {
     fn type_id(&self) -> String {
@@ -143,7 +184,11 @@ impl DynDeserializeSeed<dyn Module> for PersonnelAreaDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: PersonnelArea = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+        let obj: PersonnelArea = from_intermediate_seed(
+            PersonnelAreaSeed::new(&self.objective_seed_vault),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))
     }

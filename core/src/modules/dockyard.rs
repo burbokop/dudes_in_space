@@ -1,16 +1,16 @@
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{
-    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
-    ProcessTokenMut, ProcessTokenMutSeed,
+use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::person::{
+    DynObjective, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
-use dudes_in_space_api::person::{Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, Vessel, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
@@ -63,6 +63,7 @@ pub struct Dockyard {
     #[deserialize_seed_xxx(seed = self.seed.docking_clamp_seed)]
     docking_clamp: DockingClamp,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
 
@@ -82,17 +83,20 @@ impl Dockyard {
 struct DockyardSeed<'v, 'context> {
     module_storage_seed: ModuleStorageSeed<'v>,
     docking_clamp_seed: DockingClampSeed<'v>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
     state_seed: DockyardStateSeed<'context>,
 }
 
 impl<'v, 'context> DockyardSeed<'v, 'context> {
     fn new(
-        vault: &'v DynDeserializeSeedVault<dyn Module>,
+        module_vault: &'v DynDeserializeSeedVault<dyn Module>,
+        objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
-            module_storage_seed: ModuleStorageSeed::new(vault),
-            docking_clamp_seed: DockingClampSeed::new(vault),
+            module_storage_seed: ModuleStorageSeed::new(module_vault),
+            docking_clamp_seed: DockingClampSeed::new(module_vault),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
             state_seed: DockyardStateSeed::new(context),
         }
     }
@@ -177,6 +181,22 @@ impl<'a> ModuleConsole for Console<'a> {
         Some(self)
     }
 
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+        todo!()
+    }
+
     fn storages(&self) -> &[ItemStorage] {
         todo!()
     }
@@ -234,6 +254,7 @@ impl Module for Dockyard {
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
     ) {
         let mut person_interface = Console {
             id: self.id,
@@ -244,9 +265,11 @@ impl Module for Dockyard {
 
         if let Some(operator) = &mut self.operator {
             operator.proceed(
+                &mut rng(),
                 &mut person_interface,
                 this_vessel.console(),
                 process_token_context,
+                decider_vault,
             )
         }
 
@@ -340,6 +363,14 @@ impl Module for Dockyard {
     fn docking_clamps(&self) -> &[DockingClamp] {
         todo!()
     }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -370,12 +401,19 @@ impl ModuleFactory for DockyardFactory {
 }
 
 pub(crate) struct DockyardDynSeed {
+    objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     context: Rc<ProcessTokenContext>,
 }
 
 impl DockyardDynSeed {
-    pub fn new(context: Rc<ProcessTokenContext>) -> Self {
-        Self { context }
+    pub fn new(
+        objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        context: Rc<ProcessTokenContext>,
+    ) -> Self {
+        Self {
+            objective_seed_vault,
+            context,
+        }
     }
 }
 
@@ -389,9 +427,11 @@ impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Dockyard =
-            from_intermediate_seed(DockyardSeed::new(this_vault, &self.context), &intermediate)
-                .map_err(|e| e.to_string())?;
+        let obj: Dockyard = from_intermediate_seed(
+            DockyardSeed::new(this_vault, &self.objective_seed_vault, &self.context),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
 
         Ok(Box::new(obj))
     }
