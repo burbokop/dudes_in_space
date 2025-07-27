@@ -1,7 +1,7 @@
 use dudes_in_space_api::module::{
     ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext,
 };
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
@@ -62,6 +62,7 @@ impl Objective for CraftModulesObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {

@@ -1,6 +1,6 @@
 use dudes_in_space_api::item::WeakBuyOrder;
 use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -25,6 +25,7 @@ impl Objective for BuyGoodsObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         todo!()
     }

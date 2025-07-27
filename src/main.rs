@@ -1,6 +1,6 @@
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
-use dudes_in_space_api::person::DynObjective;
+use dudes_in_space_api::person::{DynObjective, Logger, PersonId, Severity};
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
@@ -26,6 +26,18 @@ fn env_to_json(env: &Environment) -> Result<Vec<u8>, serde_json::Error> {
     let mut ser = serde_json::Serializer::pretty(&mut writer);
     env.serialize(&mut ser).unwrap();
     Ok(writer)
+}
+
+struct StdOutLogger;
+
+impl Logger for StdOutLogger {
+    fn log(&mut self, person: &PersonId, severity: Severity, message: String) {
+        match severity {
+            Severity::Error =>         eprintln!("{}: {}", person, message),
+            Severity::Warning => eprintln!("{}: {}", person, message),
+            Severity::Info => println!("{}: {}", person, message),
+        }
+    }
 }
 
 fn main() {
@@ -76,7 +88,7 @@ fn main() {
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
 
-    environment.proceed(&process_token_context, &objectives_decider_vault);
+    environment.proceed(&process_token_context, &objectives_decider_vault, &mut StdOutLogger);
 
     // println!("{:#?}", environment);
 

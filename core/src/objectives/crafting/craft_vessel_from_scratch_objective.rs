@@ -6,7 +6,7 @@ use crate::objectives::crafting::{
 use dudes_in_space_api::module::{
     ModuleCapability, ModuleConsole, ModuleStorage, ProcessTokenContext,
 };
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
@@ -74,6 +74,7 @@ impl Objective for CraftVesselFromScratchObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CheckingAllPrerequisites {
@@ -148,7 +149,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_module, this_vessel, process_token_context)
+                    .pursue(this_module, this_vessel, process_token_context, logger)
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
@@ -167,7 +168,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_module, this_vessel, process_token_context)
+                    .pursue(this_module, this_vessel, process_token_context, logger)
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
@@ -185,7 +186,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 building_objective,
             } => {
                 match building_objective
-                    .pursue(this_module, this_vessel, process_token_context)
+                    .pursue(this_module, this_vessel, process_token_context, logger)
                     .map_err(CraftVesselFromScratchObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),

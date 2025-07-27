@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use uuid::Uuid;
+use crate::person::logger::{Logger, PersonLogger};
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -260,6 +261,7 @@ impl Person {
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
+        logger: &mut dyn Logger,
     ) {
         match &mut self.objective {
             None => {
@@ -279,7 +281,7 @@ impl Person {
                 )
             }
             Some(objective) => {
-                match objective.pursue(this_module, this_vessel, process_token_context) {
+                match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, logger)) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {

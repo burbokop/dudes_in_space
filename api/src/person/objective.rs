@@ -8,6 +8,7 @@ use rand::prelude::SliceRandom;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Debug, Display};
+use crate::person::logger::PersonLogger;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -22,6 +23,7 @@ pub trait Objective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error>;
 }
 
@@ -31,6 +33,7 @@ pub trait DynObjective: Debug + DynSerialize {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>>;
 }
 
@@ -42,9 +45,10 @@ impl<T: Objective + Debug + DynSerialize> DynObjective for T {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>> {
         Ok(self
-            .pursue(this_module, this_vessel, process_token_context)
+            .pursue(this_module, this_vessel, process_token_context, logger)
             .map_err(|e| Box::new(e))?)
     }
 }

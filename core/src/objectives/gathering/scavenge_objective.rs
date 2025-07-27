@@ -1,8 +1,5 @@
 use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
-use dudes_in_space_api::person::{
-    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
-    ObjectiveStatus, Passion, PersonId,
-};
+use dudes_in_space_api::person::{Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -19,6 +16,7 @@ impl Objective for ScavengeObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         todo!()
     }
@@ -37,7 +35,7 @@ impl ObjectiveDecider for ScavengeObjectiveDecider {
         boldness: Boldness,
         awareness: Awareness,
     ) -> Option<Box<dyn DynObjective>> {
-        todo!()
+        None
     }
 }
 

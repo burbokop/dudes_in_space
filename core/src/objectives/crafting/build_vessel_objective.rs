@@ -1,7 +1,7 @@
 use dudes_in_space_api::module::{
     ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ProcessToken, ProcessTokenContext,
 };
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -85,6 +85,7 @@ impl Objective for BuildVesselObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
+        logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             BuildVesselObjective::SearchingForDockyard {

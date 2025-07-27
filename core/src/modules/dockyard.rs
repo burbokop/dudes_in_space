@@ -1,8 +1,6 @@
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{
-    DynObjective, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-};
+use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, Vessel, VesselModuleInterface};
@@ -255,6 +253,7 @@ impl Module for Dockyard {
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
+        logger: &mut dyn Logger,
     ) {
         let mut person_interface = Console {
             id: self.id,
@@ -270,6 +269,7 @@ impl Module for Dockyard {
                 this_vessel.console(),
                 process_token_context,
                 decider_vault,
+                logger,
             )
         }
 

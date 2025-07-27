@@ -1,6 +1,6 @@
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole};
-use dudes_in_space_api::person::{ObjectiveDeciderVault, Person, PersonId};
+use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{
@@ -57,6 +57,7 @@ impl Module for Shuttle {
         v: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
+        logger: &mut dyn Logger,
     ) {
         todo!()
     }

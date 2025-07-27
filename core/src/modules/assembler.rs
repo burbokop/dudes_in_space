@@ -1,9 +1,7 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{
-    DynObjective, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-};
+use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
@@ -282,6 +280,7 @@ impl Module for Assembler {
         this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
+        logger: &mut dyn Logger,
     ) {
         let mut console = Console {
             id: self.id,
@@ -298,6 +297,7 @@ impl Module for Assembler {
                 this_vessel.console(),
                 process_token_context,
                 decider_vault,
+                logger,
             )
         }
 
