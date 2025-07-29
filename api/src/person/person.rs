@@ -2,7 +2,7 @@ use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ProcessTokenContext,
 };
 use crate::person::objective::{Objective, ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault};
+use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
 use dyn_serde::DynDeserializeSeedVault;
@@ -279,14 +279,11 @@ impl Person {
                         )
             }
             Some(objective) => {
-                match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, logger)) {
+                match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, &self.name, logger)) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {
-                        eprintln!(
-                            "Objective performed by person {} ({}) failed: {}",
-                            self.id, self.name, err
-                        );
+                        logger.log(&self.id, &self.name, Severity::Error, format!("{} failed: {}", objective.type_id(), err));
                         self.objective = None
                     }
                 }

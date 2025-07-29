@@ -18,6 +18,7 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v>)]
@@ -83,7 +84,7 @@ impl Module for PersonnelArea {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut person_interface = DefaultModuleConsole::new(self.id);
+        let mut person_interface = DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES, &[]);
         for person in &mut self.personnel {
             person.proceed(
                 &mut rng(),

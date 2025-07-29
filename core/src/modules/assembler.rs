@@ -23,6 +23,8 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::PersonnelRoom,
 ];
 
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[    ModuleCapability::Crafting, ];
+
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]
 #[serde(tag = "tp")]
@@ -85,12 +87,12 @@ impl<'v, 'context> AssemblerSeed<'v, 'context> {
 }
 
 impl Assembler {
-    pub fn new(recipes: Vec<AssemblyRecipe>) -> Box<Self> {
+    pub fn new(recipes: Vec<AssemblyRecipe>, storage: ItemStorage) -> Box<Self> {
         Box::new(Self {
             id: ModuleId::new_v4(),
             recipes,
             state: AssemblerState::Idle,
-            storage: Default::default(),
+            storage,
             operator: None,
         })
     }
@@ -272,7 +274,7 @@ impl Module for Assembler {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
