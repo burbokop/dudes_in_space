@@ -1,14 +1,35 @@
-use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
 use dudes_in_space_api::person::{Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use serde_intermediate::Intermediate;
-use dyn_serde::{DynSerialize, TypeId};
+use std::ops::ControlFlow;
+use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
+use dudes_in_space_api::module::ModuleCapability::ModuleStorage;
+use dudes_in_space_api::person;
+use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use crate::modules::AssemblerDynSeed;
+
+static TYPE_ID: &str = "TradeObjective";
+
+static NEEDED_PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::ItemStorage,
+];
+
+static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::Cockpit,
+    ModuleCapability::Engine,
+    ModuleCapability::Reactor,
+    ModuleCapability::FuelTank,
+];
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum TradeObjective {
+    SearchVessel,
+    MoveToVessel,
+    SearchForCockpit,
+    MoveToCockpit,
     SearchForBuyOffers,
     MoveToVesselToBuy,
     SearchForSellOffers,
@@ -32,21 +53,45 @@ impl Objective for TradeObjective {
         logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            TradeObjective::SearchForBuyOffers => todo!(),
-            TradeObjective::MoveToVesselToBuy => todo!(),
-            TradeObjective::SearchForSellOffers => todo!(),
-            TradeObjective::MoveToVesselToSell => todo!(),
+            Self::SearchVessel => {
+                if person::utils::this_vessel_has_primary_caps(this_module, this_vessel, NEEDED_PRIMARY_CAPABILITIES.iter().cloned()) 
+                    && person::utils::this_vessel_has_caps(this_module, this_vessel, NEEDED_CAPABILITIES.iter().cloned()) {
+                    *self = Self::SearchForCockpit;
+                    return Ok(ObjectiveStatus::InProgress);
+                }
+                
+                if let Some((vessel_id, docking_port_module)) = person::utils::for_each_docking_clamps_with_vessel_which_has_caps(
+                    this_module, 
+                    this_vessel, 
+                    NEEDED_CAPABILITIES,
+                    NEEDED_PRIMARY_CAPABILITIES, 
+                    |entry| {
+                    ControlFlow::Break((entry.clamp.vessel_docked().unwrap().id(), entry.module.map(|x|x.id())))
+                }).break_value() {
+                    *self = Self::MoveToVessel;
+                    return Ok(ObjectiveStatus::InProgress);
+                }
+                
+                Err(TradeObjectiveError::SuitableVesselNotFound)
+            },
+            Self::MoveToVessel => todo!(),
+            Self::SearchForCockpit => todo!(),
+            Self::MoveToCockpit => todo!(),
+            Self::SearchForBuyOffers => todo!(),
+            Self::MoveToVesselToBuy => todo!(),
+            Self::SearchForSellOffers => todo!(),
+            Self::MoveToVesselToSell => todo!(),
         }
     }
 }
 
 impl DynSerialize for TradeObjective {
     fn type_id(&self) -> TypeId {
-        todo!()
+        TYPE_ID.to_string()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
@@ -71,8 +116,23 @@ impl ObjectiveDecider for TradeObjectiveDecider {
     }
 }
 
+pub(crate) struct TradeObjectiveDynSeed;
+
+impl DynDeserializeSeed<dyn DynObjective> for TradeObjectiveDynSeed {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.to_string()
+    }
+
+    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn DynObjective>) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
+        let obj: TradeObjective = from_intermediate(&intermediate).map_err(Box::new)?;
+        Ok(Box::new(obj))
+    }
+}
+
 #[derive(Debug)]
-pub(crate) enum TradeObjectiveError {}
+pub(crate) enum TradeObjectiveError {
+    SuitableVesselNotFound,
+}
 
 impl Display for TradeObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

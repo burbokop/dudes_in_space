@@ -4,6 +4,10 @@ use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use serde_intermediate::Intermediate;
+use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
+
+static TYPE_ID: &str = "MineAsteroidsObjective";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MineAsteroidsObjective {}
@@ -38,6 +42,20 @@ impl ObjectiveDecider for MineAsteroidsObjectiveDecider {
         None
     }
 }
+
+
+pub(crate) struct MineAsteroidsObjectiveDynSeed;
+
+impl DynDeserializeSeed<dyn DynObjective> for MineAsteroidsObjectiveDynSeed {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.to_string()
+    }
+
+    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn DynObjective>) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
+        todo!()
+    }
+}
+
 
 #[derive(Debug)]
 pub(crate) enum MineAsteroidsObjectiveError {}
