@@ -225,6 +225,22 @@ impl VesselConsole for Vessel {
     }
 
     fn primary_capabilities(&self) -> BTreeSet<ModuleCapability> {
-        todo!()
+        self.modules
+            .iter()
+            .filter_map(|module| {
+                if let Ok(module) = module.try_borrow() {
+                    Some(
+                        module
+                            .primary_capabilities()
+                            .into_iter()
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    )
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect()
     }
 }

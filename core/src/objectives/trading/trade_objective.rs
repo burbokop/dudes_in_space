@@ -3,7 +3,7 @@ use dudes_in_space_api::person::{Awareness, Boldness, DynObjective, Gender, Mora
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{write, Display, Formatter};
 use std::ops::ControlFlow;
 use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
 use dudes_in_space_api::module::ModuleCapability::ModuleStorage;
@@ -38,7 +38,7 @@ pub(crate) enum TradeObjective {
 
 impl TradeObjective {
     pub fn new() -> Self {
-        Self::SearchForBuyOffers
+        Self::SearchVessel
     }
 }
 
@@ -136,7 +136,7 @@ pub(crate) enum TradeObjectiveError {
 
 impl Display for TradeObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{:?}", self)
     }
 }
 

@@ -43,7 +43,11 @@ impl TryFrom<Vec<Item>> for InputRecipe {
     type Error = DuplicateItemError;
 
     fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
-        todo!()
+        let mut result = Self { input: BTreeMap::new() };
+        for v in value {
+            result.input.try_insert(v.id, v.count).map_err(|_| DuplicateItemError)?;
+        }
+        Ok(result)
     }
 }
 

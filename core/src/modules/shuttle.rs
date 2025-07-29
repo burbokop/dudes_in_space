@@ -134,7 +134,7 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ShuttleFactory {}
+pub(crate) struct ShuttleFactory;
 
 impl DynSerialize for ShuttleFactory {
     fn type_id(&self) -> TypeId {

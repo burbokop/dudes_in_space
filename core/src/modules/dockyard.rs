@@ -374,7 +374,7 @@ impl Module for Dockyard {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct DockyardFactory {}
+pub(crate) struct DockyardFactory;
 
 impl DynSerialize for DockyardFactory {
     fn type_id(&self) -> TypeId {

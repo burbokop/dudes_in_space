@@ -18,7 +18,11 @@ impl TryFrom<Vec<Item>> for ItemStorage {
     type Error = DuplicateItemError;
 
     fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
-        todo!()
+        let mut result = Self::new();
+        for v in value {
+            result.content.try_insert(v.id, v.count).map_err(|_| DuplicateItemError)?;
+        }
+        Ok(result)
     }
 }
 

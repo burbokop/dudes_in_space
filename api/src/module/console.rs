@@ -46,17 +46,21 @@ pub trait ModuleConsole {
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp];
 }
 
-pub struct DefaultModuleConsole {
+pub struct DefaultModuleConsole<'c, 'pc, 'd> {
     id: ModuleId,
+    capabilities: &'c [ModuleCapability],
+    primary_capabilities: &'pc [ModuleCapability],
+    docking_clamps: &'d [DockingClamp]
 }
 
-impl DefaultModuleConsole {
-    pub fn new(id: ModuleId) -> Self {
-        Self { id }
+impl<'c, 'pc,'d> DefaultModuleConsole<'c, 'pc,'d> {
+    pub fn new(id: ModuleId, capabilities: &'c [ModuleCapability], primary_capabilities: &'pc [ModuleCapability],    docking_clamps: &'d [DockingClamp]
+    ) -> Self {
+        Self { id, capabilities, primary_capabilities,docking_clamps }
     }
 }
 
-impl ModuleConsole for DefaultModuleConsole {
+impl<'c, 'pc,'d> ModuleConsole for DefaultModuleConsole<'c, 'pc,'d> {
     fn id(&self) -> ModuleId {
         self.id
     }
@@ -70,7 +74,7 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        self.primary_capabilities
     }
 
     fn interact(&mut self) -> bool {
@@ -130,7 +134,7 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        self.docking_clamps
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {

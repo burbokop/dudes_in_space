@@ -1,14 +1,13 @@
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
-use dudes_in_space_api::person::{DynObjective, Logger, PersonId, Severity};
+use dudes_in_space_api::person::{Logger, PersonId, Severity};
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
 use serde::de::DeserializeSeed;
 use std::env::home_dir;
 use std::rc::Rc;
-
-mod env_presets;
+use dudes_in_space_core::env_presets;
 
 fn env_from_json(
     registry: &DynDeserializeSeedVault<dyn Module>,
@@ -31,11 +30,11 @@ fn env_to_json(env: &Environment) -> Result<Vec<u8>, serde_json::Error> {
 struct StdOutLogger;
 
 impl Logger for StdOutLogger {
-    fn log(&mut self, person: &PersonId, severity: Severity, message: String) {
+    fn log(&mut self, person_id: &PersonId, person_name: &str, severity: Severity, message: String) {
         match severity {
-            Severity::Error =>         eprintln!("{}: {}", person, message),
-            Severity::Warning => eprintln!("{}: {}", person, message),
-            Severity::Info => println!("{}: {}", person, message),
+            Severity::Error => eprintln!("{} {} ({}): {}", severity, person_id, person_name, message),
+            Severity::Warning => eprintln!("{} {} ({}): {}", severity, person_id, person_name, message),
+            Severity::Info => println!("{} {} ({}): {}", severity, person_id, person_name, message),
         }
     }
 }
