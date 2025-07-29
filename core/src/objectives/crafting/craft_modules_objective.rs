@@ -15,26 +15,36 @@ pub(crate) enum CraftModulesObjective {
     SearchingForCraftingModule {
         this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
     },
     MovingToCraftingModule {
         this_person: PersonId,
         dst: ModuleId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
     },
     Crafting {
         needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
         deploy: bool,
         process_token: Option<ProcessToken>,
     },
     Done,
 }
+
 impl CraftModulesObjective {
-    pub(crate) fn new(this_person: PersonId, needed_capabilities: Vec<ModuleCapability>, deploy: bool) -> Self {
+    pub(crate) fn new(
+        this_person: PersonId, 
+        needed_capabilities: Vec<ModuleCapability>, 
+        needed_primary_capabilities: Vec<ModuleCapability>, 
+        deploy: bool,
+    ) -> Self {
         Self::SearchingForCraftingModule {
             this_person,
             needed_capabilities,
+            needed_primary_capabilities,
             deploy,
         }
     }
@@ -68,6 +78,7 @@ impl Objective for CraftModulesObjective {
             Self::SearchingForCraftingModule {
                 this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
                 deploy,
             } => {
                 if let Some(assembly_console) = this_module.assembly_console() {
@@ -79,6 +90,7 @@ impl Objective for CraftModulesObjective {
                             this_person: std::mem::take(this_person),
                             dst: this_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                             deploy: *deploy,
                         };
                         return Ok(ObjectiveStatus::InProgress);
@@ -94,6 +106,7 @@ impl Objective for CraftModulesObjective {
                             this_person: std::mem::take(this_person),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                             deploy: *deploy,
                         };
                         return Ok(ObjectiveStatus::InProgress);
@@ -105,6 +118,7 @@ impl Objective for CraftModulesObjective {
                 this_person,
                 dst,
                 needed_capabilities,
+                needed_primary_capabilities,
                 deploy,
             } => {
                 if *dst == this_module.id() {
@@ -112,6 +126,7 @@ impl Objective for CraftModulesObjective {
                         needed_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_capabilities,
                         )),
+                        needed_primary_capabilities: BTreeSet::from_iter(std::mem::take(needed_primary_capabilities)),
                         deploy: *deploy,
                         process_token: None,
                     };
@@ -122,6 +137,7 @@ impl Objective for CraftModulesObjective {
             }
             Self::Crafting {
                 needed_capabilities,
+                needed_primary_capabilities,
                 deploy,
                 process_token,
             } => match process_token {
