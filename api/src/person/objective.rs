@@ -28,7 +28,7 @@ pub trait Objective {
 }
 
 pub trait DynObjective: Debug + DynSerialize {
-    fn pursue(
+    fn pursue_dyn(
         &mut self,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
@@ -40,7 +40,7 @@ pub trait DynObjective: Debug + DynSerialize {
 dyn_serde_trait!(DynObjective, ObjectiveSeed);
 
 impl<T: Objective + Debug + DynSerialize> DynObjective for T {
-    fn pursue(
+    fn pursue_dyn(
         &mut self,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,

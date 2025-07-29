@@ -19,19 +19,23 @@ pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
         this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>
     },
     CraftingDockyard {
         this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         crafting_objective: CraftModulesObjective,
     },
     CraftingVesselModules {
         this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         crafting_objective: CraftModulesObjective,
     },
     BuildingVessel {
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         building_objective: BuildVesselObjective,
     },
     Done,
@@ -41,16 +45,22 @@ struct DockyardRef<'x> {
     module_storages: &'x [ModuleStorage],
 }
 impl CraftVesselFromScratchObjective {
-    pub(crate) fn new(this_person: PersonId, needed_capabilities: Vec<ModuleCapability>) -> Self {
+    pub(crate) fn new(
+        this_person: PersonId, 
+        needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
+    ) -> Self {
         Self::CheckingAllPrerequisites {
             this_person,
             needed_capabilities,
+            needed_primary_capabilities,
         }
     }
 
     fn find_dockyard_with_suitable_modules_in_storage<'a>(
         dockyards: Vec<DockyardRef<'a>>,
         needed_capabilities: &[ModuleCapability],
+        needed_primary_capabilities: &[ModuleCapability],
     ) -> Option<DockyardRef<'a>> {
         for mut dockyard in dockyards {
             for storage in dockyard.module_storages {
@@ -80,6 +90,7 @@ impl Objective for CraftVesselFromScratchObjective {
             Self::CheckingAllPrerequisites {
                 this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
             } => {
                 let dockyards = this_vessel.modules_with_cap(ModuleCapability::Dockyard);
 
@@ -106,9 +117,11 @@ impl Objective for CraftVesselFromScratchObjective {
                     *self = Self::CraftingDockyard {
                         this_person: std::mem::take(this_person),
                         needed_capabilities: std::mem::take(needed_capabilities),
+                        needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                         crafting_objective: CraftModulesObjective::new(
                             std::mem::take(this_person),
                             vec![ModuleCapability::Dockyard],
+                            vec![],
                             true,
                         ),
                     };
@@ -118,15 +131,18 @@ impl Objective for CraftVesselFromScratchObjective {
                 let dockyard = Self::find_dockyard_with_suitable_modules_in_storage(
                     dockyards,
                     &needed_capabilities,
+                    &needed_primary_capabilities,
                 );
 
                 if dockyard.is_none() {
                     *self = Self::CraftingVesselModules {
                         this_person: std::mem::take(this_person),
                         needed_capabilities: needed_capabilities.clone(),
+                        needed_primary_capabilities: needed_primary_capabilities.clone(),
                         crafting_objective: CraftModulesObjective::new(
                             std::mem::take(this_person),
                             std::mem::take(needed_capabilities),
+                            std::mem::take(needed_primary_capabilities),
                             false,
                         ),
                     };
@@ -135,6 +151,7 @@ impl Objective for CraftVesselFromScratchObjective {
 
                 *self = Self::BuildingVessel {
                     needed_capabilities: needed_capabilities.clone(),
+                    needed_primary_capabilities: needed_primary_capabilities.clone(),
                     building_objective: BuildVesselObjective::new(
                         std::mem::take(this_person),
                         std::mem::take(
@@ -146,6 +163,7 @@ impl Objective for CraftVesselFromScratchObjective {
             Self::CraftingDockyard {
                 this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
                 crafting_objective,
             } => {
                 match crafting_objective
@@ -157,6 +175,7 @@ impl Objective for CraftVesselFromScratchObjective {
                         *self = Self::CheckingAllPrerequisites {
                             this_person: std::mem::take(this_person),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),       
                         }
                     }
                 }
@@ -165,6 +184,7 @@ impl Objective for CraftVesselFromScratchObjective {
             Self::CraftingVesselModules {
                 this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
                 crafting_objective,
             } => {
                 match crafting_objective
@@ -176,6 +196,7 @@ impl Objective for CraftVesselFromScratchObjective {
                         *self = Self::CheckingAllPrerequisites {
                             this_person: std::mem::take(this_person),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),       
                         }
                     }
                 }
@@ -183,6 +204,7 @@ impl Objective for CraftVesselFromScratchObjective {
             }
             Self::BuildingVessel {
                 needed_capabilities,
+                needed_primary_capabilities,
                 building_objective,
             } => {
                 match building_objective

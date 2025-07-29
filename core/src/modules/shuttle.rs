@@ -19,6 +19,12 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
 ];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::Cockpit,
+    ModuleCapability::Engine,
+    ModuleCapability::Reactor,
+    ModuleCapability::FuelTank,
+];
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Shuttle {
@@ -103,7 +109,7 @@ impl Module for Shuttle {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
@@ -134,7 +140,7 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct ShuttleFactory;
+pub(crate) struct ShuttleFactory{}
 
 impl DynSerialize for ShuttleFactory {
     fn type_id(&self) -> TypeId {

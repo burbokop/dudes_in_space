@@ -24,6 +24,8 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::PersonnelRoom,
     ModuleCapability::DockingClamp,
 ];
+static PRIMARY_CAPABILITIES:&[ModuleCapability] = &[
+    ModuleCapability::Dockyard,];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardStateSeed::<'context>)]
@@ -120,6 +122,7 @@ struct Console<'a> {
     requests: Vec<DockyardRequest>,
     state: &'a mut DockyardState,
     module_storage: &'a mut ModuleStorage,
+    docking_clamp: &'a DockingClamp,
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -136,7 +139,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -212,7 +215,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        std::slice::from_ref(self.docking_clamp)
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
@@ -260,6 +263,7 @@ impl Module for Dockyard {
             requests: vec![],
             state: &mut self.state,
             module_storage: &mut self.module_storage,
+            docking_clamp: &self.docking_clamp,       
         };
 
         if let Some(operator) = &mut self.operator {
@@ -374,7 +378,7 @@ impl Module for Dockyard {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct DockyardFactory;
+pub(crate) struct DockyardFactory{}
 
 impl DynSerialize for DockyardFactory {
     fn type_id(&self) -> TypeId {

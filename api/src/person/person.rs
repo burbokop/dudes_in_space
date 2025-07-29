@@ -279,7 +279,7 @@ impl Person {
                         )
             }
             Some(objective) => {
-                match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, &self.name, logger)) {
+                match objective.pursue_dyn(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, &self.name, logger)) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {

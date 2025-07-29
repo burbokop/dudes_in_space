@@ -6,7 +6,8 @@ use std::error::Error;
 use std::fmt::{ Display, Formatter};
 use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
-use crate::objectives::trading::TradeObjective;
+use crate::objectives::crafting::CraftVesselFromScratchObjective;
+use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
 
 static TYPE_ID: &str = "TradeFromScratchObjective";
 
@@ -23,13 +24,18 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum TradeFromScratchObjective {
-    ExecuteTrade { trade_objective: TradeObjective },
-    CraftVessel,
+    ExecuteTrade { 
+        this_person: PersonId,
+        trade_objective: TradeObjective },
+    CraftVessel {
+        this_person: PersonId,
+        craft_vessel_objective: CraftVesselFromScratchObjective
+    },
 }
 
 impl TradeFromScratchObjective {
-    pub fn new() -> Self {
-        Self::ExecuteTrade { trade_objective: TradeObjective::new() }
+    pub fn new(this_person: PersonId) -> Self {
+        Self::ExecuteTrade { this_person, trade_objective: TradeObjective::new() }
     }
 }
 
@@ -44,8 +50,27 @@ impl Objective for TradeFromScratchObjective {
         logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            TradeFromScratchObjective::ExecuteTrade { trade_objective } => todo!(),
-            TradeFromScratchObjective::CraftVessel => todo!(),
+            TradeFromScratchObjective::ExecuteTrade { this_person, trade_objective } => 
+                match trade_objective.pursue(this_module, this_vessel, process_token_context, logger) {
+                    Ok(ok) => Ok(ok),
+                    Err(TradeObjectiveError::SuitableVesselNotFound) => {*self =  Self::CraftVessel {
+                        this_person: *this_person,
+                        craft_vessel_objective: CraftVesselFromScratchObjective::new(std::mem::take( this_person),vec![
+                            ModuleCapability::Cockpit,
+                            ModuleCapability::Engine,
+                            ModuleCapability::Reactor,
+                            ModuleCapability::FuelTank,
+                        ],  vec![
+                            ModuleCapability::ItemStorage,
+                        ])
+                    }; Ok(ObjectiveStatus::InProgress) },
+                },
+            TradeFromScratchObjective::CraftVessel { 
+                this_person,
+                craft_vessel_objective,
+            } => {
+                todo!()                
+            },
         }
     }
 }
@@ -74,7 +99,7 @@ impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
         awareness: Awareness,
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
-            Some(Box::new(TradeFromScratchObjective::new()))
+            Some(Box::new(TradeFromScratchObjective::new(person_id)))
         } else {
             None
         }

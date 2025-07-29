@@ -45,7 +45,7 @@ impl DockingClamp {
     }
 
     pub fn vessel_docked(&self) -> Option<&Vessel> {
-        todo!()
+        self.vessel.as_ref()
     }
 
     pub fn vessel_docked_mut(&mut self) -> Option<&mut Vessel> {

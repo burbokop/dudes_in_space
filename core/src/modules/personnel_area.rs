@@ -141,7 +141,7 @@ impl Module for PersonnelArea {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
