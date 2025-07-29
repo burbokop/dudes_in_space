@@ -92,7 +92,7 @@ impl<'v> VesselSeed<'v> {
 }
 
 impl Vessel {
-    pub(crate) fn id(&self) -> VesselId {
+    pub fn id(&self) -> VesselId {
         self.id
     }
     pub(crate) fn owner(&self) -> PersonId {
@@ -222,5 +222,9 @@ impl VesselConsole for Vessel {
             })
             .flatten()
             .collect()
+    }
+
+    fn primary_capabilities(&self) -> BTreeSet<ModuleCapability> {
+        todo!()
     }
 }

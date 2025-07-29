@@ -4,12 +4,16 @@ use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use serde_intermediate::Intermediate;
+use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
+
+static TYPE_ID: &str = "GatherResearchDataObjective";
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct GatherResearchData {}
+pub(crate) struct GatherResearchDataObjective {}
 
-impl Objective for GatherResearchData {
-    type Error = GatherResearchDataError;
+impl Objective for GatherResearchDataObjective {
+    type Error = GatherResearchDataObjectiveError;
 
     fn pursue(
         &mut self,
@@ -39,13 +43,27 @@ impl ObjectiveDecider for GatherResearchDataObjectiveDecider {
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum GatherResearchDataError {}
 
-impl Display for GatherResearchDataError {
+pub(crate) struct GatherResearchDataObjectiveDynSeed;
+
+impl DynDeserializeSeed<dyn DynObjective> for GatherResearchDataObjectiveDynSeed {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.to_string()
+    }
+
+    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn DynObjective>) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
+        todo!()
+    }
+}
+
+
+#[derive(Debug)]
+pub(crate) enum GatherResearchDataObjectiveError {}
+
+impl Display for GatherResearchDataObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
-impl Error for GatherResearchDataError {}
+impl Error for GatherResearchDataObjectiveError {}

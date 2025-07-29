@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
+static TYPE_ID: &str = "BuyGoodsObjective";
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct BuyGoodsObjective {
     order: WeakBuyOrder,

@@ -265,7 +265,7 @@ impl Person {
     ) {
         match &mut self.objective {
             None => {
-                self.objective = Some(
+                self.objective = 
                     decider_vault
                         .decide(
                             rng,
@@ -277,8 +277,6 @@ impl Person {
                             self.boldness,
                             self.awareness,
                         )
-                        .unwrap(),
-                )
             }
             Some(objective) => {
                 match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, logger)) {
