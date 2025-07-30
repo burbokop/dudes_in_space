@@ -224,7 +224,7 @@ impl<T> Rect<T> {
             && other.bottom() <= self.bottom();
     }
 
-    pub fn contains_point(&self, other: &Point<T>) -> bool {
+    pub fn contains_point(&self, _other: &Point<T>) -> bool {
         todo!()
     }
 

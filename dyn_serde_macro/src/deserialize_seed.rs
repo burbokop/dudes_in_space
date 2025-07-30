@@ -1,21 +1,13 @@
 use convert_case::{Case, Casing};
-use darling::util::PathList;
-use darling::{FromDeriveInput, FromField, FromMeta, FromVariant};
+use darling::{FromField, FromMeta};
 use proc_macro::TokenStream;
-use quote::{ToTokens, format_ident, quote};
-use std::collections::BTreeMap;
-use std::fmt::format;
-use std::marker::PhantomData;
-use std::ops::Deref;
-use syn::ext::IdentExt;
-use syn::punctuated::Punctuated;
+use quote::{ format_ident, quote};
 use syn::spanned::Spanned;
-use syn::token::Trait;
 use syn::{
-    self, Attribute, Data, DeriveInput, Expr, ExprPath, Fields, GenericArgument, PatIdent, Path,
-    PathArguments, Type, TypeGroup, TypePath, Variant, parse::Parse, parse_macro_input,
+    self, Data, DeriveInput, Expr,  Fields, GenericArgument,  Path,
+    PathArguments, Type,  TypePath, Variant,  parse_macro_input,
 };
-use syn::{ExprGroup, Ident, LitInt, Token};
+use syn::{ Ident, };
 
 #[derive(deluxe::ExtractAttributes, Debug)]
 #[deluxe(attributes(deserialize_seed_xxx))]
@@ -117,192 +109,13 @@ fn deserialize_seed_struct(
     fields: &Fields,
     extra_field_seeds: Vec<(Ident, Expr)>,
 ) -> proc_macro2::TokenStream {
-    struct FieldRecipe {
-        field_ident: Ident,
-        variant_ident: Ident,
-        locale_variable_ident: Ident,
-        field_name: String,
-        var_decl: proc_macro2::TokenStream,
-        key_arm: proc_macro2::TokenStream,
-        value_arm: proc_macro2::TokenStream,
-        check_missing: proc_macro2::TokenStream,
-        skip: bool,
-    }
-
     let visitor = deserialize_seed_struct_visitor(
-        name.clone(),
         ident,
         seed_generic_args.clone(),
         seed_type.clone(),
         fields,
         extra_field_seeds,
     );
-
-    let fields: Vec<FieldRecipe> = fields.into_iter().enumerate().map(|(index, field)| {
-        let field_ident = field.ident.as_ref().unwrap_or(&format_ident!("field{}", index)).clone();
-        let field_type: Type = field.ty.clone();
-        let field_name = field_ident.to_string();
-        let variant_ident = Ident::new(&field_ident.to_string().to_case(Case::Pascal), field_ident.span());
-        let locale_variable_ident = Ident::new(&field_ident.to_string().to_case(Case::Snake), field_ident.span());
-        let key_arm = quote! { #field_name => Ok(Field::#variant_ident) };
-        let var_decl = quote! { let mut #locale_variable_ident: Option<#field_type> = None; };
-        let serde_options = SerdeFieldAttributes::from_field(field).expect("Wrong serde attributes");
-        let skip = serde_options.skip || serde_options.skip_deserializing;
-
-        let value_arm = match DeserializeSeedXXXFieldAttributes::from_field(field).expect("Wrong attributes").seed {
-            Some(seed) => quote! {
-                Field::#variant_ident => {
-                    if #locale_variable_ident.is_some() {
-                        return Err(serde::de::Error::duplicate_field(#field_name));
-                    }
-                    #locale_variable_ident = Some(map.next_value_seed(#seed.clone())?.into());
-                }
-            },
-            None => match serde_options.with {
-                Some(with) => {
-                    let with = Path::from_string(&with).unwrap();
-                    quote! {
-                    Field::#variant_ident => {
-                        struct Seed;
-
-                        impl<'de> serde::de::DeserializeSeed<'de> for Seed {
-                            type Value = #field_type;
-
-                            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-                            where
-                                D: serde::de::Deserializer<'de>,
-                            {
-                                #with::deserialize(deserializer)
-                            }
-                        }
-
-
-                        if #locale_variable_ident.is_some() {
-                            return Err(serde::de::Error::duplicate_field(#field_name));
-                        }
-                        #locale_variable_ident = Some(map.next_value_seed(Seed)?);
-                    }
-                }
-                },
-                None => quote! {
-                    Field::#variant_ident => {
-                        if #locale_variable_ident.is_some() {
-                            return Err(serde::de::Error::duplicate_field(#field_name));
-                        }
-                        #locale_variable_ident = Some(map.next_value()?);
-                    }
-                }
-            }
-        };
-
-        let check_missing = quote! {
-            let #locale_variable_ident: #field_type = #locale_variable_ident.ok_or_else(|| serde::de::Error::missing_field(#field_name))?;
-        };
-
-        FieldRecipe { field_ident, variant_ident, locale_variable_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
-    }).collect();
-
-    let expected_root: String = format!("struct {}", ident);
-    let expected_key: String = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(format!("`{}`", f.field_name))
-            }
-        })
-        .intersperse(", ".to_string())
-        .collect();
-
-    let field_assignments: Vec<_> = fields
-        .iter()
-        .map(|f| {
-            let field_ident = &f.field_ident;
-            if f.skip {
-                quote! { #field_ident: Default::default() }
-            } else {
-                quote! { #field_ident }
-            }
-        })
-        .collect();
-
-    let variant_idents: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.variant_ident.clone())
-            }
-        })
-        .collect();
-
-    let locale_variable_idents: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.locale_variable_ident.clone())
-            }
-        })
-        .collect();
-
-    let field_names: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.field_name.clone())
-            }
-        })
-        .collect();
-
-    let var_decls: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.var_decl.clone())
-            }
-        })
-        .collect();
-
-    let key_arms: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.key_arm.clone())
-            }
-        })
-        .collect();
-
-    let value_arms: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.value_arm.clone())
-            }
-        })
-        .collect();
-
-    let check_missings: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.check_missing.clone())
-            }
-        })
-        .collect();
 
     quote! {
         impl<'de, #(#seed_generic_args),*> serde::de::DeserializeSeed<'de> for #seed_type <#(#seed_generic_args),*> {
@@ -326,7 +139,6 @@ fn deserialize_seed_struct(
 }
 
 fn deserialize_seed_struct_visitor(
-    name: String,
     ident: &Ident,
     seed_generic_args: Vec<GenericArgument>,
     seed_type: TypePath,
@@ -336,7 +148,6 @@ fn deserialize_seed_struct_visitor(
     struct FieldRecipe {
         field_ident: Ident,
         variant_ident: Ident,
-        locale_variable_ident: Ident,
         field_name: String,
         var_decl: proc_macro2::TokenStream,
         key_arm: proc_macro2::TokenStream,
@@ -412,7 +223,7 @@ fn deserialize_seed_struct_visitor(
             let #locale_variable_ident: #field_type = #locale_variable_ident.ok_or_else(|| serde::de::Error::missing_field(#field_name))?;
         };
 
-        FieldRecipe { field_ident, variant_ident, locale_variable_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
+        FieldRecipe { field_ident, variant_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
     }).collect();
 
     let expected_root: String = format!("struct {}", ident);
@@ -447,17 +258,6 @@ fn deserialize_seed_struct_visitor(
                 None
             } else {
                 Some(f.variant_ident.clone())
-            }
-        })
-        .collect();
-
-    let locale_variable_idents: Vec<_> = fields
-        .iter()
-        .filter_map(|f| {
-            if f.skip {
-                None
-            } else {
-                Some(f.locale_variable_ident.clone())
             }
         })
         .collect();
@@ -591,7 +391,6 @@ fn deserialize_seed_enum(
     struct VariantRecipe {
         name: String,
         ident: Ident,
-        struct_ident: Ident,
         struct_declaration: proc_macro2::TokenStream,
         arm: proc_macro2::TokenStream,
     }
@@ -614,10 +413,7 @@ fn deserialize_seed_enum(
             let struct_visitor = variant_attr.map(|variant_attr| {
                 println!("variant_attr: {:#?}", variant_attr);
 
-                // variant_attr_seed.first_entry().unwrap().get().clone();
-
                 deserialize_seed_struct_visitor(
-                    struct_ident.to_string(),
                     &struct_ident,
                     seed_generic_args.clone(),
                     seed_type.clone(),
@@ -635,7 +431,6 @@ fn deserialize_seed_enum(
             VariantRecipe {
                 name: variant.ident.to_string(),
                 ident: variant.ident.clone(),
-                struct_ident: struct_ident.clone(),
                 struct_declaration: if struct_visitor.is_some() {
                     quote! {
                         struct #struct_ident #fields;
@@ -732,7 +527,6 @@ fn deserialize_seed_tagged_enum(
     struct VariantRecipe {
         name: String,
         ident: Ident,
-        struct_ident: Ident,
         struct_declaration: proc_macro2::TokenStream,
         arm: proc_macro2::TokenStream,
     }
@@ -778,7 +572,6 @@ fn deserialize_seed_tagged_enum(
             VariantRecipe {
                 name: variant.ident.to_string(),
                 ident: variant.ident.clone(),
-                struct_ident: struct_ident.clone(),
                 struct_declaration: if struct_seed_impl.is_some() {
                     quote! {
                         struct #struct_ident #fields;

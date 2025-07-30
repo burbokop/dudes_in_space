@@ -85,7 +85,7 @@ impl Objective for BuildVesselObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        mut logger: PersonLogger,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             BuildVesselObjective::SearchingForDockyard {
@@ -136,7 +136,7 @@ impl Objective for BuildVesselObjective {
                         process_token: None,
                     };
                 } else {
-                    this_vessel.move_to_module(*this_person, *dst);
+                    this_vessel.move_to_module(*this_person, *dst).unwrap();
                 }
                 Ok(ObjectiveStatus::InProgress)
             }

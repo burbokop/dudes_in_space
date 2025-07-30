@@ -72,7 +72,7 @@ impl Objective for CraftModulesObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        mut logger: PersonLogger,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {
@@ -86,7 +86,7 @@ impl Objective for CraftModulesObjective {
                         assembly_console.recipes(),
                         needed_capabilities.clone(),
                     ) {
-                        logger.info("MovingToCraftingModule");
+                        logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
                             this_person: this_person.clone(),
                             dst: this_module.id(),
@@ -128,7 +128,7 @@ impl Objective for CraftModulesObjective {
                 deploy,
             } => {
                 if *dst == this_module.id() {
-                    logger.info("Crafting");
+                    logger.info("Crafting modules...");
                     *self = Self::Crafting {
                         needed_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_capabilities,
@@ -140,7 +140,7 @@ impl Objective for CraftModulesObjective {
                         process_token: None,
                     };
                 } else {
-                    this_vessel.move_to_module(*this_person, *dst);
+                    this_vessel.move_to_module(*this_person, *dst).unwrap();
                 }
                 Ok(ObjectiveStatus::InProgress)
             }
@@ -151,6 +151,9 @@ impl Objective for CraftModulesObjective {
                 process_token,
             } => match process_token {
                 None => {
+                    
+                    todo!("use needed_primary_capabilities");
+                    
                     if let Some(cap) = needed_capabilities.first() {
                         let assembly_console = this_module.assembly_console_mut().unwrap();
                         if let Some(recipe) = assembly_console.recipe_by_output_capability(*cap) {
@@ -178,6 +181,7 @@ impl Objective for CraftModulesObjective {
                         .unwrap_or(true)
                     {
                         return if needed_capabilities.is_empty() {
+                            logger.info("Done");
                             *self = Self::Done;
                             Ok(ObjectiveStatus::Done)
                         } else {

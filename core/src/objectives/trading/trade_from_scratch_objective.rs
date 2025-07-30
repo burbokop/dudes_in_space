@@ -54,7 +54,7 @@ impl Objective for TradeFromScratchObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             TradeFromScratchObjective::ExecuteTrade {
@@ -70,6 +70,7 @@ impl Objective for TradeFromScratchObjective {
                 Ok(ok) => Ok(ok),
                 Err(TradeObjectiveError::SuitableVesselNotFound) => {
                     assert!(!*second_attempt);
+                    logger.info("No suitable vessel found for trade. Crafting it...");
                     *self = Self::CraftVessel {
                         this_person: *this_person,
                         craft_vessel_objective: CraftVesselFromScratchObjective::new(
@@ -97,6 +98,7 @@ impl Objective for TradeFromScratchObjective {
                     })? {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
+                        logger.info("ExecuteTrade");
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
                             this_person: this_person.clone(),

@@ -9,7 +9,6 @@ use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
 use std::collections::BTreeSet;
-use std::ops::Deref;
 
 /// interface through which a person can interact with a module
 pub trait ModuleConsole {
@@ -190,7 +189,7 @@ pub trait TradingAdminConsole {
 }
 
 pub(crate) trait CaptainControlPanel {
-    fn give_command(&self, role: Role) {}
+    fn give_command(&self, _role: Role) {}
 }
 
 pub(crate) trait NavigatorControlPanel {
@@ -204,7 +203,7 @@ pub(crate) trait GunnerControlPanel {
         todo!()
     }
 
-    fn fire_at(&self, vessel_id: u32) {
+    fn fire_at(&self, _vessel_id: u32) {
         todo!()
     }
 }

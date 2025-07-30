@@ -24,7 +24,7 @@ pub fn this_vessel_primary_caps(
 pub fn this_vessel_has_caps(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
-    mut needed_caps: impl IntoIterator<Item = ModuleCapability>,
+    needed_caps: impl IntoIterator<Item = ModuleCapability>,
 ) -> bool {
     let this_vessel_caps = this_vessel_caps(this_module, this_vessel);
     needed_caps
@@ -35,7 +35,7 @@ pub fn this_vessel_has_caps(
 pub fn this_vessel_has_primary_caps(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
-    mut needed_caps: impl IntoIterator<Item = ModuleCapability>,
+    needed_caps: impl IntoIterator<Item = ModuleCapability>,
 ) -> bool {
     let this_vessel_caps = this_vessel_primary_caps(this_module, this_vessel);
     needed_caps

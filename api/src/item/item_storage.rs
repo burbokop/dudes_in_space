@@ -9,7 +9,7 @@ pub struct ItemStorage {
 }
 
 impl FromIterator<Item> for ItemStorage {
-    fn from_iter<T: IntoIterator<Item = Item>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = Item>>(_iter: T) -> Self {
         todo!()
     }
 }
@@ -35,26 +35,26 @@ impl ItemStorage {
     }
 
     /// returns the rest that did not fit inside storage space
-    pub fn add_item(&mut self, item: Item) -> Item {
+    pub fn add_item(&mut self, _item: Item) -> Item {
         todo!()
     }
 
     /// returns true if an item was added, false if not due to full storage
-    pub fn try_add_item(&mut self, item: Item) -> bool {
+    pub fn try_add_item(&mut self, _item: Item) -> bool {
         todo!()
     }
 
     /// remove as many items as possible
-    pub fn remove_item(&mut self, item_id: ItemId, count: ItemCount) -> Item {
+    pub fn remove_item(&mut self, _item_id: ItemId, _count: ItemCount) -> Item {
         todo!()
     }
 
     /// returns true if an item  was removed, false if not due to not enough item count in storage
-    pub fn try_remove_item(&mut self, item: Item) -> bool {
+    pub fn try_remove_item(&mut self, _item: Item) -> bool {
         todo!()
     }
 
-    pub fn count(&self, item_id: ItemId) -> ItemCount {
+    pub fn count(&self, _item_id: ItemId) -> ItemCount {
         todo!()
     }
 
@@ -71,7 +71,7 @@ impl ItemStorage {
 
     pub fn try_consume(&mut self, input: InputRecipe) -> bool {
         let ok = self.contains_for_input(input.clone());
-        if (!ok) {
+        if !ok {
             return false;
         }
 

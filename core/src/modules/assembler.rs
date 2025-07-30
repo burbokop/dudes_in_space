@@ -378,7 +378,8 @@ impl Module for Assembler {
     }
 
     fn free_person_slots_count(&self) -> usize {
-        todo!()
+        const CAPACITY: usize = 1;
+        CAPACITY - self.operator.iter().len()
     }
 
     fn contains_person(&self, id: PersonId) -> bool {

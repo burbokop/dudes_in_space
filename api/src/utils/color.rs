@@ -19,15 +19,15 @@ impl Color {
         }
     }
 
-    pub fn with_r(self, r: Float) -> Self {
+    pub fn with_r(self, _r: Float) -> Self {
         todo!()
     }
 
-    pub fn with_g(self, g: Float) -> Self {
+    pub fn with_g(self, _g: Float) -> Self {
         todo!()
     }
 
-    pub fn with_b(self, b: Float) -> Self {
+    pub fn with_b(self, _b: Float) -> Self {
         todo!()
     }
 
@@ -40,15 +40,15 @@ impl Color {
         }
     }
 
-    pub fn map_r<F: FnOnce(Float) -> Float>(self, f: F) -> Self {
+    pub fn map_r<F: FnOnce(Float) -> Float>(self, _f: F) -> Self {
         todo!()
     }
 
-    pub fn map_g<F: FnOnce(Float) -> Float>(self, f: F) -> Self {
+    pub fn map_g<F: FnOnce(Float) -> Float>(self, _f: F) -> Self {
         todo!()
     }
 
-    pub fn map_b<F: FnOnce(Float) -> Float>(self, f: F) -> Self {
+    pub fn map_b<F: FnOnce(Float) -> Float>(self, _f: F) -> Self {
         todo!()
     }
 

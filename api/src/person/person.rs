@@ -1,8 +1,8 @@
 use crate::module::{
-    ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ProcessTokenContext,
+       ModuleConsole, ProcessTokenContext,
 };
 use crate::person::logger::{Logger, PersonLogger};
-use crate::person::objective::{Objective, ObjectiveSeed, ObjectiveStatus};
+use crate::person::objective::{ ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
@@ -10,11 +10,9 @@ use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::Rng;
 use rand::distr::StandardUniform;
-use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
-use serde::de::DeserializeSeed;
+use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use std::error::Error;
 use uuid::{NonNilUuid, Uuid};
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
@@ -281,7 +279,7 @@ impl Person {
                     this_module,
                     this_vessel,
                     process_token_context,
-                    PersonLogger::new(&self.id, &self.name, logger),
+                    &mut PersonLogger::new(&self.id, &self.name, logger),
                 ) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,

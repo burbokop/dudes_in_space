@@ -51,7 +51,7 @@ impl Objective for TradeObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchVessel => {
@@ -64,6 +64,7 @@ impl Objective for TradeObjective {
                     this_vessel,
                     NEEDED_CAPABILITIES.iter().cloned(),
                 ) {
+                    logger.info("SearchForCockpit");
                     *self = Self::SearchForCockpit;
                     return Ok(ObjectiveStatus::InProgress);
                 }
@@ -83,6 +84,7 @@ impl Objective for TradeObjective {
                     )
                     .break_value()
                 {
+                    logger.info("MoveToVessel");
                     *self = Self::MoveToVessel;
                     return Ok(ObjectiveStatus::InProgress);
                 }

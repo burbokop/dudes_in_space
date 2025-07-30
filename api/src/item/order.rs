@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Weak;
-use uuid::{NonNilUuid, Uuid};
+use uuid::{NonNilUuid};
 
 pub(crate) type Money = usize;
 
