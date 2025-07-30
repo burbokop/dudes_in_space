@@ -87,9 +87,7 @@ impl Module for Shuttle {
         todo!()
     }
 
-    fn can_insert_person(&self) -> bool {
-        todo!()
-    }
+
 
     fn contains_person(&self, id: PersonId) -> bool {
         todo!()
@@ -120,6 +118,10 @@ impl Module for Shuttle {
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn free_person_slots_count(&self) -> usize {
         todo!()
     }
 }

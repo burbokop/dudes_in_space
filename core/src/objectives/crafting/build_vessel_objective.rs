@@ -85,7 +85,7 @@ impl Objective for BuildVesselObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        mut logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             BuildVesselObjective::SearchingForDockyard {
@@ -96,8 +96,9 @@ impl Objective for BuildVesselObjective {
                     this_module.module_storages(),
                     needed_capabilities.clone(),
                 ) {
+                    logger.info("Moving to dockyard module");
                     *self = Self::MovingToDockyardModule {
-                        this_person: std::mem::take(this_person),
+                        this_person: this_person.clone(),
                         dst: this_module.id(),
                         needed_capabilities: std::mem::take(needed_capabilities),
                     };
@@ -110,8 +111,9 @@ impl Objective for BuildVesselObjective {
                         crafting_module.module_storages(),
                         needed_capabilities.clone(),
                     ) {
+                        logger.info("Moving to dockyard module");
                         *self = Self::MovingToDockyardModule {
-                            this_person: std::mem::take(this_person),
+                            this_person: this_person.clone(),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                         };
@@ -126,6 +128,7 @@ impl Objective for BuildVesselObjective {
                 needed_capabilities,
             } => {
                 if *dst == this_module.id() {
+                    logger.info("Building");
                     *self = Self::Building {
                         needed_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_capabilities,
@@ -163,6 +166,7 @@ impl Objective for BuildVesselObjective {
                         .is_completed(process_token_context)
                         .unwrap_or(true)
                     {
+                        logger.info("Done");
                         *self = Self::Done;
                         return Ok(ObjectiveStatus::Done);
                     }

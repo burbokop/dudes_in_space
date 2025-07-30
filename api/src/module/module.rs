@@ -6,7 +6,7 @@ use crate::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
-use uuid::{NonNilUuid, Uuid};
+use crate::utils::non_nil_uuid::NonNilUuid;
 
 pub type PackageId = String;
 pub type ModuleTypeId = String;
@@ -35,7 +35,7 @@ pub trait Module: Debug + DynSerialize {
     /// persons
     fn extract_person(&mut self, id: PersonId) -> Option<Person>;
     fn insert_person(&mut self, person: Person) -> bool;
-    fn can_insert_person(&self) -> bool;
+    fn free_person_slots_count(&self) -> usize;
     fn contains_person(&self, id: PersonId) -> bool;
 
     /// storage

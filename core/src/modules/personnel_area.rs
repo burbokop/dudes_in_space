@@ -49,7 +49,7 @@ impl<'v> PersonnelAreaSeed<'v> {
 impl PersonnelArea {
     pub fn new(personnel: Vec<Person>) -> Box<Self> {
         Box::new(Self {
-            id: PersonId::new_v4(),
+            id: ModuleId::new_v4(),
             personnel,
         })
     }
@@ -90,7 +90,7 @@ impl Module for PersonnelArea {
         logger: &mut dyn Logger,
     ) {
         let mut person_interface =
-            DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES, &[]);
+            DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES);
         for person in &mut self.personnel {
             person.proceed(
                 &mut rng(),
@@ -122,9 +122,7 @@ impl Module for PersonnelArea {
         todo!()
     }
 
-    fn can_insert_person(&self) -> bool {
-        todo!()
-    }
+
 
     fn contains_person(&self, id: PersonId) -> bool {
         self.personnel.iter().find(|p| (*p).id() == id).is_some()
@@ -155,6 +153,10 @@ impl Module for PersonnelArea {
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn free_person_slots_count(&self) -> usize {
         todo!()
     }
 }

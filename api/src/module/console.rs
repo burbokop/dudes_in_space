@@ -46,30 +46,27 @@ pub trait ModuleConsole {
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp];
 }
 
-pub struct DefaultModuleConsole<'c, 'pc, 'd> {
+pub struct DefaultModuleConsole<'c, 'pc> {
     id: ModuleId,
     capabilities: &'c [ModuleCapability],
     primary_capabilities: &'pc [ModuleCapability],
-    docking_clamps: &'d [DockingClamp],
 }
 
-impl<'c, 'pc, 'd> DefaultModuleConsole<'c, 'pc, 'd> {
+impl<'c, 'pc, 'd> DefaultModuleConsole<'c, 'pc> {
     pub fn new(
         id: ModuleId,
         capabilities: &'c [ModuleCapability],
         primary_capabilities: &'pc [ModuleCapability],
-        docking_clamps: &'d [DockingClamp],
     ) -> Self {
         Self {
             id,
             capabilities,
             primary_capabilities,
-            docking_clamps,
         }
     }
 }
 
-impl<'c, 'pc, 'd> ModuleConsole for DefaultModuleConsole<'c, 'pc, 'd> {
+impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     fn id(&self) -> ModuleId {
         self.id
     }
@@ -79,7 +76,7 @@ impl<'c, 'pc, 'd> ModuleConsole for DefaultModuleConsole<'c, 'pc, 'd> {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        self.capabilities
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
@@ -95,7 +92,7 @@ impl<'c, 'pc, 'd> ModuleConsole for DefaultModuleConsole<'c, 'pc, 'd> {
     }
 
     fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
-        todo!()
+        None
     }
 
     fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
@@ -135,7 +132,7 @@ impl<'c, 'pc, 'd> ModuleConsole for DefaultModuleConsole<'c, 'pc, 'd> {
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -143,7 +140,7 @@ impl<'c, 'pc, 'd> ModuleConsole for DefaultModuleConsole<'c, 'pc, 'd> {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        self.docking_clamps
+        &[]
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {

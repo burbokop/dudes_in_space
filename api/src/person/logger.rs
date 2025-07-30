@@ -43,11 +43,29 @@ impl<'id, 'name, 'l> PersonLogger<'id, 'name, 'l> {
 }
 
 impl<'id, 'name, 'l> PersonLogger<'id, 'name, 'l> {
-    pub fn log<M: ToString>(&mut self, severity: Severity, message: M) {
+    pub fn info<M: ToString>(&mut self, message: M) {
         self.logger.log(
             self.person_id,
             self.person_name,
-            severity,
+            Severity::Info,
+            message.to_string(),
+        )
+    }
+
+    pub fn warn<M: ToString>(&mut self, message: M) {
+        self.logger.log(
+            self.person_id,
+            self.person_name,
+            Severity::Warning,
+            message.to_string(),
+        )
+    }
+
+    pub fn err<M: ToString>(&mut self, message: M) {
+        self.logger.log(
+            self.person_id,
+            self.person_name,
+            Severity::Error,
             message.to_string(),
         )
     }

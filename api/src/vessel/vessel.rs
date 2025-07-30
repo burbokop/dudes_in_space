@@ -5,12 +5,12 @@ use crate::utils::utils::Float;
 use crate::vessel::{VesselConsole, VesselModuleInterface};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
-use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, de};
-use std::cell::{Ref, RefCell, RefMut};
+use serde::de::{DeserializeSeed, SeqAccess, Visitor};
+use serde::{Deserializer, Serialize};
+use std::cell::{BorrowError, Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
-use uuid::NonNilUuid;
+use crate::utils::non_nil_uuid::NonNilUuid;
 
 pub(crate) type VesselId = NonNilUuid;
 
@@ -117,6 +117,34 @@ impl Vessel {
         self.modules.iter().map(|module| module.borrow_mut())
     }
 
+    pub fn module_by_id<'a>(&'a self, id: ModuleId) -> Option< Ref<'a, Box<dyn Module>>> {
+        self.modules.iter().find_map(|module|
+                                         match module.try_borrow() {
+                                             Ok(module) =>             if module.id() == id {
+                                                 Some(module)
+                                             } else {
+                                                 None
+                                             }
+                                             Err(_) => None
+                                         }
+
+        )
+    }
+
+    pub fn module_by_id_mut<'a>(&'a self, id: ModuleId) -> Option< RefMut<'a, Box<dyn Module>>> {
+        self.modules.iter().find_map(|module|
+            match module.try_borrow_mut() {
+                Ok(module) =>             if module.id() == id {
+                    Some(module)
+                } else {
+                    None
+                }
+                Err(_) => None
+            }
+
+        )
+    }
+
     pub(crate) fn add_module(&mut self, module: Box<dyn Module>) {
         self.modules.push(RefCell::new(module));
     }
@@ -150,7 +178,9 @@ impl Vessel {
                     assert_ne!(src.as_ptr(), dst.as_ptr());
                     let mut src = src.borrow_mut();
                     let mut dst = dst.borrow_mut();
-                    assert!(dst.can_insert_person());
+                    if dst.free_person_slots_count() == 0 {
+                        panic!("Can not insert person to module `{}` of type `{}`", dst.id(), dst.type_id())
+                    }
                     let ok = dst.insert_person(src.extract_person(person_id).unwrap());
                     assert!(ok);
                     assert!(!src.contains_person(person_id));
@@ -195,15 +225,28 @@ impl VesselConsole for Vessel {
             .collect()
     }
 
-    fn move_to_module(&self, person_id: PersonId, module_id: ModuleId) {
-        assert!(!person_id.is_nil());
-        assert!(!module_id.is_nil());
+    fn move_to_module(&self, person_id: PersonId, module_id: ModuleId) ->bool {
+        let pending_requests = self.requests.borrow().iter().filter(|r|{
+            let m = &module_id;
+            match r {
+                VesselRequest::MoveToModule { module_id, .. } => { module_id == m }
+                VesselRequest::AddModule { .. } => false,
+            }
+        }).count();
+
+        let module = self.module_by_id(module_id).unwrap();
+        if module.free_person_slots_count() < pending_requests+1 {
+            return false;
+        }
+
         self.requests
             .borrow_mut()
             .push(VesselRequest::MoveToModule {
                 person_id,
                 module_id,
-            })
+            });
+
+        true
     }
 
     fn capabilities(&self) -> BTreeSet<ModuleCapability> {

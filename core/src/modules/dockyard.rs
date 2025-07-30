@@ -123,7 +123,7 @@ enum DockyardRequest {
 }
 
 struct Console<'a> {
-    id: PersonId,
+    id: ModuleId,
     requests: Vec<DockyardRequest>,
     state: &'a mut DockyardState,
     module_storage: &'a mut ModuleStorage,
@@ -342,9 +342,10 @@ impl Module for Dockyard {
         }
     }
 
-    fn can_insert_person(&self) -> bool {
-        self.operator.is_none()
+    fn free_person_slots_count(&self) -> usize {
+        todo!()
     }
+
 
     fn contains_person(&self, id: PersonId) -> bool {
         self.operator

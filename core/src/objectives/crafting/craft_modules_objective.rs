@@ -41,7 +41,6 @@ impl CraftModulesObjective {
         needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
     ) -> Self {
-        assert!(!this_person.is_nil());
         Self::SearchingForCraftingModule {
             this_person,
             needed_capabilities,
@@ -73,7 +72,7 @@ impl Objective for CraftModulesObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        mut logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {
@@ -87,8 +86,9 @@ impl Objective for CraftModulesObjective {
                         assembly_console.recipes(),
                         needed_capabilities.clone(),
                     ) {
+                        logger.info("MovingToCraftingModule");
                         *self = Self::MovingToCraftingModule {
-                            this_person: std::mem::take(this_person),
+                            this_person: this_person.clone(),
                             dst: this_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
@@ -105,8 +105,9 @@ impl Objective for CraftModulesObjective {
                         crafting_module.assembly_recipes(),
                         needed_capabilities.clone(),
                     ) {
+                        logger.info("MovingToCraftingModule");
                         *self = Self::MovingToCraftingModule {
-                            this_person: std::mem::take(this_person),
+                            this_person: this_person.clone(),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
@@ -127,6 +128,7 @@ impl Objective for CraftModulesObjective {
                 deploy,
             } => {
                 if *dst == this_module.id() {
+                    logger.info("Crafting");
                     *self = Self::Crafting {
                         needed_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_capabilities,
