@@ -1,6 +1,7 @@
 use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ProcessTokenContext,
 };
+use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{Objective, ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
 use crate::utils::tagged_option::TaggedOptionSeed;
@@ -14,8 +15,7 @@ use serde::de::DeserializeSeed;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
-use uuid::Uuid;
-use crate::person::logger::{Logger, PersonLogger};
+use uuid::{NonNilUuid, Uuid};
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -199,7 +199,7 @@ impl Distribution<Gender> for StandardUniform {
     }
 }
 
-pub type PersonId = Uuid;
+pub type PersonId = NonNilUuid;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v>)]
@@ -238,7 +238,7 @@ impl Person {
     pub fn random<R: Rng>(rng: &mut R) -> Self {
         let gender = rng.random();
         Self {
-            id: Uuid::new_v4(),
+            id: NonNilUuid::new(Uuid::new_v4()).unwrap(),
             name: random_name(rng, gender),
             age: rng.random_range(15..=80),
             gender,
@@ -265,25 +265,33 @@ impl Person {
     ) {
         match &mut self.objective {
             None => {
-                self.objective = 
-                    decider_vault
-                        .decide(
-                            rng,
-                            self.id,
-                            self.age,
-                            self.gender,
-                            &self.passions,
-                            self.morale,
-                            self.boldness,
-                            self.awareness,
-                        )
+                self.objective = decider_vault.decide(
+                    rng,
+                    self.id,
+                    self.age,
+                    self.gender,
+                    &self.passions,
+                    self.morale,
+                    self.boldness,
+                    self.awareness,
+                )
             }
             Some(objective) => {
-                match objective.pursue_dyn(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, &self.name, logger)) {
+                match objective.pursue_dyn(
+                    this_module,
+                    this_vessel,
+                    process_token_context,
+                    PersonLogger::new(&self.id, &self.name, logger),
+                ) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {
-                        logger.log(&self.id, &self.name, Severity::Error, format!("{} failed: {}", objective.type_id(), err));
+                        logger.log(
+                            &self.id,
+                            &self.name,
+                            Severity::Error,
+                            format!("{} failed: {}", objective.type_id(), err),
+                        );
                         self.objective = None
                     }
                 }

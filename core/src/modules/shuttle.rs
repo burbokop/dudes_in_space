@@ -1,5 +1,8 @@
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole};
+use dudes_in_space_api::module::{
+    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
+    ProcessTokenContext, TradingConsole,
+};
 use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
@@ -140,7 +143,7 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct ShuttleFactory{}
+pub(crate) struct ShuttleFactory {}
 
 impl DynSerialize for ShuttleFactory {
     fn type_id(&self) -> TypeId {

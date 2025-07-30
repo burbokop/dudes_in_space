@@ -1,11 +1,11 @@
-use std::rc::Rc;
+use crate::modules::{Assembler, DockyardFactory, PersonnelArea, ShuttleFactory};
 use dudes_in_space_api::environment::Environment;
-use dudes_in_space_api::person::Person;
-use rand::Rng;
 use dudes_in_space_api::item::{Item, ItemStorage};
+use dudes_in_space_api::person::Person;
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe};
 use dudes_in_space_api::vessel::Vessel;
-use crate::modules::{Assembler, DockyardFactory, PersonnelArea, ShuttleFactory};
+use rand::Rng;
+use std::rc::Rc;
 
 pub fn new<R: Rng>(rng: &mut R) -> Environment {
     let person0 = Person::random(rng);
@@ -14,10 +14,27 @@ pub fn new<R: Rng>(rng: &mut R) -> Environment {
 
     let person0_id = person0.id();
     let spawn_station_personnel_area = PersonnelArea::new(vec![person0, person1, person2]);
-    let spawn_station_assembler = Assembler::new(vec![
-         AssemblyRecipe::new( vec![Item::new("steel".to_string(), 10)].try_into().unwrap(), Rc::new(ShuttleFactory{})),
-         AssemblyRecipe::new( vec![Item::new("steel".to_string(), 100)].try_into().unwrap(), Rc::new(DockyardFactory{})),
-    ], vec![Item::new("steel".to_string(), 10000000), Item::new("plastic".to_string(), 100000), Item::new("microelectronics".to_string(), 100)].try_into().unwrap());
+    let spawn_station_assembler = Assembler::new(
+        vec![
+            AssemblyRecipe::new(
+                vec![Item::new("steel".to_string(), 10)].try_into().unwrap(),
+                Rc::new(ShuttleFactory {}),
+            ),
+            AssemblyRecipe::new(
+                vec![Item::new("steel".to_string(), 100)]
+                    .try_into()
+                    .unwrap(),
+                Rc::new(DockyardFactory {}),
+            ),
+        ],
+        vec![
+            Item::new("steel".to_string(), 10000000),
+            Item::new("plastic".to_string(), 100000),
+            Item::new("microelectronics".to_string(), 100),
+        ]
+        .try_into()
+        .unwrap(),
+    );
 
     let spawn_station = Vessel::new(
         person0_id,
@@ -25,5 +42,5 @@ pub fn new<R: Rng>(rng: &mut R) -> Environment {
         vec![spawn_station_personnel_area, spawn_station_assembler],
     );
 
-    Environment::new(vec![spawn_station],vec![])
+    Environment::new(vec![spawn_station], vec![])
 }

@@ -1,10 +1,17 @@
+mod common;
 mod crafting;
 mod gathering;
 mod trading;
-mod common;
 
-use crate::objectives::gathering::{GatherResearchDataObjectiveDecider, GatherResearchDataObjectiveDynSeed, MineAsteroidsObjectiveDecider, MineAsteroidsObjectiveDynSeed, ScavengeObjectiveDecider, ScavengeObjectiveDynSeed};
-use crate::objectives::trading::{TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed, TradeObjectiveDecider, TradeObjectiveDynSeed};
+use crate::objectives::gathering::{
+    GatherResearchDataObjectiveDecider, GatherResearchDataObjectiveDynSeed,
+    MineAsteroidsObjectiveDecider, MineAsteroidsObjectiveDynSeed, ScavengeObjectiveDecider,
+    ScavengeObjectiveDynSeed,
+};
+use crate::objectives::trading::{
+    TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed, TradeObjectiveDecider,
+    TradeObjectiveDynSeed,
+};
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dyn_serde::DynDeserializeSeedVault;
 

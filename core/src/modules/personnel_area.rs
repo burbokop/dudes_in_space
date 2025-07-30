@@ -1,8 +1,13 @@
 use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, DockyardDynSeed, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, PackageId, ProcessTokenContext, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::module::{
+    DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
+    ModuleStorageSeed, PackageId, ProcessTokenContext, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, VesselModuleInterface};
@@ -84,7 +89,8 @@ impl Module for PersonnelArea {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut person_interface = DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES, &[]);
+        let mut person_interface =
+            DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES, &[]);
         for person in &mut self.personnel {
             person.proceed(
                 &mut rng(),

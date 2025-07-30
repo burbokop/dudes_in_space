@@ -1,11 +1,14 @@
 use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
-use dudes_in_space_api::person::{Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonId, PersonLogger};
+use dudes_in_space_api::person::{
+    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
+    ObjectiveStatus, Passion, PersonId, PersonLogger,
+};
 use dudes_in_space_api::vessel::VesselConsole;
+use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
 use serde::{Deserialize, Serialize};
+use serde_intermediate::Intermediate;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use serde_intermediate::Intermediate;
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
 
 static TYPE_ID: &str = "GatherResearchDataObjective";
 
@@ -43,7 +46,6 @@ impl ObjectiveDecider for GatherResearchDataObjectiveDecider {
     }
 }
 
-
 pub(crate) struct GatherResearchDataObjectiveDynSeed;
 
 impl DynDeserializeSeed<dyn DynObjective> for GatherResearchDataObjectiveDynSeed {
@@ -51,11 +53,14 @@ impl DynDeserializeSeed<dyn DynObjective> for GatherResearchDataObjectiveDynSeed
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn DynObjective>) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
+    ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
         todo!()
     }
 }
-
 
 #[derive(Debug)]
 pub(crate) enum GatherResearchDataObjectiveError {}

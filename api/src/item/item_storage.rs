@@ -20,7 +20,10 @@ impl TryFrom<Vec<Item>> for ItemStorage {
     fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
         let mut result = Self::new();
         for v in value {
-            result.content.try_insert(v.id, v.count).map_err(|_| DuplicateItemError)?;
+            result
+                .content
+                .try_insert(v.id, v.count)
+                .map_err(|_| DuplicateItemError)?;
         }
         Ok(result)
     }

@@ -10,9 +10,9 @@ use serde::{Deserialize, Deserializer, Serialize, de};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
-use uuid::Uuid;
+use uuid::NonNilUuid;
 
-pub(crate) type VesselId = Uuid;
+pub(crate) type VesselId = NonNilUuid;
 
 #[derive(Debug)]
 enum VesselRequest {
@@ -195,12 +195,14 @@ impl VesselConsole for Vessel {
             .collect()
     }
 
-    fn move_to_module(&self, person_id: PersonId, id: ModuleId) {
+    fn move_to_module(&self, person_id: PersonId, module_id: ModuleId) {
+        assert!(!person_id.is_nil());
+        assert!(!module_id.is_nil());
         self.requests
             .borrow_mut()
             .push(VesselRequest::MoveToModule {
                 person_id,
-                module_id: id,
+                module_id,
             })
     }
 

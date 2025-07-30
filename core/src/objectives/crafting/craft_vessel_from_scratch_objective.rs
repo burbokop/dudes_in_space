@@ -1,4 +1,3 @@
-
 use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
     CraftModulesObjectiveError,
@@ -19,7 +18,7 @@ pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
         this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
-        needed_primary_capabilities: Vec<ModuleCapability>
+        needed_primary_capabilities: Vec<ModuleCapability>,
     },
     CraftingDockyard {
         this_person: PersonId,
@@ -46,7 +45,7 @@ struct DockyardRef<'x> {
 }
 impl CraftVesselFromScratchObjective {
     pub(crate) fn new(
-        this_person: PersonId, 
+        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
     ) -> Self {
@@ -93,24 +92,17 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_primary_capabilities,
             } => {
                 let dockyards = this_vessel.modules_with_cap(ModuleCapability::Dockyard);
-
+                
                 let dockyards: Vec<_> = dockyards
                     .iter()
                     .map(|x| DockyardRef {
                         module_storages: x.module_storages(),
                     })
-                    .chain(std::iter::from_fn(|| {
-                        if this_module
-                            .capabilities()
-                            .contains(&ModuleCapability::Dockyard)
-                        {
-                            Some(DockyardRef {
-                                module_storages: this_module.module_storages(),
-                            })
-                        } else {
-                            None
-                        }
-                    }))
+                    .chain( this_module
+                        .capabilities()
+                        .contains(&ModuleCapability::Dockyard).then_some(DockyardRef {
+                        module_storages: this_module.module_storages(),
+                    }).into_iter())
                     .collect();
 
                 if dockyards.is_empty() {
@@ -154,9 +146,8 @@ impl Objective for CraftVesselFromScratchObjective {
                     needed_primary_capabilities: needed_primary_capabilities.clone(),
                     building_objective: BuildVesselObjective::new(
                         std::mem::take(this_person),
-                        std::mem::take(
-                        needed_capabilities,
-                    )),
+                        std::mem::take(needed_capabilities),
+                    ),
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
@@ -175,7 +166,9 @@ impl Objective for CraftVesselFromScratchObjective {
                         *self = Self::CheckingAllPrerequisites {
                             this_person: std::mem::take(this_person),
                             needed_capabilities: std::mem::take(needed_capabilities),
-                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),       
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                         }
                     }
                 }
@@ -196,7 +189,9 @@ impl Objective for CraftVesselFromScratchObjective {
                         *self = Self::CheckingAllPrerequisites {
                             this_person: std::mem::take(this_person),
                             needed_capabilities: std::mem::take(needed_capabilities),
-                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),       
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                         }
                     }
                 }

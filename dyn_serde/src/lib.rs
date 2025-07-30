@@ -84,10 +84,13 @@ impl<T: ?Sized> DynDeserializeSeedVault<T> {
 
         let i = Impl::deserialize(deserializer)?;
 
-        let deser = self
-            .data
-            .get(&i.tp)
-            .ok_or_else(|| D::Error::custom(format!("{} with id `{}` not found", std::any::type_name::<T>(), i.tp)))?;
+        let deser = self.data.get(&i.tp).ok_or_else(|| {
+            D::Error::custom(format!(
+                "{} with id `{}` not found",
+                std::any::type_name::<T>(),
+                i.tp
+            ))
+        })?;
 
         Ok(deser
             .deserialize(i.payload, self)

@@ -1,19 +1,20 @@
-use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
-use dudes_in_space_api::person::{Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonId, PersonLogger};
-use dudes_in_space_api::vessel::VesselConsole;
-use serde::{Deserialize, Serialize};
-use std::error::Error;
-use std::fmt::{ Display, Formatter};
-use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use crate::objectives::crafting::CraftVesselFromScratchObjective;
 use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
+use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::person::{
+    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
+    ObjectiveStatus, Passion, PersonId, PersonLogger,
+};
+use dudes_in_space_api::vessel::VesselConsole;
+use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use serde::{Deserialize, Serialize};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 static TYPE_ID: &str = "TradeFromScratchObjective";
 
-static NEEDED_PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::ItemStorage,
-];
+static NEEDED_PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
 
 static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Cockpit,
@@ -24,18 +25,24 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum TradeFromScratchObjective {
-    ExecuteTrade { 
+    ExecuteTrade {
+        second_attempt: bool,
         this_person: PersonId,
-        trade_objective: TradeObjective },
+        trade_objective: TradeObjective,
+    },
     CraftVessel {
         this_person: PersonId,
-        craft_vessel_objective: CraftVesselFromScratchObjective
+        craft_vessel_objective: CraftVesselFromScratchObjective,
     },
 }
 
 impl TradeFromScratchObjective {
     pub fn new(this_person: PersonId) -> Self {
-        Self::ExecuteTrade { this_person, trade_objective: TradeObjective::new() }
+        Self::ExecuteTrade {
+            second_attempt: false,
+            this_person,
+            trade_objective: TradeObjective::new(),
+        }
     }
 }
 
@@ -50,27 +57,55 @@ impl Objective for TradeFromScratchObjective {
         logger: PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            TradeFromScratchObjective::ExecuteTrade { this_person, trade_objective } => 
-                match trade_objective.pursue(this_module, this_vessel, process_token_context, logger) {
-                    Ok(ok) => Ok(ok),
-                    Err(TradeObjectiveError::SuitableVesselNotFound) => {*self =  Self::CraftVessel {
+            TradeFromScratchObjective::ExecuteTrade {
+                second_attempt,
+                this_person,
+                trade_objective,
+            } => match trade_objective.pursue(
+                this_module,
+                this_vessel,
+                process_token_context,
+                logger,
+            ) {
+                Ok(ok) => Ok(ok),
+                Err(TradeObjectiveError::SuitableVesselNotFound) => {
+                    assert!(!*second_attempt);
+                    *self = Self::CraftVessel {
                         this_person: *this_person,
-                        craft_vessel_objective: CraftVesselFromScratchObjective::new(std::mem::take( this_person),vec![
-                            ModuleCapability::Cockpit,
-                            ModuleCapability::Engine,
-                            ModuleCapability::Reactor,
-                            ModuleCapability::FuelTank,
-                        ],  vec![
-                            ModuleCapability::ItemStorage,
-                        ])
-                    }; Ok(ObjectiveStatus::InProgress) },
-                },
-            TradeFromScratchObjective::CraftVessel { 
+                        craft_vessel_objective: CraftVesselFromScratchObjective::new(
+                            std::mem::take(this_person),
+                            vec![
+                                ModuleCapability::Cockpit,
+                                ModuleCapability::Engine,
+                                ModuleCapability::Reactor,
+                                ModuleCapability::FuelTank,
+                            ],
+                            vec![ModuleCapability::ItemStorage],
+                        ),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+            },
+            TradeFromScratchObjective::CraftVessel {
                 this_person,
                 craft_vessel_objective,
             } => {
-                todo!()                
-            },
+                match craft_vessel_objective
+                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .map_err(|_| {
+                        TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted
+                    })? {
+                    ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
+                    ObjectiveStatus::Done => {
+                        *self = TradeFromScratchObjective::ExecuteTrade {
+                            second_attempt: true,
+                            this_person: std::mem::take(this_person),
+                            trade_objective: TradeObjective::SearchVessel,
+                        };
+                        Ok(ObjectiveStatus::InProgress)
+                    }
+                }
+            }
         }
     }
 }
@@ -113,7 +148,11 @@ impl DynDeserializeSeed<dyn DynObjective> for TradeFromScratchObjectiveDynSeed {
         TYPE_ID.to_string()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn DynObjective>) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
+    ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
         let obj: TradeFromScratchObjective = from_intermediate(&intermediate).map_err(Box::new)?;
         Ok(Box::new(obj))
     }
