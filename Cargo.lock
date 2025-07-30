@@ -200,7 +200,6 @@ dependencies = [
  "serde",
  "serde-intermediate",
  "serde_json",
- "uuid",
 ]
 
 [[package]]

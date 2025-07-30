@@ -107,11 +107,11 @@ impl Objective for CraftVesselFromScratchObjective {
 
                 if dockyards.is_empty() {
                     *self = Self::CraftingDockyard {
-                        this_person: std::mem::take(this_person),
+                        this_person: this_person.clone(),
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                         crafting_objective: CraftModulesObjective::new(
-                            std::mem::take(this_person),
+                            this_person.clone(),
                             vec![ModuleCapability::Dockyard],
                             vec![],
                             true,
@@ -128,11 +128,11 @@ impl Objective for CraftVesselFromScratchObjective {
 
                 if dockyard.is_none() {
                     *self = Self::CraftingVesselModules {
-                        this_person: std::mem::take(this_person),
+                        this_person: this_person.clone(),
                         needed_capabilities: needed_capabilities.clone(),
                         needed_primary_capabilities: needed_primary_capabilities.clone(),
                         crafting_objective: CraftModulesObjective::new(
-                            std::mem::take(this_person),
+                            this_person.clone(),
                             std::mem::take(needed_capabilities),
                             std::mem::take(needed_primary_capabilities),
                             false,
@@ -145,7 +145,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     needed_capabilities: needed_capabilities.clone(),
                     needed_primary_capabilities: needed_primary_capabilities.clone(),
                     building_objective: BuildVesselObjective::new(
-                        std::mem::take(this_person),
+                        this_person.clone(),
                         std::mem::take(needed_capabilities),
                     ),
                 };
@@ -164,7 +164,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
                         *self = Self::CheckingAllPrerequisites {
-                            this_person: std::mem::take(this_person),
+                            this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,
@@ -187,7 +187,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
                         *self = Self::CheckingAllPrerequisites {
-                            this_person: std::mem::take(this_person),
+                            this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,

@@ -1,13 +1,11 @@
-use crate::utils::math::Complex;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::cell::{BorrowError, Ref, RefCell};
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
 use std::rc::{Rc, Weak};
-use uuid::{NonNilUuid, Uuid};
+use crate::utils::non_nil_uuid::NonNilUuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessToken {
@@ -82,7 +80,7 @@ impl<'de, 'context> DeserializeSeed<'de> for ProcessTokenMutSeed<'context> {
 impl ProcessTokenMut {
     pub fn new() -> (ProcessToken, Self) {
         let completed = Rc::new(RefCell::new(false));
-        let id = NonNilUuid::new(Uuid::new_v4()).unwrap();
+        let id = NonNilUuid::new_v4();
         (
             ProcessToken {
                 completed: Some(Rc::downgrade(&completed)),

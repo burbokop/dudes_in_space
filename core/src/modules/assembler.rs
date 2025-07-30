@@ -124,7 +124,7 @@ enum AssemblerRequest {
 }
 
 struct Console<'a> {
-    id: PersonId,
+    id: ModuleId,
     recipes: &'a [AssemblyRecipe],
     requests: Vec<AssemblerRequest>,
     state: &'a mut AssemblerState,
@@ -377,8 +377,8 @@ impl Module for Assembler {
         }
     }
 
-    fn can_insert_person(&self) -> bool {
-        self.operator.is_none()
+    fn free_person_slots_count(&self) -> usize {
+        todo!()
     }
 
     fn contains_person(&self, id: PersonId) -> bool {

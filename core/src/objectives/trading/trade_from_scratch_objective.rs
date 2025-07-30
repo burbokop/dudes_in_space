@@ -73,7 +73,7 @@ impl Objective for TradeFromScratchObjective {
                     *self = Self::CraftVessel {
                         this_person: *this_person,
                         craft_vessel_objective: CraftVesselFromScratchObjective::new(
-                            std::mem::take(this_person),
+                            this_person.clone(),
                             vec![
                                 ModuleCapability::Cockpit,
                                 ModuleCapability::Engine,
@@ -99,7 +99,7 @@ impl Objective for TradeFromScratchObjective {
                     ObjectiveStatus::Done => {
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
-                            this_person: std::mem::take(this_person),
+                            this_person: this_person.clone(),
                             trade_objective: TradeObjective::SearchVessel,
                         };
                         Ok(ObjectiveStatus::InProgress)
