@@ -63,7 +63,7 @@ pub(crate) struct OutputRecipe {
 impl TryFrom<Vec<Item>> for OutputRecipe {
     type Error = DuplicateItemError;
 
-    fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
+    fn try_from(_value: Vec<Item>) -> Result<Self, Self::Error> {
         todo!()
     }
 }

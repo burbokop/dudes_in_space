@@ -1,8 +1,9 @@
-use serde::de::{DeserializeSeed, Error as _, SeqAccess, Unexpected, Visitor};
+#![deny(warnings)]
+
+use serde::de::{DeserializeSeed, Error as _, SeqAccess, Visitor};
 use serde::ser::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_intermediate::Intermediate;
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::Formatter;
@@ -226,85 +227,5 @@ impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for BoxSeed<T> {
         D: Deserializer<'de>,
     {
         Ok(Box::new(self.element_seed.deserialize(deserializer)?))
-    }
-}
-
-mod remove_me {
-    use serde::__private::de::missing_field;
-    use serde::de::{VariantAccess, Visitor};
-    use std::fmt::Formatter;
-
-    pub enum Foo {
-        Bar { f0: String, f1: usize },
-        Baz { f0: usize },
-    }
-
-    impl<'de> serde::de::Deserialize<'de> for Foo {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::de::Deserializer<'de>,
-        {
-            // just derive the complexity away :D
-            #[derive(serde::Deserialize)]
-            enum Foo_Discriminant {
-                Bar,
-                Baz,
-            }
-            #[derive(serde::Deserialize)]
-            struct Foo_Bar {
-                f0: String,
-                f1: usize,
-            }
-            #[derive(serde::Deserialize)]
-            struct Foo_Baz {
-                f0: usize,
-            }
-
-            struct FooVisitor;
-            impl<'de> serde::de::Visitor<'de> for FooVisitor {
-                type Value = Foo;
-
-                fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                    write!(f, "enum Foo")
-                }
-
-                fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
-                where
-                    A: serde::de::EnumAccess<'de>,
-                {
-                    match data.variant()? {
-                        (Foo_Discriminant::Bar, variant) => {
-                            // unfortunately not real; c.f.
-
-                            struct V {}
-
-                            impl<'de> Visitor<'de> for V {
-                                type Value = Foo_Bar;
-
-                                fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-                                    todo!()
-                                }
-                            }
-
-                            let v = variant.struct_variant(&[], V {})?;
-
-                            // Ok(Foo::Bar {})
-                            todo!()
-                        }
-                        (Foo_Discriminant::Baz, variant) => {
-                            todo!()
-
-                            // variant.unit_variant()
-
-                            // let d = serde::de::value::EnumAccessDeserializer::new(variant);
-                            // let Foo_Bar { f0, f1 } = Foo_Bar::deserialize(d)?;
-                            // Ok(Foo::Bar { f0, f1 })
-                        }
-                    }
-                }
-            }
-
-            deserializer.deserialize_enum("Foo", &["Bar", "Baz"], FooVisitor)
-        }
     }
 }

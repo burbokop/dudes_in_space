@@ -90,7 +90,7 @@ impl ProcessTokenMut {
         )
     }
 
-    pub fn mark_completed(&mut self, context: &ProcessTokenContext) {
+    pub fn mark_completed(&mut self, _: &ProcessTokenContext) {
         *self.completed.borrow_mut() = true
     }
 }
@@ -99,7 +99,7 @@ impl ProcessTokenMut {
 pub struct ProcessTokenExpiredError;
 
 impl Display for ProcessTokenExpiredError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }

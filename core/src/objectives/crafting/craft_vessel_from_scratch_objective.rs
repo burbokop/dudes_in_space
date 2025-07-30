@@ -83,7 +83,7 @@ impl Objective for CraftVesselFromScratchObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CheckingAllPrerequisites {
@@ -106,6 +106,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .collect();
 
                 if dockyards.is_empty() {
+                    logger.info("CraftingDockyard");
                     *self = Self::CraftingDockyard {
                         this_person: this_person.clone(),
                         needed_capabilities: std::mem::take(needed_capabilities),
@@ -127,6 +128,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 );
 
                 if dockyard.is_none() {
+                    logger.info("Crafting modules for a new vessel...");
                     *self = Self::CraftingVesselModules {
                         this_person: this_person.clone(),
                         needed_capabilities: needed_capabilities.clone(),
@@ -141,6 +143,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
+                logger.info("BuildingVessel");
                 *self = Self::BuildingVessel {
                     needed_capabilities: needed_capabilities.clone(),
                     needed_primary_capabilities: needed_primary_capabilities.clone(),
@@ -163,6 +166,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
+                        logger.info("CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
                             this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
@@ -186,6 +190,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
+                        logger.info("CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
                             this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
@@ -208,6 +213,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
+                        logger.info("Done");
                         *self = Self::Done;
                         Ok(ObjectiveStatus::Done)
                     }

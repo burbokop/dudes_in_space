@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{ quote};
 use syn::Ident;
-use syn::{self, parse::Parse, parse_macro_input};
+use syn::{self};
 
 #[derive(deluxe::ParseMetaItem, Debug)]
 #[deluxe(attributes(serde))]

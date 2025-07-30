@@ -1,13 +1,13 @@
 use crate::module::{Module, ModuleCapability, ModuleId, ModuleSeed, ProcessTokenContext};
-use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
+use crate::person::{Logger, ObjectiveDeciderVault, PersonId};
 use crate::utils::math::Point;
 use crate::utils::utils::Float;
-use crate::vessel::{VesselConsole, VesselModuleInterface};
+use crate::vessel::{MoveToModuleError, VesselConsole, VesselModuleInterface};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};
 use serde::{Deserializer, Serialize};
-use std::cell::{BorrowError, Ref, RefCell, RefMut};
+use std::cell::{ Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
 use crate::utils::non_nil_uuid::NonNilUuid;
@@ -225,7 +225,7 @@ impl VesselConsole for Vessel {
             .collect()
     }
 
-    fn move_to_module(&self, person_id: PersonId, module_id: ModuleId) ->bool {
+    fn move_to_module(&self, person_id: PersonId, module_id: ModuleId) -> Result<(), MoveToModuleError> {
         let pending_requests = self.requests.borrow().iter().filter(|r|{
             let m = &module_id;
             match r {
@@ -236,7 +236,7 @@ impl VesselConsole for Vessel {
 
         let module = self.module_by_id(module_id).unwrap();
         if module.free_person_slots_count() < pending_requests+1 {
-            return false;
+            return Err(MoveToModuleError::NotEnoughSpace);
         }
 
         self.requests
@@ -246,7 +246,7 @@ impl VesselConsole for Vessel {
                 module_id,
             });
 
-        true
+        Ok(())
     }
 
     fn capabilities(&self) -> BTreeSet<ModuleCapability> {

@@ -25,7 +25,7 @@ impl Objective for SellGoodsObjective {
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         todo!()
     }
