@@ -36,11 +36,12 @@ pub(crate) enum CraftModulesObjective {
 
 impl CraftModulesObjective {
     pub(crate) fn new(
-        this_person: PersonId, 
-        needed_capabilities: Vec<ModuleCapability>, 
-        needed_primary_capabilities: Vec<ModuleCapability>, 
+        this_person: PersonId,
+        needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
     ) -> Self {
+        assert!(!this_person.is_nil());
         Self::SearchingForCraftingModule {
             this_person,
             needed_capabilities,
@@ -90,7 +91,9 @@ impl Objective for CraftModulesObjective {
                             this_person: std::mem::take(this_person),
                             dst: this_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
-                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                             deploy: *deploy,
                         };
                         return Ok(ObjectiveStatus::InProgress);
@@ -106,7 +109,9 @@ impl Objective for CraftModulesObjective {
                             this_person: std::mem::take(this_person),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
-                            needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                             deploy: *deploy,
                         };
                         return Ok(ObjectiveStatus::InProgress);
@@ -126,7 +131,9 @@ impl Objective for CraftModulesObjective {
                         needed_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_capabilities,
                         )),
-                        needed_primary_capabilities: BTreeSet::from_iter(std::mem::take(needed_primary_capabilities)),
+                        needed_primary_capabilities: BTreeSet::from_iter(std::mem::take(
+                            needed_primary_capabilities,
+                        )),
                         deploy: *deploy,
                         process_token: None,
                     };

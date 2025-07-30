@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Weak;
-use uuid::Uuid;
+use uuid::{NonNilUuid, Uuid};
 
 pub(crate) type Money = usize;
 
@@ -24,7 +24,7 @@ struct SellOrderImpl {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Option<Weak<BuyOrderImpl>>,
 }
 
@@ -42,7 +42,7 @@ impl WeakBuyOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuyOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Rc<BuyOrderImpl>,
 }
 
@@ -64,7 +64,7 @@ impl BuyOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Option<Weak<SellOrderImpl>>,
 }
 
@@ -82,7 +82,7 @@ impl WeakSellOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SellOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Rc<SellOrderImpl>,
 }
 
@@ -103,6 +103,6 @@ impl SellOrder {
 }
 
 struct OrderHolder {
-    buy_orders: BTreeMap<Uuid, Weak<BuyOrderImpl>>,
-    sell_orders: BTreeMap<Uuid, Weak<WeakSellOrder>>,
+    buy_orders: BTreeMap<NonNilUuid, Weak<BuyOrderImpl>>,
+    sell_orders: BTreeMap<NonNilUuid, Weak<WeakSellOrder>>,
 }

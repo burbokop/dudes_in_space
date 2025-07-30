@@ -1,4 +1,5 @@
 use crate::module::{ModuleConsole, ProcessTokenContext};
+use crate::person::logger::PersonLogger;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 use crate::vessel::VesselConsole;
 use dyn_serde::DynSerialize;
@@ -8,7 +9,6 @@ use rand::prelude::SliceRandom;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Debug, Display};
-use crate::person::logger::PersonLogger;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -89,8 +89,11 @@ impl ObjectiveDeciderVault {
     ) -> Option<Box<dyn DynObjective>> {
         let mut data: Vec<&dyn ObjectiveDecider> = self.data.iter().map(|x| x.as_ref()).collect();
         data.shuffle(rng);
-        data.into_iter()
-            .find_map(|x| x.consider(person_id ,age, gender, passions, morale, boldness, awareness))
+        data.into_iter().find_map(|x| {
+            x.consider(
+                person_id, age, gender, passions, morale, boldness, awareness,
+            )
+        })
     }
 
     pub fn with<T: ObjectiveDecider + 'static>(mut self, decider: T) -> Self {

@@ -50,17 +50,26 @@ pub struct DefaultModuleConsole<'c, 'pc, 'd> {
     id: ModuleId,
     capabilities: &'c [ModuleCapability],
     primary_capabilities: &'pc [ModuleCapability],
-    docking_clamps: &'d [DockingClamp]
+    docking_clamps: &'d [DockingClamp],
 }
 
-impl<'c, 'pc,'d> DefaultModuleConsole<'c, 'pc,'d> {
-    pub fn new(id: ModuleId, capabilities: &'c [ModuleCapability], primary_capabilities: &'pc [ModuleCapability],    docking_clamps: &'d [DockingClamp]
+impl<'c, 'pc, 'd> DefaultModuleConsole<'c, 'pc, 'd> {
+    pub fn new(
+        id: ModuleId,
+        capabilities: &'c [ModuleCapability],
+        primary_capabilities: &'pc [ModuleCapability],
+        docking_clamps: &'d [DockingClamp],
     ) -> Self {
-        Self { id, capabilities, primary_capabilities,docking_clamps }
+        Self {
+            id,
+            capabilities,
+            primary_capabilities,
+            docking_clamps,
+        }
     }
 }
 
-impl<'c, 'pc,'d> ModuleConsole for DefaultModuleConsole<'c, 'pc,'d> {
+impl<'c, 'pc, 'd> ModuleConsole for DefaultModuleConsole<'c, 'pc, 'd> {
     fn id(&self) -> ModuleId {
         self.id
     }

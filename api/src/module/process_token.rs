@@ -7,13 +7,13 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
-use uuid::Uuid;
+use uuid::{NonNilUuid, Uuid};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessToken {
     #[serde(skip)]
     completed: Option<Weak<RefCell<bool>>>,
-    id: Uuid,
+    id: NonNilUuid,
 }
 
 impl ProcessToken {
@@ -47,7 +47,7 @@ impl ProcessToken {
 #[derive(Debug, Serialize)]
 pub struct ProcessTokenMut {
     completed: Rc<RefCell<bool>>,
-    id: Uuid,
+    id: NonNilUuid,
 }
 
 #[derive(Clone)]
@@ -71,7 +71,7 @@ impl<'de, 'context> DeserializeSeed<'de> for ProcessTokenMutSeed<'context> {
         #[derive(Deserialize)]
         struct Impl {
             completed: bool,
-            id: Uuid,
+            id: NonNilUuid,
         }
 
         let Impl { completed, id } = Impl::deserialize(deserializer)?;
@@ -82,7 +82,7 @@ impl<'de, 'context> DeserializeSeed<'de> for ProcessTokenMutSeed<'context> {
 impl ProcessTokenMut {
     pub fn new() -> (ProcessToken, Self) {
         let completed = Rc::new(RefCell::new(false));
-        let id = Uuid::new_v4();
+        let id = NonNilUuid::new(Uuid::new_v4()).unwrap();
         (
             ProcessToken {
                 completed: Some(Rc::downgrade(&completed)),
@@ -109,7 +109,7 @@ impl Display for ProcessTokenExpiredError {
 impl Error for ProcessTokenExpiredError {}
 
 pub struct ProcessTokenContext {
-    data: RefCell<BTreeMap<Uuid, Weak<RefCell<bool>>>>,
+    data: RefCell<BTreeMap<NonNilUuid, Weak<RefCell<bool>>>>,
 }
 
 impl ProcessTokenContext {
@@ -119,7 +119,7 @@ impl ProcessTokenContext {
         }
     }
 
-    fn register(&self, completed: bool, id: Uuid) -> ProcessTokenMut {
+    fn register(&self, completed: bool, id: NonNilUuid) -> ProcessTokenMut {
         let completed = Rc::new(RefCell::new(completed));
         self.data
             .borrow_mut()

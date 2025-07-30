@@ -1,7 +1,13 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::module::{
+    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
+    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
@@ -23,7 +29,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::PersonnelRoom,
 ];
 
-static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[    ModuleCapability::Crafting, ];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]

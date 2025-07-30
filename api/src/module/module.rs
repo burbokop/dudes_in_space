@@ -6,11 +6,11 @@ use crate::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
-use uuid::Uuid;
+use uuid::{NonNilUuid, Uuid};
 
 pub type PackageId = String;
 pub type ModuleTypeId = String;
-pub type ModuleId = Uuid;
+pub type ModuleId = NonNilUuid;
 
 pub trait Module: Debug + DynSerialize {
     /// common

@@ -1,6 +1,12 @@
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::module::{
+    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
+    ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, Vessel, VesselModuleInterface};
@@ -24,8 +30,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::PersonnelRoom,
     ModuleCapability::DockingClamp,
 ];
-static PRIMARY_CAPABILITIES:&[ModuleCapability] = &[
-    ModuleCapability::Dockyard,];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Dockyard];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardStateSeed::<'context>)]
@@ -263,7 +268,7 @@ impl Module for Dockyard {
             requests: vec![],
             state: &mut self.state,
             module_storage: &mut self.module_storage,
-            docking_clamp: &self.docking_clamp,       
+            docking_clamp: &self.docking_clamp,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -378,7 +383,7 @@ impl Module for Dockyard {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct DockyardFactory{}
+pub(crate) struct DockyardFactory {}
 
 impl DynSerialize for DockyardFactory {
     fn type_id(&self) -> TypeId {
