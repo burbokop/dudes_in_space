@@ -7,7 +7,7 @@ use dyn_serde_macro::dyn_serde_trait;
 use rand::Rng;
 use rand::prelude::SliceRandom;
 use std::error::Error;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -62,6 +62,7 @@ pub trait ObjectiveDecider {
         morale: Morale,
         boldness: Boldness,
         awareness: Awareness,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>>;
 }
 
@@ -85,12 +86,13 @@ impl ObjectiveDeciderVault {
         morale: Morale,
         boldness: Boldness,
         awareness: Awareness,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         let mut data: Vec<&dyn ObjectiveDecider> = self.data.iter().map(|x| x.as_ref()).collect();
         data.shuffle(rng);
         data.into_iter().find_map(|x| {
             x.consider(
-                person_id, age, gender, passions, morale, boldness, awareness,
+                person_id, age, gender, passions, morale, boldness, awareness, logger,
             )
         })
     }

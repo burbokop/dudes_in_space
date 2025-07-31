@@ -1,11 +1,11 @@
+use crate::utils::non_nil_uuid::NonNilUuid;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::cell::{RefCell};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::{Rc, Weak};
-use crate::utils::non_nil_uuid::NonNilUuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessToken {

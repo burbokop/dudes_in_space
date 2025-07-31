@@ -1,8 +1,8 @@
 //! A wrapper type for nil UUIDs that provides a more memory-efficient
 //! `Option<NonNilUuid>` representation.
 
-use std::{fmt, num::NonZeroU128};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::{fmt, num::NonZeroU128};
 use uuid::Uuid;
 
 /// A UUID that is guaranteed not to be the [nil UUID](https://www.ietf.org/rfc/rfc9562.html#name-nil-uuid).
@@ -30,9 +30,7 @@ use uuid::Uuid;
 /// are the same size as `Uuid`.
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
-pub struct NonNilUuid(
-    NonZeroU128
-);
+pub struct NonNilUuid(NonZeroU128);
 
 impl Serialize for NonNilUuid {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -46,9 +44,9 @@ impl Serialize for NonNilUuid {
 impl<'de> Deserialize<'de> for NonNilUuid {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
-         Self::new(Uuid::deserialize(deserializer)?).ok_or(serde::de::Error::custom("nil UUID"))
+        Self::new(Uuid::deserialize(deserializer)?).ok_or(serde::de::Error::custom("nil UUID"))
     }
 }
 

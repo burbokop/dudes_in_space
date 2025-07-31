@@ -10,6 +10,7 @@ pub trait ModuleFactory: Debug + DynSerialize {
     fn output_type_id(&self) -> ModuleTypeId;
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module>;
     fn output_capabilities(&self) -> &[ModuleCapability];
+    fn output_primary_capabilities(&self) -> &[ModuleCapability];
 }
 
 dyn_serde_trait!(ModuleFactory, ModuleFactorySeed);
@@ -47,5 +48,8 @@ impl AssemblyRecipe {
     }
     pub fn output_capabilities(&self) -> &[ModuleCapability] {
         self.output.output_capabilities()
+    }
+    pub fn output_primary_capabilities(&self) -> &[ModuleCapability] {
+        self.output.output_primary_capabilities()
     }
 }

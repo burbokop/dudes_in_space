@@ -152,7 +152,9 @@ pub trait ModuleInfoConsole {}
 pub trait AssemblyConsole {
     // returns index in array. TODO replace with uuid
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
+    fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
+    fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability];
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;
     fn active_recipe(&self) -> Option<usize>;

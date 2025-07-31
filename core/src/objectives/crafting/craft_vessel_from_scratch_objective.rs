@@ -63,9 +63,12 @@ impl CraftVesselFromScratchObjective {
     ) -> Option<DockyardRef<'a>> {
         for mut dockyard in dockyards {
             for storage in dockyard.module_storages {
-                if needed_capabilities
+                if needed_primary_capabilities
                     .iter()
-                    .all(|c| storage.contains_modules_with_cap(*c))
+                    .all(|c| storage.contains_modules_with_primary_capability(*c))
+                    && needed_capabilities
+                        .iter()
+                        .all(|c| storage.contains_modules_with_capability(*c))
                 {
                     return Some(dockyard);
                 }
@@ -91,18 +94,22 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
             } => {
-                let dockyards = this_vessel.modules_with_cap(ModuleCapability::Dockyard);
-                
+                let dockyards = this_vessel.modules_with_capability(ModuleCapability::Dockyard);
+
                 let dockyards: Vec<_> = dockyards
                     .iter()
                     .map(|x| DockyardRef {
                         module_storages: x.module_storages(),
                     })
-                    .chain( this_module
-                        .capabilities()
-                        .contains(&ModuleCapability::Dockyard).then_some(DockyardRef {
-                        module_storages: this_module.module_storages(),
-                    }).into_iter())
+                    .chain(
+                        this_module
+                            .capabilities()
+                            .contains(&ModuleCapability::Dockyard)
+                            .then_some(DockyardRef {
+                                module_storages: this_module.module_storages(),
+                            })
+                            .into_iter(),
+                    )
                     .collect();
 
                 if dockyards.is_empty() {
@@ -143,13 +150,14 @@ impl Objective for CraftVesselFromScratchObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-                logger.info("BuildingVessel");
+                logger.info("Beginning vessel building stage...");
                 *self = Self::BuildingVessel {
                     needed_capabilities: needed_capabilities.clone(),
                     needed_primary_capabilities: needed_primary_capabilities.clone(),
                     building_objective: BuildVesselObjective::new(
                         this_person.clone(),
                         std::mem::take(needed_capabilities),
+                        std::mem::take(needed_primary_capabilities),
                     ),
                 };
                 Ok(ObjectiveStatus::InProgress)
@@ -213,7 +221,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
-                        logger.info("Done");
+                        logger.info("CraftVesselFromScratchObjective::Done");
                         *self = Self::Done;
                         Ok(ObjectiveStatus::Done)
                     }

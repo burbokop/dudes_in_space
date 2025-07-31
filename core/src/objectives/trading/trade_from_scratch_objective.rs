@@ -134,8 +134,10 @@ impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
         morale: Morale,
         boldness: Boldness,
         awareness: Awareness,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
+            logger.info("Trade from scratch objective decided.");
             Some(Box::new(TradeFromScratchObjective::new(person_id)))
         } else {
             None

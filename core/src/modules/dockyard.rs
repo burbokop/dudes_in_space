@@ -343,9 +343,9 @@ impl Module for Dockyard {
     }
 
     fn free_person_slots_count(&self) -> usize {
-        todo!()
+        const CAPACITY: usize = 1;
+        CAPACITY - self.operator.iter().len()
     }
-
 
     fn contains_person(&self, id: PersonId) -> bool {
         self.operator
@@ -407,6 +407,10 @@ impl ModuleFactory for DockyardFactory {
 
     fn output_capabilities(&self) -> &[ModuleCapability] {
         CAPABILITIES
+    }
+
+    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
+        PRIMARY_CAPABILITIES
     }
 }
 

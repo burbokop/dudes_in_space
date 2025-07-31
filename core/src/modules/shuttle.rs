@@ -87,8 +87,6 @@ impl Module for Shuttle {
         todo!()
     }
 
-
-
     fn contains_person(&self, id: PersonId) -> bool {
         todo!()
     }
@@ -170,7 +168,7 @@ impl DynDeserializeSeed<dyn ModuleFactory> for ShuttleFactoryDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
         let r: Box<ShuttleFactory> =
-            serde_intermediate::from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+            from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)
     }
 }
@@ -188,5 +186,9 @@ impl ModuleFactory for ShuttleFactory {
 
     fn output_capabilities(&self) -> &[ModuleCapability] {
         CAPABILITIES
+    }
+
+    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
+        PRIMARY_CAPABILITIES
     }
 }

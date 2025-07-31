@@ -4,7 +4,7 @@ use crate::person::{Logger, ObjectiveDeciderVault};
 use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
-use serde::{  Serialize, };
+use serde::Serialize;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]

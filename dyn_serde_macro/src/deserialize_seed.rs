@@ -1,13 +1,13 @@
 use convert_case::{Case, Casing};
 use darling::{FromField, FromMeta};
 use proc_macro::TokenStream;
-use quote::{ format_ident, quote};
+use quote::{format_ident, quote};
+use syn::Ident;
 use syn::spanned::Spanned;
 use syn::{
-    self, Data, DeriveInput, Expr,  Fields, GenericArgument,  Path,
-    PathArguments, Type,  TypePath, Variant,  parse_macro_input,
+    self, Data, DeriveInput, Expr, Fields, GenericArgument, Path, PathArguments, Type, TypePath,
+    Variant, parse_macro_input,
 };
-use syn::{ Ident, };
 
 #[derive(deluxe::ExtractAttributes, Debug)]
 #[deluxe(attributes(deserialize_seed_xxx))]
