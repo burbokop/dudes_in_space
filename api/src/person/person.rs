@@ -1,8 +1,6 @@
-use crate::module::{
-       ModuleConsole, ProcessTokenContext,
-};
+use crate::module::{ModuleConsole, ProcessTokenContext};
 use crate::person::logger::{Logger, PersonLogger};
-use crate::person::objective::{ ObjectiveSeed, ObjectiveStatus};
+use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
@@ -272,6 +270,7 @@ impl Person {
                     self.morale,
                     self.boldness,
                     self.awareness,
+                    &mut PersonLogger::new(&self.id, &self.name, logger),
                 )
             }
             Some(objective) => {

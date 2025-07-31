@@ -122,8 +122,6 @@ impl Module for PersonnelArea {
         todo!()
     }
 
-
-
     fn contains_person(&self, id: PersonId) -> bool {
         self.personnel.iter().find(|p| (*p).id() == id).is_some()
     }

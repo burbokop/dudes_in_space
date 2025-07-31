@@ -2,11 +2,11 @@ use crate::item::ItemStorage;
 use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext, TradingConsole};
 use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use crate::recipe::{AssemblyRecipe, Recipe};
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
-use crate::utils::non_nil_uuid::NonNilUuid;
 
 pub type PackageId = String;
 pub type ModuleTypeId = String;

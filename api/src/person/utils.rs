@@ -60,7 +60,7 @@ where
     R: Try<Output = ()>,
 {
     this_vessel
-        .modules_with_cap(ModuleCapability::DockingClamp)
+        .modules_with_capability(ModuleCapability::DockingClamp)
         .iter()
         .map(|m| {
             m.docking_clamps()

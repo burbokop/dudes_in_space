@@ -51,16 +51,28 @@ impl CraftModulesObjective {
 
     fn is_recipe_set_suitable(
         recipes: &[AssemblyRecipe],
-        mut needed_caps: Vec<ModuleCapability>,
+        mut needed_capabilities: Vec<ModuleCapability>,
+        mut needed_primary_capabilities: Vec<ModuleCapability>,
     ) -> bool {
-        for r in recipes {
-            for cap in r.output_capabilities() {
-                if let Some(i) = needed_caps.iter().position(|x| *x == *cap) {
-                    needed_caps.remove(i);
+        (|| {
+            for r in recipes {
+                for cap in r.output_capabilities() {
+                    if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
+                        needed_capabilities.remove(i);
+                    }
                 }
             }
-        }
-        needed_caps.is_empty()
+            needed_capabilities.is_empty()
+        })() && (|| {
+            for r in recipes {
+                for cap in r.output_primary_capabilities() {
+                    if let Some(i) = needed_primary_capabilities.iter().position(|x| *x == *cap) {
+                        needed_primary_capabilities.remove(i);
+                    }
+                }
+            }
+            needed_primary_capabilities.is_empty()
+        })()
     }
 }
 
@@ -85,6 +97,7 @@ impl Objective for CraftModulesObjective {
                     if Self::is_recipe_set_suitable(
                         assembly_console.recipes(),
                         needed_capabilities.clone(),
+                        needed_primary_capabilities.clone(),
                     ) {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
@@ -100,12 +113,15 @@ impl Objective for CraftModulesObjective {
                     }
                 }
 
-                for crafting_module in this_vessel.modules_with_cap(ModuleCapability::Crafting) {
+                for crafting_module in
+                    this_vessel.modules_with_capability(ModuleCapability::Crafting)
+                {
                     if Self::is_recipe_set_suitable(
                         crafting_module.assembly_recipes(),
                         needed_capabilities.clone(),
+                        needed_primary_capabilities.clone(),
                     ) {
-                        logger.info("MovingToCraftingModule");
+                        logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
                             this_person: this_person.clone(),
                             dst: crafting_module.id(),
@@ -140,6 +156,7 @@ impl Objective for CraftModulesObjective {
                         process_token: None,
                     };
                 } else {
+                    logger.info("Entering crafting module...");
                     this_vessel.move_to_module(*this_person, *dst).unwrap();
                 }
                 Ok(ObjectiveStatus::InProgress)
@@ -151,36 +168,55 @@ impl Objective for CraftModulesObjective {
                 process_token,
             } => match process_token {
                 None => {
-                    
-                    todo!("use needed_primary_capabilities");
-                    
                     if let Some(cap) = needed_capabilities.first() {
                         let assembly_console = this_module.assembly_console_mut().unwrap();
-                        if let Some(recipe) = assembly_console.recipe_by_output_capability(*cap) {
-                            if assembly_console.has_resources_for_recipe(recipe) {
-                                assert!(process_token.is_none());
-                                *process_token =
-                                    Some(assembly_console.start(recipe, *deploy).unwrap());
-                                for c in assembly_console.recipe_output_capabilities(recipe) {
-                                    needed_capabilities.remove(c);
-                                }
-                                Ok(ObjectiveStatus::InProgress)
-                            } else {
-                                todo!()
-                            }
-                        } else {
-                            todo!()
+                        let recipe = assembly_console.recipe_by_output_capability(*cap).unwrap();
+                        assert!(assembly_console.has_resources_for_recipe(recipe));
+                        assert!(process_token.is_none());
+                        *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
+
+                        logger.info("Picking recipe for:");
+                        for c in assembly_console.recipe_output_capabilities(recipe) {
+                            logger.info(format!("    {:?}", c));
+                            needed_capabilities.remove(c);
                         }
-                    } else {
-                        todo!()
+                        for c in assembly_console.recipe_output_primary_capabilities(recipe) {
+                            logger.info(format!("    {:?} (primary)", c));
+                            needed_primary_capabilities.remove(c);
+                        }
+                        return Ok(ObjectiveStatus::InProgress);
                     }
+
+                    if let Some(cap) = needed_primary_capabilities.first() {
+                        let assembly_console = this_module.assembly_console_mut().unwrap();
+                        let recipe = assembly_console
+                            .recipe_by_output_primary_capability(*cap)
+                            .unwrap();
+                        assert!(assembly_console.has_resources_for_recipe(recipe));
+                        assert!(process_token.is_none());
+                        *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
+                        logger.info("Picking recipe for:");
+                        for c in assembly_console.recipe_output_capabilities(recipe) {
+                            logger.info(format!("    {:?}", c));
+                            needed_capabilities.remove(c);
+                        }
+                        for c in assembly_console.recipe_output_primary_capabilities(recipe) {
+                            logger.info(format!("    {:?} (primary)", c));
+                            needed_primary_capabilities.remove(c);
+                        }
+                        return Ok(ObjectiveStatus::InProgress);
+                    }
+
+                    todo!()
                 }
                 Some(some_process_token) => {
                     if some_process_token
                         .is_completed(process_token_context)
                         .unwrap_or(true)
                     {
-                        return if needed_capabilities.is_empty() {
+                        return if needed_capabilities.is_empty()
+                            && needed_primary_capabilities.is_empty()
+                        {
                             logger.info("Done");
                             *self = Self::Done;
                             Ok(ObjectiveStatus::Done)
@@ -191,6 +227,8 @@ impl Objective for CraftModulesObjective {
                     }
 
                     assert!(this_module.in_progress());
+
+                    logger.info("Waiting for assembling to complete...");
                     if !this_module.interact() {
                         todo!()
                     } else {

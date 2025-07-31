@@ -233,8 +233,18 @@ impl<'a> AssemblyConsole for Console<'a> {
             .position(|recipe| recipe.output_capabilities().contains(&capability))
     }
 
+    fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize> {
+        self.recipes
+            .iter()
+            .position(|recipe| recipe.output_primary_capabilities().contains(&capability))
+    }
+
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
         self.recipes[index].output_capabilities()
+    }
+
+    fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability] {
+        self.recipes[index].output_primary_capabilities()
     }
 
     fn has_resources_for_recipe(&self, index: usize) -> bool {
@@ -332,7 +342,7 @@ impl Module for Assembler {
                         } else {
                             let mut storage_modules = this_vessel
                                 .console()
-                                .modules_with_cap(ModuleCapability::ModuleStorage);
+                                .modules_with_capability(ModuleCapability::ModuleStorage);
                             assert!(!storage_modules.is_empty());
                             assert!(!storage_modules[0].module_storages().is_empty());
                             let storage = &mut storage_modules[0].module_storages_mut()[0];

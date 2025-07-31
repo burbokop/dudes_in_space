@@ -1,9 +1,11 @@
 mod assembler;
+mod cargo_container;
 mod core_module;
 mod dockyard;
 mod personnel_area;
 mod shuttle;
 
+use crate::modules::cargo_container::{CargoContainerDynSeed, CargoContainerFactoryDynSeed};
 pub use assembler::*;
 pub use core_module::*;
 pub use dockyard::*;
@@ -21,6 +23,7 @@ pub fn register_module_factories(
     vault
         .with(ShuttleFactoryDynSeed)
         .with(DockyardFactoryDynSeed)
+        .with(CargoContainerFactoryDynSeed)
 }
 
 pub fn register_modules(
@@ -41,4 +44,5 @@ pub fn register_modules(
             objective_seed_vault,
             process_token_context,
         ))
+        .with(CargoContainerDynSeed)
 }

@@ -41,6 +41,7 @@ impl ObjectiveDecider for GatherResearchDataObjectiveDecider {
         morale: Morale,
         boldness: Boldness,
         awareness: Awareness,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         None
     }

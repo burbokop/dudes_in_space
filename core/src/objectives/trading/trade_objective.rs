@@ -124,6 +124,7 @@ impl ObjectiveDecider for TradeObjectiveDecider {
         morale: Morale,
         boldness: Boldness,
         awareness: Awareness,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
             Some(Box::new(TradeObjective::new()))

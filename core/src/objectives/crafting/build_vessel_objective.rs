@@ -14,62 +14,98 @@ pub(crate) enum BuildVesselObjective {
     SearchingForDockyard {
         this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
     },
     MovingToDockyardModule {
         this_person: PersonId,
         dst: ModuleId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
     },
     Building {
         needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
         process_token: Option<ProcessToken>,
     },
     Done,
 }
 
 impl BuildVesselObjective {
-    pub(crate) fn new(this_person: PersonId, needed_capabilities: Vec<ModuleCapability>) -> Self {
+    pub(crate) fn new(
+        this_person: PersonId,
+        needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
+    ) -> Self {
         Self::SearchingForDockyard {
             this_person,
             needed_capabilities,
+            needed_primary_capabilities,
         }
     }
 
     fn are_module_storages_suitable(
         storages: &[ModuleStorage],
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
     ) -> bool {
         storages.iter().any(|storage| {
-            let mut needed_capabilities = needed_capabilities.clone();
-            for module in storage.iter() {
-                for cap in module.capabilities() {
-                    if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
-                        needed_capabilities.remove(i);
+            (|| {
+                let mut needed_capabilities = needed_capabilities.clone();
+                for module in storage.iter() {
+                    for cap in module.capabilities() {
+                        if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
+                            needed_capabilities.remove(i);
+                        }
                     }
                 }
-            }
-            needed_capabilities.is_empty()
+                needed_capabilities.is_empty()
+            })() && (|| {
+                let mut needed_primary_capabilities = needed_primary_capabilities.clone();
+                for module in storage.iter() {
+                    for cap in module.primary_capabilities() {
+                        if let Some(i) = needed_primary_capabilities.iter().position(|x| *x == *cap)
+                        {
+                            needed_primary_capabilities.remove(i);
+                        }
+                    }
+                }
+                needed_primary_capabilities.is_empty()
+            })()
         })
     }
 
     fn find_modules_with_capabilities(
         storages: &[ModuleStorage],
         needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
     ) -> Option<BTreeSet<ModuleId>> {
         for storage in storages {
             let mut needed_capabilities = needed_capabilities.clone();
+            let mut needed_primary_capabilities = needed_primary_capabilities.clone();
 
             let mut modules: BTreeSet<ModuleId> = Default::default();
             for module in storage.iter() {
+                let mut got_something: bool = false;
                 for cap in module.capabilities() {
                     if needed_capabilities.contains(cap) {
-                        modules.insert(module.id());
                         needed_capabilities.remove(cap);
+                        got_something = true;
                     }
+                }
+
+                for cap in module.primary_capabilities() {
+                    if needed_primary_capabilities.contains(cap) {
+                        needed_primary_capabilities.remove(cap);
+                        got_something = true;
+                    }
+                }
+
+                if got_something {
+                    modules.insert(module.id());
                 }
             }
 
-            if needed_capabilities.is_empty() {
+            if needed_capabilities.is_empty() && needed_primary_capabilities.is_empty() {
                 return Some(modules);
             }
         }
@@ -91,31 +127,39 @@ impl Objective for BuildVesselObjective {
             BuildVesselObjective::SearchingForDockyard {
                 this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
             } => {
                 if Self::are_module_storages_suitable(
                     this_module.module_storages(),
                     needed_capabilities.clone(),
+                    needed_primary_capabilities.clone(),
                 ) {
-                    logger.info("Moving to dockyard module");
+                    logger.info("Moving to dockyard module...");
                     *self = Self::MovingToDockyardModule {
                         this_person: this_person.clone(),
                         dst: this_module.id(),
                         needed_capabilities: std::mem::take(needed_capabilities),
+                        needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                     };
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-                for mut crafting_module in this_vessel.modules_with_cap(ModuleCapability::Dockyard)
+                for mut crafting_module in
+                    this_vessel.modules_with_capability(ModuleCapability::Dockyard)
                 {
                     if Self::are_module_storages_suitable(
                         crafting_module.module_storages(),
                         needed_capabilities.clone(),
+                        needed_primary_capabilities.clone(),
                     ) {
-                        logger.info("Moving to dockyard module");
+                        logger.info("Moving to dockyard module...");
                         *self = Self::MovingToDockyardModule {
                             this_person: this_person.clone(),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -126,28 +170,35 @@ impl Objective for BuildVesselObjective {
                 this_person,
                 dst,
                 needed_capabilities,
+                needed_primary_capabilities,
             } => {
                 if *dst == this_module.id() {
-                    logger.info("Building");
+                    logger.info("Building vessel...");
                     *self = Self::Building {
                         needed_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_capabilities,
                         )),
+                        needed_primary_capabilities: BTreeSet::from_iter(std::mem::take(
+                            needed_primary_capabilities,
+                        )),
                         process_token: None,
                     };
                 } else {
+                    logger.info("Entering dockyard module...");
                     this_vessel.move_to_module(*this_person, *dst).unwrap();
                 }
                 Ok(ObjectiveStatus::InProgress)
             }
             BuildVesselObjective::Building {
                 needed_capabilities,
+                needed_primary_capabilities,
                 process_token,
             } => match process_token {
                 None => {
                     if let Some(modules) = Self::find_modules_with_capabilities(
                         this_module.module_storages(),
                         needed_capabilities.clone(),
+                        needed_primary_capabilities.clone(),
                     ) {
                         *process_token = Some(
                             this_module
@@ -172,6 +223,7 @@ impl Objective for BuildVesselObjective {
                     }
 
                     assert!(this_module.in_progress());
+                    logger.info("Waiting for building to complete...");
                     if !this_module.interact() {
                         todo!()
                     } else {
