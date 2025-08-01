@@ -5,7 +5,7 @@ use dudes_in_space_api::module::{
 };
 use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
-use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
@@ -101,6 +101,10 @@ impl Module for CargoContainer {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
         todo!()
     }
 

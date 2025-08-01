@@ -41,7 +41,7 @@ impl TradeFromScratchObjective {
         Self::ExecuteTrade {
             second_attempt: false,
             this_person,
-            trade_objective: TradeObjective::new(),
+            trade_objective: TradeObjective::new(this_person),
         }
     }
 }
@@ -102,7 +102,7 @@ impl Objective for TradeFromScratchObjective {
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
                             this_person: this_person.clone(),
-                            trade_objective: TradeObjective::SearchVessel,
+                            trade_objective: TradeObjective::SearchVessel { this_person: this_person.clone() },
                         };
                         Ok(ObjectiveStatus::InProgress)
                     }

@@ -159,7 +159,7 @@ impl Objective for CraftModulesObjective {
                     };
                 } else {
                     logger.info("Entering crafting module...");
-                    match this_vessel.move_to_module(*this_person, *dst) {
+                    match this_vessel.move_person_to_module(*this_person, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info("Not enough space in crafting module. Searching another one...");

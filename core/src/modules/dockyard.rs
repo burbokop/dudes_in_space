@@ -9,7 +9,7 @@ use dudes_in_space_api::person::{
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, Vessel, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -73,12 +73,12 @@ pub struct Dockyard {
 }
 
 impl Dockyard {
-    fn new() -> Self {
+    fn new(compat_type: usize) -> Self {
         Self {
             id: ModuleId::new_v4(),
             state: DockyardState::Idle,
             module_storage: Default::default(),
-            docking_clamp: Default::default(),
+            docking_clamp: DockingClamp::new(compat_type),
             operator: None,
         }
     }
@@ -299,12 +299,11 @@ impl Module for Dockyard {
                     } => {
                         if !self.docking_clamp.is_docked() {
                             let modules = self.module_storage.try_take(modules.iter()).unwrap();
-                            let ok = self.docking_clamp.dock(Vessel::new(
+                            self.docking_clamp.dock(Vessel::new(
                                 this_vessel.owner(),
                                 (0., 0.).into(),
                                 modules,
-                            ));
-                            assert!(ok);
+                            )).unwrap();
                             process_token.mark_completed(process_token_context);
                             self.state = DockyardState::Idle;
                         } else {
@@ -378,6 +377,10 @@ impl Module for Dockyard {
         std::slice::from_ref(&self.docking_clamp)
     }
 
+    fn docking_connectors(&self) -> &[DockingConnector] {
+        todo!()
+    }
+
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
         todo!()
     }
@@ -406,7 +409,7 @@ impl ModuleFactory for DockyardFactory {
     }
 
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
-        Box::new(Dockyard::new())
+        Box::new(Dockyard::new(0))
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {

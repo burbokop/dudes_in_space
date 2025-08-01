@@ -119,7 +119,7 @@ impl Objective for BuildVesselObjective {
                     };
                 } else {
                     logger.info("Entering dockyard module...");
-                    match this_vessel.move_to_module(*this_person, *dst) {
+                    match this_vessel.move_person_to_module(*this_person, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info("Not enough space in dockyard module. Searching another one...");

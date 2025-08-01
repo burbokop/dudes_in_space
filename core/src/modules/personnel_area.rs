@@ -9,7 +9,7 @@ use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
-use dudes_in_space_api::vessel::{DockingClamp,  VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
@@ -154,6 +154,10 @@ impl Module for PersonnelArea {
     }
 
     fn free_person_slots_count(&self) -> usize {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
         todo!()
     }
 }

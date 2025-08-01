@@ -1,4 +1,6 @@
-use crate::module::Module;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
+use crate::module::{Module, ModuleCapability};
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::{Vessel, VesselSeed};
 use dyn_serde::DynDeserializeSeedVault;
@@ -8,10 +10,10 @@ use crate::vessel::docking_connector::DockingConnectorId;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::docking_clamp::DockingClampConnectionSeed::<'v>)]
-struct DockingClampConnection {
+pub struct DockingClampConnection {
     #[deserialize_seed_xxx(seed = self.seed.vessel_seed)]
-    vessel: Vessel,
-    connector_id: DockingConnectorId,
+    pub vessel: Vessel,
+    pub connector_id: DockingConnectorId,
 }
 
 #[derive(Clone)]
@@ -19,12 +21,13 @@ struct DockingClampConnectionSeed<'v> {
     vessel_seed: VesselSeed<'v>,
 }
 
-#[derive(Debug, Default, Serialize, DeserializeSeedXXX)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::DockingClampSeed::<'v>)]
 pub struct DockingClamp {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.connection_seed)]
     connection: Option<DockingClampConnection>,
+    compat_type: usize,
 }
 
 #[derive(Clone)]
@@ -41,21 +44,44 @@ impl<'v> DockingClampSeed<'v> {
 }
 
 impl DockingClamp {
+    pub fn new(compat_type: usize) -> DockingClamp {
+        DockingClamp {
+            connection: None,
+            compat_type,
+        }
+    }
+    
     #[deprecated = "Use is_empty instead"]
     pub fn is_docked(&self) -> bool {
-        self.vessel.is_some()
+        self.connection.is_some()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.vessel.is_none()
+        self.connection.is_none()
     }
 
-    pub fn dock(&mut self, vessel: Vessel) -> bool {
-        if self.vessel.is_some() {
-            false
+    pub fn dock_by_connector_id(&mut self, vessel: Vessel, connector_id: DockingConnectorId) -> Result<(), DockByConnectorId> {
+        if self.connection.is_some() {
+            Err(DockByConnectorId::Busy)
         } else {
-            self.vessel = Some(vessel);
-            true
+            self.connection = Some(DockingClampConnection { vessel, connector_id });
+            Ok(())
+        }
+    }
+
+    pub fn dock(&mut self, vessel: Vessel) -> Result<(), DockError> {
+        if self.connection.is_some() {
+            Err(DockError::Busy)
+        } else {
+             let connector_id = vessel
+                .modules_with_capability(ModuleCapability::DockingConnector)
+                .map(|x| x.docking_connectors().into_iter().map(|x|x.id()).collect::<Vec<_>>())
+                .flatten()
+                .next()
+                .ok_or(DockError::ConnectorNotFound)?;
+            
+            self.connection = Some(DockingClampConnection { vessel, connector_id });
+            Ok(())
         }
     }
 
@@ -63,13 +89,42 @@ impl DockingClamp {
         todo!()
     }
 
-    pub fn vessel_docked(&self) -> Option<&Vessel> {
-        self.vessel.as_ref()
+    pub fn connection(&self) -> Option<&DockingClampConnection> {
+        self.connection.as_ref()
     }
 
-    pub fn vessel_docked_mut(&mut self) -> Option<&mut Vessel> {
+    pub fn connection_mut(&mut self) -> Option<&mut DockingClampConnection> {
         todo!()
     }
 }
 
+#[derive(Debug)]
+pub enum DockError {
+    Busy,
+    ConnectorNotFound,
+}
 
+impl Display for DockError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for DockError {
+    
+}
+
+#[derive(Debug)]
+pub enum DockByConnectorId {
+    Busy,
+}
+
+impl Display for DockByConnectorId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for DockByConnectorId {
+    
+}

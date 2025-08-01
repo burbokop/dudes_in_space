@@ -3,7 +3,7 @@ use crate::person::{Logger, ObjectiveDeciderVault, PersonId};
 use crate::utils::math::Point;
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
-use crate::vessel::{MoveToModuleError, VesselConsole, VesselModuleInterface};
+use crate::vessel::{DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole, VesselModuleInterface};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};
@@ -276,7 +276,7 @@ impl VesselConsole for Vessel {
         self.modules_with_primary_capability_mut(cap).collect()
     }
 
-    fn move_to_module(
+    fn move_person_to_module(
         &self,
         person_id: PersonId,
         module_id: ModuleId,
@@ -308,6 +308,11 @@ impl VesselConsole for Vessel {
 
         Ok(())
     }
+
+    fn move_person_to_docked_vessel(&self, person_id: PersonId, connector_id: DockingConnectorId) -> Result<(), MoveToDockedVesselError> {
+        todo!()
+    }
+
 
     fn capabilities(&self) -> BTreeSet<ModuleCapability> {
         self.modules
