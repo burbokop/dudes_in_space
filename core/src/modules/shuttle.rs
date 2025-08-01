@@ -5,7 +5,7 @@ use dudes_in_space_api::module::{
 };
 use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
-use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
 };
@@ -122,6 +122,10 @@ impl Module for Shuttle {
     }
 
     fn free_person_slots_count(&self) -> usize {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
         todo!()
     }
 }

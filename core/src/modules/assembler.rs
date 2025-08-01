@@ -10,7 +10,7 @@ use dudes_in_space_api::person::{
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
@@ -342,7 +342,7 @@ impl Module for Assembler {
                         } else {
                             let mut storage_modules = this_vessel
                                 .console()
-                                .modules_with_capability(ModuleCapability::ModuleStorage);
+                                .modules_with_capability_mut(ModuleCapability::ModuleStorage);
                             assert!(!storage_modules.is_empty());
                             assert!(!storage_modules[0].module_storages().is_empty());
                             let storage = &mut storage_modules[0].module_storages_mut()[0];
@@ -416,6 +416,10 @@ impl Module for Assembler {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
         todo!()
     }
 

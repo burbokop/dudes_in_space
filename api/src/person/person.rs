@@ -11,7 +11,7 @@ use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use uuid::{NonNilUuid, Uuid};
+use crate::utils::non_nil_uuid::NonNilUuid;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -234,7 +234,7 @@ impl Person {
     pub fn random<R: Rng>(rng: &mut R) -> Self {
         let gender = rng.random();
         Self {
-            id: NonNilUuid::new(Uuid::new_v4()).unwrap(),
+            id: NonNilUuid::new_v4(),
             name: random_name(rng, gender),
             age: rng.random_range(15..=80),
             gender,

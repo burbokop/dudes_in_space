@@ -3,7 +3,7 @@ use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext, Tradin
 use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use crate::recipe::{AssemblyRecipe, Recipe};
 use crate::utils::non_nil_uuid::NonNilUuid;
-use crate::vessel::{DockingClamp, VesselModuleInterface};
+use crate::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
@@ -46,7 +46,8 @@ pub trait Module: Debug + DynSerialize {
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
 
     fn docking_clamps(&self) -> &[DockingClamp];
-
+    fn docking_connectors(&self) -> &[DockingConnector];
+    
     fn trading_console(&self) -> Option<&dyn TradingConsole>;
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole>;
 }

@@ -4,7 +4,7 @@ use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
-use dudes_in_space_api::vessel::{VesselConsole, VesselId};
+use dudes_in_space_api::vessel::{ VesselConsole, VesselId};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
@@ -26,8 +26,11 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum TradeObjective {
-    SearchVessel,
-    MoveToVessel { vessel_id: VesselId, docking_port_module_id: Option<ModuleId> },
+    SearchVessel {
+        this_person: PersonId,
+    },
+    MoveToVessel {         this_person: PersonId,
+        vessel_id: VesselId, docking_port_module_id: Option<ModuleId> },
     SearchForCockpit,
     MoveToCockpit,
     SearchForBuyOffers,
@@ -41,8 +44,8 @@ pub(crate) enum TradeObjective {
 }
 
 impl TradeObjective {
-    pub fn new() -> Self {
-        Self::SearchVessel
+    pub fn new(this_person: PersonId) -> Self {
+        Self::SearchVessel { this_person }
     }
 }
 
@@ -57,7 +60,7 @@ impl Objective for TradeObjective {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            Self::SearchVessel => {
+            Self::SearchVessel { this_person } => {
                 if person::utils::this_vessel_has_primary_caps(
                     this_module,
                     this_vessel,
@@ -80,7 +83,7 @@ impl Objective for TradeObjective {
                         NEEDED_PRIMARY_CAPABILITIES,
                         |entry| {
                             ControlFlow::Break((
-                                entry.clamp.vessel_docked().unwrap().id(),
+                                entry.clamp.connection().unwrap().vessel.id(),
                                 entry.module.map(|x| x.id()),
                             ))
                         },
@@ -88,29 +91,34 @@ impl Objective for TradeObjective {
                     .break_value()
                 {
                     logger.info("Moving to vessel...");
-                    *self = Self::MoveToVessel { vessel_id, docking_port_module_id };
+                    *self = Self::MoveToVessel { this_person: this_person.clone(), vessel_id, docking_port_module_id };
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
                 Err(TradeObjectiveError::SuitableVesselNotFound)
             }
-            Self::MoveToVessel { vessel_id, docking_port_module_id } => {
+            Self::MoveToVessel { this_person, vessel_id, docking_port_module_id } => {
                 match docking_port_module_id {
                     None => {
-                         let vessel = person::utils::find_docking_clamp_with_vessel_with_id_mut(this_module.docking_clamps_mut(), *vessel_id)
+                        let connection = person::utils::find_docking_clamp_with_vessel_with_id_mut(this_module.docking_clamps_mut(), *vessel_id)
                              .unwrap()
-                             .vessel_docked_mut()
+                             .connection()
                              .unwrap();
+                        
+                        let connector = connection
+                            .vessel
+                            .modules_with_capability_mut(ModuleCapability::DockingConnector)
+                            .find(|x|{x.docking_connectors().iter().find(|c|c.id() == connection.connector_id).is_some()}).unwrap();
 
-                        if let Some(docking_connector) = vessel.modules_with_capability_mut(ModuleCapability::DockingConnector).next() {
-                            // cockpit
-                        } else {
-                            
-                        }
+
+                        
+                        this_vessel.move_person_to_docked_vessel(*this_person, connection.connector_id).unwrap();
+                        
+                        
                         
                         todo!()
                     },
-                    Some(_) => todo!(),
+                    Some(_) => todo!("Move to vessel with docking port"),
                 }
             },
             Self::SearchForCockpit => todo!(),
@@ -148,7 +156,7 @@ impl ObjectiveDecider for TradeObjectiveDecider {
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
-            Some(Box::new(TradeObjective::new()))
+            Some(Box::new(TradeObjective::new(person_id)))
         } else {
             None
         }

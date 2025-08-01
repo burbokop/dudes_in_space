@@ -4,6 +4,7 @@ use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use crate::vessel::{DockingConnectorId};
 
 /// interface through which a module can interact with a vessel it is contained in
 pub trait VesselModuleInterface {
@@ -26,7 +27,8 @@ pub trait VesselConsole {
         cap: ModuleCapability,
     ) -> Vec<RefMut<'a, Box<dyn Module>>>;
 
-    fn move_to_module(&self, person: PersonId, id: ModuleId) -> Result<(), MoveToModuleError>;
+    fn move_person_to_module(&self, person_id: PersonId, module_id: ModuleId) -> Result<(), MoveToModuleError>;
+    fn move_person_to_docked_vessel(&self, person_id: PersonId, connector_id: DockingConnectorId) -> Result<(), MoveToDockedVesselError>;
     fn capabilities(&self) -> BTreeSet<ModuleCapability>;
     fn primary_capabilities(&self) -> BTreeSet<ModuleCapability>;
 }
@@ -43,3 +45,17 @@ impl Display for MoveToModuleError {
 }
 
 impl Error for MoveToModuleError {}
+
+
+#[derive(Debug)]
+pub enum MoveToDockedVesselError {
+    NotEnoughSpace,
+}
+
+impl Display for MoveToDockedVesselError {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for MoveToDockedVesselError {}
