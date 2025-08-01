@@ -217,7 +217,7 @@ impl VesselModuleInterface for Vessel {
 }
 
 impl VesselConsole for Vessel {
-    fn modules_with_capability(&self, cap: ModuleCapability) -> Vec<RefMut<Box<dyn Module>>> {
+    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<RefMut<'a, Box<dyn Module>>> {
         self.modules
             .iter()
             .filter_map(|module| {
@@ -231,10 +231,10 @@ impl VesselConsole for Vessel {
             .collect()
     }
 
-    fn modules_with_primary_capability(
-        &self,
+    fn modules_with_primary_capability<'a>(
+        &'a self,
         cap: ModuleCapability,
-    ) -> Vec<RefMut<Box<dyn Module>>> {
+    ) -> Vec<RefMut<'a, Box<dyn Module>>> {
         todo!()
     }
 

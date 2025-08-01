@@ -1,3 +1,7 @@
+#![deny(warnings)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::{Logger, PersonId, Severity};

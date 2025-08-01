@@ -433,7 +433,7 @@ fn deserialize_seed_enum(
                 ident: variant.ident.clone(),
                 struct_declaration: if struct_visitor.is_some() {
                     quote! {
-                        struct #struct_ident #fields;
+                        #[allow(non_camel_case_types)] struct #struct_ident #fields;
 
                         impl #struct_ident {
                             fn into_dst(self) -> #ident {
@@ -444,7 +444,7 @@ fn deserialize_seed_enum(
                 } else {
                     quote! {
                         #[derive(Deserialize)]
-                        struct #struct_ident #fields;
+                        #[allow(non_camel_case_types)] struct #struct_ident #fields;
                     }
                 }
                     .into(),
@@ -574,7 +574,7 @@ fn deserialize_seed_tagged_enum(
                 ident: variant.ident.clone(),
                 struct_declaration: if struct_seed_impl.is_some() {
                     quote! {
-                        struct #struct_ident #fields;
+                        #[allow(non_camel_case_types)] struct #struct_ident #fields;
 
                         impl #struct_ident {
                             fn into_dst(self) -> #ident {
@@ -585,7 +585,7 @@ fn deserialize_seed_tagged_enum(
                 } else {
                     quote! {
                         #[derive(Deserialize)]
-                        struct #struct_ident #fields;
+                        #[allow(non_camel_case_types)] struct #struct_ident #fields;
                     }
                 }
                     .into(),
@@ -595,7 +595,7 @@ fn deserialize_seed_tagged_enum(
                     },
                     Some(_) => quote! {
                         Tag::#variant_ident => {
-                            struct #struct_seed_ident <#(#seed_generic_args),*> {
+                            #[allow(non_camel_case_types)] struct #struct_seed_ident <#(#seed_generic_args),*> {
                                 seed: #seed_type <#(#seed_generic_args),*>
                             }
 

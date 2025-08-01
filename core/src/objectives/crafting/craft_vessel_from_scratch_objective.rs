@@ -8,7 +8,6 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
-use std::cell::RefMut;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -61,7 +60,7 @@ impl CraftVesselFromScratchObjective {
         needed_capabilities: &[ModuleCapability],
         needed_primary_capabilities: &[ModuleCapability],
     ) -> Option<DockyardRef<'a>> {
-        for mut dockyard in dockyards {
+        for dockyard in dockyards {
             for storage in dockyard.module_storages {
                 if needed_primary_capabilities
                     .iter()

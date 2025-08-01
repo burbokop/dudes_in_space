@@ -1,12 +1,13 @@
 use dudes_in_space_api::module::{
-    ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ProcessToken, ProcessTokenContext,
+    ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext,
 };
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::{ VesselConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use dudes_in_space_api::person;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "building_vessels_objective_stage")]
@@ -42,75 +43,6 @@ impl BuildVesselObjective {
             needed_primary_capabilities,
         }
     }
-
-    fn are_module_storages_suitable(
-        storages: &[ModuleStorage],
-        needed_capabilities: Vec<ModuleCapability>,
-        needed_primary_capabilities: Vec<ModuleCapability>,
-    ) -> bool {
-        storages.iter().any(|storage| {
-            (|| {
-                let mut needed_capabilities = needed_capabilities.clone();
-                for module in storage.iter() {
-                    for cap in module.capabilities() {
-                        if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
-                            needed_capabilities.remove(i);
-                        }
-                    }
-                }
-                needed_capabilities.is_empty()
-            })() && (|| {
-                let mut needed_primary_capabilities = needed_primary_capabilities.clone();
-                for module in storage.iter() {
-                    for cap in module.primary_capabilities() {
-                        if let Some(i) = needed_primary_capabilities.iter().position(|x| *x == *cap)
-                        {
-                            needed_primary_capabilities.remove(i);
-                        }
-                    }
-                }
-                needed_primary_capabilities.is_empty()
-            })()
-        })
-    }
-
-    fn find_modules_with_capabilities(
-        storages: &[ModuleStorage],
-        needed_capabilities: BTreeSet<ModuleCapability>,
-        needed_primary_capabilities: BTreeSet<ModuleCapability>,
-    ) -> Option<BTreeSet<ModuleId>> {
-        for storage in storages {
-            let mut needed_capabilities = needed_capabilities.clone();
-            let mut needed_primary_capabilities = needed_primary_capabilities.clone();
-
-            let mut modules: BTreeSet<ModuleId> = Default::default();
-            for module in storage.iter() {
-                let mut got_something: bool = false;
-                for cap in module.capabilities() {
-                    if needed_capabilities.contains(cap) {
-                        needed_capabilities.remove(cap);
-                        got_something = true;
-                    }
-                }
-
-                for cap in module.primary_capabilities() {
-                    if needed_primary_capabilities.contains(cap) {
-                        needed_primary_capabilities.remove(cap);
-                        got_something = true;
-                    }
-                }
-
-                if got_something {
-                    modules.insert(module.id());
-                }
-            }
-
-            if needed_capabilities.is_empty() && needed_primary_capabilities.is_empty() {
-                return Some(modules);
-            }
-        }
-        None
-    }
 }
 
 impl Objective for BuildVesselObjective {
@@ -129,8 +61,9 @@ impl Objective for BuildVesselObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
             } => {
-                if Self::are_module_storages_suitable(
+                if person::utils::are_dockyard_components_suitable(
                     this_module.module_storages(),
+                    this_module.docking_clamps(),
                     needed_capabilities.clone(),
                     needed_primary_capabilities.clone(),
                 ) {
@@ -144,11 +77,12 @@ impl Objective for BuildVesselObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-                for mut crafting_module in
+                for crafting_module in
                     this_vessel.modules_with_capability(ModuleCapability::Dockyard)
                 {
-                    if Self::are_module_storages_suitable(
+                    if person::utils::are_dockyard_components_suitable(
                         crafting_module.module_storages(),
+                        crafting_module.docking_clamps(),
                         needed_capabilities.clone(),
                         needed_primary_capabilities.clone(),
                     ) {
@@ -195,7 +129,7 @@ impl Objective for BuildVesselObjective {
                 process_token,
             } => match process_token {
                 None => {
-                    if let Some(modules) = Self::find_modules_with_capabilities(
+                    if let Some(modules) = person::utils::find_modules_with_capabilities_in_storages(
                         this_module.module_storages(),
                         needed_capabilities.clone(),
                         needed_primary_capabilities.clone(),

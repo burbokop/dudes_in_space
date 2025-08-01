@@ -1,6 +1,6 @@
 use crate::objectives::crafting::CraftVesselFromScratchObjective;
 use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
-use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ ModuleCapability, ModuleConsole, ProcessTokenContext};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,

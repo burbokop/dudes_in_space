@@ -5,7 +5,7 @@ use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLog
 use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::{BTreeSet};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 

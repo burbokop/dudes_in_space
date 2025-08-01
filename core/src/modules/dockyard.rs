@@ -159,6 +159,10 @@ impl<'a> ModuleConsole for Console<'a> {
         if !is_state_valid(self.state) {
             return false;
         }
+        
+        if self.docking_clamp.is_docked() {
+            return false;
+        }
 
         self.requests.push(DockyardRequest::Interact);
         true

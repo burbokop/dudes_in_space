@@ -1,23 +1,22 @@
 use crate::CORE_PACKAGE_ID;
-use crate::modules::{CoreModule, DockyardDynSeed, ModuleVisitor, ModuleVisitorMut};
+use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
-    DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
-    ModuleStorageSeed, PackageId, ProcessTokenContext, TradingConsole,
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage,
+     PackageId, ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
-use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp,  VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
-use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use serde::{ Serialize};
+use serde_intermediate::{Intermediate,  to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
 
@@ -131,7 +130,7 @@ impl Module for PersonnelArea {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.to_string()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
