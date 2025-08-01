@@ -257,7 +257,7 @@ impl Module for Dockyard {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
@@ -375,7 +375,7 @@ impl Module for Dockyard {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        std::slice::from_ref(&self.docking_clamp)
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {

@@ -1,5 +1,5 @@
 use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage};
-use crate::vessel::{DockingClamp, VesselConsole};
+use crate::vessel::{DockingClamp, VesselConsole, VesselId};
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
 
@@ -81,6 +81,25 @@ where
             })
         })
         .try_for_each(f)
+}
+
+
+pub fn find_docking_clamp_with_vessel_with_id(
+    docking_clamps: &[DockingClamp],
+    vessel_id: VesselId,
+) -> Option<&DockingClamp> {
+    docking_clamps
+        .iter()
+        .find(|clamp| clamp.vessel_docked().map(|x| x.id() == vessel_id).unwrap_or(false))
+}
+
+pub fn find_docking_clamp_with_vessel_with_id_mut(
+    docking_clamps: &mut [DockingClamp],
+    vessel_id: VesselId,
+) -> Option<&mut DockingClamp> {
+    docking_clamps
+        .iter_mut()
+        .find(|clamp| clamp.vessel_docked().map(|x| x.id() == vessel_id).unwrap_or(false))
 }
 
 pub fn find_modules_with_capabilities_in_storages(
