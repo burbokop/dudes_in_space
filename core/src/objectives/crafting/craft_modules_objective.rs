@@ -3,11 +3,11 @@ use dudes_in_space_api::module::{
 };
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::recipe::AssemblyRecipe;
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet};
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{ Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "crafting_modules_objective_stage")]
@@ -40,7 +40,9 @@ impl CraftModulesObjective {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
+        logger: &mut PersonLogger,
     ) -> Self {
+        logger.info(format!( "Switched to craft modules objective (caps: {:?}, primary caps: {:?})",needed_capabilities,needed_primary_capabilities));
         Self::SearchingForCraftingModule {
             this_person,
             needed_capabilities,
@@ -120,7 +122,7 @@ impl Objective for CraftModulesObjective {
                         crafting_module.assembly_recipes(),
                         needed_capabilities.clone(),
                         needed_primary_capabilities.clone(),
-                    ) {
+                    ) && crafting_module.free_person_slots_count() > 0 {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
                             this_person: this_person.clone(),
@@ -157,7 +159,19 @@ impl Objective for CraftModulesObjective {
                     };
                 } else {
                     logger.info("Entering crafting module...");
-                    this_vessel.move_to_module(*this_person, *dst).unwrap();
+                    match this_vessel.move_to_module(*this_person, *dst) {
+                        Ok(_) => {}
+                        Err(MoveToModuleError::NotEnoughSpace) => {
+                            logger.info("Not enough space in crafting module. Searching another one...");
+                            *self = Self::SearchingForCraftingModule {
+                                this_person: this_person.clone(),
+                                needed_capabilities: std::mem::take(needed_capabilities),
+                                needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                deploy: *deploy,
+                            };
+                            return Ok(ObjectiveStatus::InProgress)
+                        }
+                    }
                 }
                 Ok(ObjectiveStatus::InProgress)
             }

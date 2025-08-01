@@ -122,6 +122,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             vec![ModuleCapability::Dockyard],
                             vec![],
                             true,
+                            logger,
                         ),
                     };
                     return Ok(ObjectiveStatus::InProgress);
@@ -144,6 +145,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             std::mem::take(needed_capabilities),
                             std::mem::take(needed_primary_capabilities),
                             false,
+                            logger,
                         ),
                     };
                     return Ok(ObjectiveStatus::InProgress);
@@ -173,7 +175,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
-                        logger.info("CheckingAllPrerequisites");
+                        logger.info("CraftVesselFromScratchObjective::CraftingDockyard::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
                             this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
@@ -197,7 +199,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
-                        logger.info("CheckingAllPrerequisites");
+                        logger.info("CraftVesselFromScratchObjective::CraftingVesselModules::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
                             this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),

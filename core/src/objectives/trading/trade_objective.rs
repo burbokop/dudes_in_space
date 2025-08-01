@@ -1,10 +1,10 @@
-use dudes_in_space_api::module::{ ModuleCapability, ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessTokenContext};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::{VesselConsole, VesselId};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
@@ -27,7 +27,7 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum TradeObjective {
     SearchVessel,
-    MoveToVessel,
+    MoveToVessel { vessel_id: VesselId, docking_port_module_id: Option<ModuleId> },
     SearchForCockpit,
     MoveToCockpit,
     SearchForBuyOffers,
@@ -72,7 +72,7 @@ impl Objective for TradeObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-                if let Some((vessel_id, docking_port_module)) =
+                if let Some((vessel_id, docking_port_module_id)) =
                     person::utils::for_each_docking_clamps_with_vessel_which_has_caps(
                         this_module,
                         this_vessel,
@@ -87,14 +87,32 @@ impl Objective for TradeObjective {
                     )
                     .break_value()
                 {
-                    logger.info("MoveToVessel");
-                    *self = Self::MoveToVessel;
+                    logger.info("Moving to vessel...");
+                    *self = Self::MoveToVessel { vessel_id, docking_port_module_id };
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
                 Err(TradeObjectiveError::SuitableVesselNotFound)
             }
-            Self::MoveToVessel => todo!(),
+            Self::MoveToVessel { vessel_id, docking_port_module_id } => {
+                match docking_port_module_id {
+                    None => {
+                         let vessel = person::utils::find_docking_clamp_with_vessel_with_id_mut(this_module.docking_clamps_mut(), *vessel_id)
+                             .unwrap()
+                             .vessel_docked_mut()
+                             .unwrap();
+
+                        if let Some(docking_connector) = vessel.modules_with_capability_mut(ModuleCapability::DockingConnector).next() {
+                            // cockpit
+                        } else {
+                            
+                        }
+                        
+                        todo!()
+                    },
+                    Some(_) => todo!(),
+                }
+            },
             Self::SearchForCockpit => todo!(),
             Self::MoveToCockpit => todo!(),
             Self::SearchForBuyOffers => todo!(),

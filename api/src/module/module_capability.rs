@@ -9,6 +9,7 @@ pub enum ModuleCapability {
     Crafting,
     PersonnelRoom,
     DockingClamp,
+    DockingConnector,
     TradingTerminal,
 
     Cockpit,

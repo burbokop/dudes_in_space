@@ -21,6 +21,8 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
+    ModuleCapability::PersonnelRoom,
+    ModuleCapability::DockingConnector,
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Cockpit,

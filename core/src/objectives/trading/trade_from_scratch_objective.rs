@@ -1,4 +1,4 @@
-use crate::objectives::crafting::CraftVesselFromScratchObjective;
+use crate::objectives::crafting::{CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError};
 use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
 use dudes_in_space_api::module::{ ModuleCapability, ModuleConsole, ProcessTokenContext};
 use dudes_in_space_api::person::{
@@ -93,8 +93,8 @@ impl Objective for TradeFromScratchObjective {
             } => {
                 match craft_vessel_objective
                     .pursue(this_module, this_vessel, process_token_context, logger)
-                    .map_err(|_| {
-                        TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted
+                    .map_err(|err| {
+                        TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted { reason_why_can_not_be_crafted: err }
                     })? {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
@@ -164,7 +164,9 @@ impl DynDeserializeSeed<dyn DynObjective> for TradeFromScratchObjectiveDynSeed {
 
 #[derive(Debug)]
 pub(crate) enum TradeFromScratchObjectiveError {
-    SuitableVesselNotFoundAndCanNotBeCrafted,
+    SuitableVesselNotFoundAndCanNotBeCrafted {
+        reason_why_can_not_be_crafted: CraftVesselFromScratchObjectiveError,
+    }
 }
 
 impl Display for TradeFromScratchObjectiveError {

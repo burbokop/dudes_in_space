@@ -4,24 +4,38 @@ use crate::vessel::{Vessel, VesselSeed};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
+use crate::vessel::docking_connector::DockingConnectorId;
+
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::vessel::docking_clamp::DockingClampConnectionSeed::<'v>)]
+struct DockingClampConnection {
+    #[deserialize_seed_xxx(seed = self.seed.vessel_seed)]
+    vessel: Vessel,
+    connector_id: DockingConnectorId,
+}
+
+#[derive(Clone)]
+struct DockingClampConnectionSeed<'v> {
+    vessel_seed: VesselSeed<'v>,
+}
 
 #[derive(Debug, Default, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::DockingClampSeed::<'v>)]
 pub struct DockingClamp {
     #[serde(with = "crate::utils::tagged_option")]
-    #[deserialize_seed_xxx(seed = self.seed.vessel_seed)]
-    vessel: Option<Vessel>,
+    #[deserialize_seed_xxx(seed = self.seed.connection_seed)]
+    connection: Option<DockingClampConnection>,
 }
 
 #[derive(Clone)]
 pub struct DockingClampSeed<'v> {
-    vessel_seed: TaggedOptionSeed<VesselSeed<'v>>,
+    connection_seed: TaggedOptionSeed<DockingClampConnectionSeed<'v>>,
 }
 
 impl<'v> DockingClampSeed<'v> {
     pub fn new(vault: &'v DynDeserializeSeedVault<dyn Module>) -> DockingClampSeed<'v> {
         Self {
-            vessel_seed: TaggedOptionSeed::new(VesselSeed::new(vault)),
+            connection_seed: TaggedOptionSeed::new(DockingClampConnectionSeed { vessel_seed: VesselSeed::new(vault) }),
         }
     }
 }
@@ -57,3 +71,5 @@ impl DockingClamp {
         todo!()
     }
 }
+
+
