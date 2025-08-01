@@ -1,6 +1,4 @@
-use crate::modules::AssemblerDynSeed;
-use dudes_in_space_api::module::ModuleCapability::ModuleStorage;
-use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ ModuleCapability, ModuleConsole, ProcessTokenContext};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
@@ -11,8 +9,9 @@ use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeI
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
-use std::fmt::{Display, Formatter, write};
+use std::fmt::{Display, Formatter};
 use std::ops::ControlFlow;
+use crate::objectives::trading::{BuyGoodsObjective, SellGoodsObjective};
 
 static TYPE_ID: &str = "TradeObjective";
 
@@ -32,9 +31,13 @@ pub(crate) enum TradeObjective {
     SearchForCockpit,
     MoveToCockpit,
     SearchForBuyOffers,
-    MoveToVesselToBuy,
+    MoveToVesselToBuy {
+        buy_goods_objective: BuyGoodsObjective
+    },
     SearchForSellOffers,
-    MoveToVesselToSell,
+    MoveToVesselToSell {
+        sell_goods_objective: SellGoodsObjective
+    },
 }
 
 impl TradeObjective {
@@ -95,9 +98,9 @@ impl Objective for TradeObjective {
             Self::SearchForCockpit => todo!(),
             Self::MoveToCockpit => todo!(),
             Self::SearchForBuyOffers => todo!(),
-            Self::MoveToVesselToBuy => todo!(),
+            Self::MoveToVesselToBuy { .. } => todo!(),
             Self::SearchForSellOffers => todo!(),
-            Self::MoveToVesselToSell => todo!(),
+            Self::MoveToVesselToSell { .. } => todo!(),
         }
     }
 }

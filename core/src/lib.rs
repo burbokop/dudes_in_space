@@ -1,3 +1,8 @@
+#![deny(warnings)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+#![allow(deprecated)]
+
 pub(crate) const CORE_PACKAGE_ID: &str = "core";
 
 pub mod env_presets;

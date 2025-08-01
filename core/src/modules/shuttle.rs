@@ -1,13 +1,13 @@
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
     ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
 };
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};

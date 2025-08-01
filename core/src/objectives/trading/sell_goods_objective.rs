@@ -1,6 +1,6 @@
 use dudes_in_space_api::item::WeakSellOrder;
 use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;

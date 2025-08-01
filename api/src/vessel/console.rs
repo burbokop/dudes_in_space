@@ -14,11 +14,11 @@ pub trait VesselModuleInterface {
 
 /// interface through which a person can interact with a vessel
 pub trait VesselConsole {
-    fn modules_with_capability(&self, cap: ModuleCapability) -> Vec<RefMut<Box<dyn Module>>>;
-    fn modules_with_primary_capability(
-        &self,
+    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<RefMut<'a, Box<dyn Module>>>;
+    fn modules_with_primary_capability<'a>(
+        &'a self,
         cap: ModuleCapability,
-    ) -> Vec<RefMut<Box<dyn Module>>>;
+    ) -> Vec<RefMut<'a, Box<dyn Module>>>;
     fn move_to_module(&self, person: PersonId, id: ModuleId) -> Result<(), MoveToModuleError>;
     fn capabilities(&self) -> BTreeSet<ModuleCapability>;
     fn primary_capabilities(&self) -> BTreeSet<ModuleCapability>;

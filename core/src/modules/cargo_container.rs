@@ -1,4 +1,3 @@
-use crate::modules::{AssemblerDynSeed, ShuttleFactory};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
@@ -11,7 +10,7 @@ use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeI
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
 use std::error::Error;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug};
 
 static TYPE_ID: &str = "CargoContainer";
 static FACTORY_TYPE_ID: &str = "CargoContainerFactory";

@@ -5,16 +5,17 @@ mod dockyard;
 mod personnel_area;
 mod shuttle;
 
-use crate::modules::cargo_container::{CargoContainerDynSeed, CargoContainerFactoryDynSeed};
-pub use assembler::*;
-pub use core_module::*;
-pub use dockyard::*;
+pub(crate) use assembler::*;
+pub(crate) use cargo_container::*;
+pub(crate) use core_module::*;
+pub(crate) use dockyard::*;
+pub(crate) use personnel_area::*;
+pub(crate) use shuttle::*;
+
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
 use dyn_serde::DynDeserializeSeedVault;
-pub use personnel_area::*;
-pub use shuttle::*;
 use std::rc::Rc;
 
 pub fn register_module_factories(

@@ -27,8 +27,13 @@ impl<'v> DockingClampSeed<'v> {
 }
 
 impl DockingClamp {
+    #[deprecated = "Use is_empty instead"]
     pub fn is_docked(&self) -> bool {
         self.vessel.is_some()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.vessel.is_none()
     }
 
     pub fn dock(&mut self, vessel: Vessel) -> bool {

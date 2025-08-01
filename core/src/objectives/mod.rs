@@ -9,8 +9,7 @@ use crate::objectives::gathering::{
     ScavengeObjectiveDynSeed,
 };
 use crate::objectives::trading::{
-    TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed, TradeObjectiveDecider,
-    TradeObjectiveDynSeed,
+    TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed,
 };
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dyn_serde::DynDeserializeSeedVault;

@@ -1,5 +1,8 @@
 #![feature(map_try_insert)]
 #![feature(try_trait_v2)]
+#![deny(warnings)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
 
 pub mod environment;
 pub mod item;
