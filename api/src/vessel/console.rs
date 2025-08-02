@@ -1,10 +1,10 @@
-use crate::module::{Module, ModuleCapability, ModuleId};
+use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId};
 use crate::person::PersonId;
+use crate::vessel::DockingConnectorId;
 use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::vessel::{DockingConnectorId};
 
 /// interface through which a module can interact with a vessel it is contained in
 pub trait VesselModuleInterface {
@@ -15,8 +15,14 @@ pub trait VesselModuleInterface {
 
 /// interface through which a person can interact with a vessel
 pub trait VesselConsole {
-    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, Box<dyn Module>>>;
-    fn modules_with_capability_mut<'a>(&'a self, cap: ModuleCapability) -> Vec<RefMut<'a, Box<dyn Module>>>;
+    fn modules_with_capability<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<Ref<'a, Box<dyn Module>>>;
+    fn modules_with_capability_mut<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<RefMut<'a, Box<dyn Module>>>;
     fn modules_with_primary_capability<'a>(
         &'a self,
         cap: ModuleCapability,
@@ -27,8 +33,17 @@ pub trait VesselConsole {
         cap: ModuleCapability,
     ) -> Vec<RefMut<'a, Box<dyn Module>>>;
 
-    fn move_person_to_module(&self, person_id: PersonId, module_id: ModuleId) -> Result<(), MoveToModuleError>;
-    fn move_person_to_docked_vessel(&self, person_id: PersonId, connector_id: DockingConnectorId) -> Result<(), MoveToDockedVesselError>;
+    fn move_person_to_module(
+        &self,
+        person_id: PersonId,
+        module_id: ModuleId,
+    ) -> Result<(), MoveToModuleError>;
+    fn move_person_to_docked_vessel(
+        &self,
+        this_module: &dyn ModuleConsole,
+        person_id: PersonId,
+        connector_id: DockingConnectorId,
+    ) -> Result<(), MoveToDockedVesselError>;
     fn capabilities(&self) -> BTreeSet<ModuleCapability>;
     fn primary_capabilities(&self) -> BTreeSet<ModuleCapability>;
 }
@@ -45,7 +60,6 @@ impl Display for MoveToModuleError {
 }
 
 impl Error for MoveToModuleError {}
-
 
 #[derive(Debug)]
 pub enum MoveToDockedVesselError {

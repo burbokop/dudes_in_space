@@ -1,9 +1,15 @@
-use crate::module::{Module, ModuleCapability, ModuleId, ModuleSeed, ProcessTokenContext};
+use crate::module::{
+    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed, ProcessTokenContext,
+};
+use crate::person;
 use crate::person::{Logger, ObjectiveDeciderVault, PersonId};
 use crate::utils::math::Point;
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
-use crate::vessel::{DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole, VesselModuleInterface};
+use crate::vessel::{
+    DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole,
+    VesselModuleInterface,
+};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};
@@ -20,6 +26,11 @@ enum VesselRequest {
     MoveToModule {
         person_id: PersonId,
         module_id: ModuleId,
+    },
+    MoveToDockedVessel {
+        person_id: PersonId,
+        target_module_id: ModuleId,
+        connector_id: DockingConnectorId,
     },
     AddModule {
         module: Box<dyn Module>,
@@ -148,36 +159,38 @@ impl Vessel {
             })
     }
 
-    pub fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> impl Iterator <Item=Ref<'a, Box<dyn Module>>> {
-        self.modules
-            .iter()
-            .filter_map(move|module| {
-                if let Ok(module) = module.try_borrow() {
-                    if module.capabilities().contains(&cap) {
-                        return Some(module);
-                    }
+    pub fn modules_with_capability<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
+        self.modules.iter().filter_map(move |module| {
+            if let Ok(module) = module.try_borrow() {
+                if module.capabilities().contains(&cap) {
+                    return Some(module);
                 }
-                None
-            })
+            }
+            None
+        })
     }
 
-    pub fn modules_with_capability_mut<'a>(&'a self, cap: ModuleCapability) -> impl Iterator <Item=RefMut<'a, Box<dyn Module>>> {
-        self.modules
-            .iter()
-            .filter_map(move|module| {
-                if let Ok(module) = module.try_borrow_mut() {
-                    if module.capabilities().contains(&cap) {
-                        return Some(module);
-                    }
+    pub fn modules_with_capability_mut<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> impl Iterator<Item = RefMut<'a, Box<dyn Module>>> {
+        self.modules.iter().filter_map(move |module| {
+            if let Ok(module) = module.try_borrow_mut() {
+                if module.capabilities().contains(&cap) {
+                    return Some(module);
                 }
-                None
-            })
+            }
+            None
+        })
     }
 
     pub fn modules_with_primary_capability<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> impl Iterator <Item=Ref<'a, Box<dyn Module>>> {
+    ) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
         #[allow(unreachable_code)]
         iter::once(todo!())
     }
@@ -185,7 +198,7 @@ impl Vessel {
     pub fn modules_with_primary_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> impl Iterator <Item=RefMut<'a, Box<dyn Module>>> {
+    ) -> impl Iterator<Item = RefMut<'a, Box<dyn Module>>> {
         #[allow(unreachable_code)]
         iter::once(todo!())
     }
@@ -235,6 +248,59 @@ impl Vessel {
                     assert!(!src.contains_person(person_id));
                     assert!(dst.contains_person(person_id));
                 }
+                VesselRequest::MoveToDockedVessel {
+                    person_id,
+                    target_module_id,
+                    connector_id,
+                } => {
+                    let clamps: Vec<_> = self
+                        .modules_with_capability_mut(ModuleCapability::DockingClamp)
+                        .collect();
+
+                    let mut clamp_module = clamps
+                        .into_iter()
+                        .find(|clamp_module| {
+                            person::utils::find_docking_clamp_with_connector_with_id(
+                                clamp_module.docking_clamps(),
+                                connector_id,
+                            )
+                            .is_some()
+                        })
+                        .unwrap();
+
+                    let person = clamp_module.extract_person(person_id).unwrap();
+
+                    let clamp = person::utils::find_docking_clamp_with_connector_with_id(
+                        clamp_module.docking_clamps(),
+                        connector_id,
+                    )
+                    .unwrap();
+
+                    let mut connector_module = clamp
+                        .connection()
+                        .unwrap()
+                        .vessel
+                        .modules_with_capability_mut(ModuleCapability::DockingConnector)
+                        .find(|x| {
+                            x.docking_connectors()
+                                .iter()
+                                .find(|c| c.id() == connector_id)
+                                .is_some()
+                        })
+                        .unwrap();
+
+                    if connector_module.free_person_slots_count() == 0 {
+                        panic!(
+                            "Can not insert person to module `{}` of type `{}`",
+                            connector_module.id(),
+                            connector_module.type_id()
+                        )
+                    }
+                    let ok = connector_module.insert_person(person);
+                    assert!(ok);
+                    assert!(connector_module.contains_person(person_id));
+                    assert!(!clamp_module.contains_person(person_id));
+                }
                 VesselRequest::AddModule { module } => {
                     self.modules.push(RefCell::new(module));
                 }
@@ -260,19 +326,31 @@ impl VesselModuleInterface for Vessel {
 }
 
 impl VesselConsole for Vessel {
-    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, Box<dyn Module>>> {
+    fn modules_with_capability<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<Ref<'a, Box<dyn Module>>> {
         self.modules_with_capability(cap).collect()
     }
 
-    fn modules_with_capability_mut<'a>(&'a self, cap: ModuleCapability) -> Vec<RefMut<'a, Box<dyn Module>>> {
+    fn modules_with_capability_mut<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<RefMut<'a, Box<dyn Module>>> {
         self.modules_with_capability_mut(cap).collect()
     }
 
-    fn modules_with_primary_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, Box<dyn Module>>> {
+    fn modules_with_primary_capability<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<Ref<'a, Box<dyn Module>>> {
         self.modules_with_primary_capability(cap).collect()
     }
 
-    fn modules_with_primary_capability_mut<'a>(&'a self, cap: ModuleCapability) -> Vec<RefMut<'a, Box<dyn Module>>> {
+    fn modules_with_primary_capability_mut<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<RefMut<'a, Box<dyn Module>>> {
         self.modules_with_primary_capability_mut(cap).collect()
     }
 
@@ -289,6 +367,9 @@ impl VesselConsole for Vessel {
                 let m = &module_id;
                 match r {
                     VesselRequest::MoveToModule { module_id, .. } => module_id == m,
+                    VesselRequest::MoveToDockedVessel { connector_id, .. } => {
+                        todo!()
+                    }
                     VesselRequest::AddModule { .. } => false,
                 }
             })
@@ -309,10 +390,90 @@ impl VesselConsole for Vessel {
         Ok(())
     }
 
-    fn move_person_to_docked_vessel(&self, person_id: PersonId, connector_id: DockingConnectorId) -> Result<(), MoveToDockedVesselError> {
-        todo!()
-    }
+    fn move_person_to_docked_vessel(
+        &self,
+        this_module: &dyn ModuleConsole,
+        person_id: PersonId,
+        connector_id: DockingConnectorId,
+    ) -> Result<(), MoveToDockedVesselError> {
+        let clamp_modules: Vec<_> = self
+            .modules_with_capability(ModuleCapability::DockingClamp)
+            .collect();
 
+        let mut clamps = clamp_modules
+            .iter()
+            .map(|clamp_module| clamp_module.docking_clamps())
+            .flatten()
+            .chain(this_module.docking_clamps());
+
+        let (target_module, target_vessel) = clamps
+            .find_map(|clamp| {
+                clamp.connection().and_then(|connection| {
+                    connection
+                        .vessel
+                        .modules
+                        .iter()
+                        .find(|connector_module| {
+                            connector_module
+                                .borrow()
+                                .docking_connectors()
+                                .iter()
+                                .find(|other_vessel_module_connector| {
+                                    other_vessel_module_connector.id() == connector_id
+                                })
+                                .is_some()
+                        })
+                        .map(|module| (module, &connection.vessel))
+                })
+            })
+            .unwrap();
+
+        let target_module = target_module.borrow();
+        let target_module_id = target_module.id();
+
+        let pending_requests = self
+            .requests
+            .borrow()
+            .iter()
+            .filter(|r| {
+                let c = &connector_id;
+                let m = &target_module_id;
+                match r {
+                    VesselRequest::MoveToDockedVessel {
+                        target_module_id, ..
+                    } => target_module_id == m,
+                    _ => false,
+                }
+            })
+            .count()
+            + target_vessel
+                .requests
+                .borrow()
+                .iter()
+                .filter(|r| {
+                    let c = &connector_id;
+                    let m = &target_module_id;
+                    match r {
+                        VesselRequest::MoveToModule { module_id, .. } => module_id == m,
+                        _ => false,
+                    }
+                })
+                .count();
+
+        if target_module.free_person_slots_count() < pending_requests + 1 {
+            return Err(MoveToDockedVesselError::NotEnoughSpace);
+        }
+
+        self.requests
+            .borrow_mut()
+            .push(VesselRequest::MoveToDockedVessel {
+                person_id,
+                target_module_id,
+                connector_id,
+            });
+
+        Ok(())
+    }
 
     fn capabilities(&self) -> BTreeSet<ModuleCapability> {
         self.modules

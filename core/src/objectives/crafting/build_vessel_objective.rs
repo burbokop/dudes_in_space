@@ -1,13 +1,13 @@
 use dudes_in_space_api::module::{
     ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext,
 };
+use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use dudes_in_space_api::person;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "building_vessels_objective_stage")]
@@ -85,7 +85,8 @@ impl Objective for BuildVesselObjective {
                         crafting_module.docking_clamps(),
                         needed_capabilities.clone(),
                         needed_primary_capabilities.clone(),
-                    ) && crafting_module.free_person_slots_count() > 0 {
+                    ) && crafting_module.free_person_slots_count() > 0
+                    {
                         logger.info("Moving to dockyard module...");
                         *self = Self::MovingToDockyardModule {
                             this_person: this_person.clone(),
@@ -122,13 +123,17 @@ impl Objective for BuildVesselObjective {
                     match this_vessel.move_person_to_module(*this_person, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
-                            logger.info("Not enough space in dockyard module. Searching another one...");
+                            logger.info(
+                                "Not enough space in dockyard module. Searching another one...",
+                            );
                             *self = Self::SearchingForDockyard {
                                 this_person: this_person.clone(),
                                 needed_capabilities: std::mem::take(needed_capabilities),
-                                needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                needed_primary_capabilities: std::mem::take(
+                                    needed_primary_capabilities,
+                                ),
                             };
-                            return Ok(ObjectiveStatus::InProgress)
+                            return Ok(ObjectiveStatus::InProgress);
                         }
                     }
                 }
@@ -162,7 +167,7 @@ impl Objective for BuildVesselObjective {
                         .is_completed(process_token_context)
                         .unwrap_or(true)
                     {
-                        logger.info("Done");
+                        logger.info("Done building the vessel.");
                         *self = Self::Done;
                         return Ok(ObjectiveStatus::Done);
                     }

@@ -1,8 +1,8 @@
-use crate::modules::{Assembler, DockyardFactory, ShuttleFactory,PersonnelArea};
+use crate::modules::{Assembler, DockyardFactory, PersonnelArea, ShuttleFactory};
 use dudes_in_space_api::environment::Environment;
-use dudes_in_space_api::item::{Item};
+use dudes_in_space_api::item::Item;
 use dudes_in_space_api::person::Person;
-use dudes_in_space_api::recipe::{AssemblyRecipe};
+use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::Vessel;
 use rand::Rng;
 use std::rc::Rc;

@@ -3,19 +3,25 @@ use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
     ProcessTokenContext, TradingConsole,
 };
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
+use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
+static DOCKING_CONNECTOR_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Cockpit,
     ModuleCapability::Engine,
@@ -31,9 +37,27 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::FuelTank,
 ];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::shuttle::ShuttleSeed::<'v>)]
 struct Shuttle {
     id: ModuleId,
+    docking_connector: DockingConnector,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
+    pilot: Option<Person>,
+}
+
+#[derive(Clone)]
+struct ShuttleSeed<'v> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+}
+
+impl<'v> ShuttleSeed<'v> {
+    fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+        ShuttleSeed {
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(vault)),
+        }
+    }
 }
 
 impl DynSerialize for Shuttle {
@@ -122,15 +146,28 @@ impl Module for Shuttle {
     }
 
     fn free_person_slots_count(&self) -> usize {
-        todo!()
+        const CAPACITY: usize = 1;
+        CAPACITY - self.pilot.iter().len()
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
+        std::slice::from_ref(&self.docking_connector)
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
         todo!()
     }
 }
 
-pub(crate) struct ShuttleDynSeed;
+pub(crate) struct ShuttleDynSeed {
+    vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+}
+
+impl ShuttleDynSeed {
+    pub(crate) fn new(vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+        Self { vault }
+    }
+}
 
 impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
     fn type_id(&self) -> TypeId {
@@ -142,8 +179,8 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
         intermediate: Intermediate,
         _: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Shuttle = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
-
+        let obj: Shuttle = from_intermediate_seed(ShuttleSeed::new(&self.vault), &intermediate)
+            .map_err(|e| e.to_string())?;
         Ok(Box::new(obj))
     }
 }
@@ -173,8 +210,7 @@ impl DynDeserializeSeed<dyn ModuleFactory> for ShuttleFactoryDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
-        let r: Box<ShuttleFactory> =
-            from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+        let r: Box<ShuttleFactory> = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)
     }
 }
@@ -187,6 +223,8 @@ impl ModuleFactory for ShuttleFactory {
     fn create(&self, _: &InputRecipe) -> Box<dyn Module> {
         Box::new(Shuttle {
             id: ModuleId::new_v4(),
+            docking_connector: DockingConnector::new(DOCKING_CONNECTOR_COMPAT_TYPE),
+            pilot: None,
         })
     }
 

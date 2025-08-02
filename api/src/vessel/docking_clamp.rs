@@ -1,12 +1,12 @@
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
 use crate::module::{Module, ModuleCapability};
 use crate::utils::tagged_option::TaggedOptionSeed;
+use crate::vessel::docking_connector::DockingConnectorId;
 use crate::vessel::{Vessel, VesselSeed};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
-use crate::vessel::docking_connector::DockingConnectorId;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::docking_clamp::DockingClampConnectionSeed::<'v>)]
@@ -38,7 +38,9 @@ pub struct DockingClampSeed<'v> {
 impl<'v> DockingClampSeed<'v> {
     pub fn new(vault: &'v DynDeserializeSeedVault<dyn Module>) -> DockingClampSeed<'v> {
         Self {
-            connection_seed: TaggedOptionSeed::new(DockingClampConnectionSeed { vessel_seed: VesselSeed::new(vault) }),
+            connection_seed: TaggedOptionSeed::new(DockingClampConnectionSeed {
+                vessel_seed: VesselSeed::new(vault),
+            }),
         }
     }
 }
@@ -50,7 +52,7 @@ impl DockingClamp {
             compat_type,
         }
     }
-    
+
     #[deprecated = "Use is_empty instead"]
     pub fn is_docked(&self) -> bool {
         self.connection.is_some()
@@ -60,11 +62,18 @@ impl DockingClamp {
         self.connection.is_none()
     }
 
-    pub fn dock_by_connector_id(&mut self, vessel: Vessel, connector_id: DockingConnectorId) -> Result<(), DockByConnectorId> {
+    pub fn dock_by_connector_id(
+        &mut self,
+        vessel: Vessel,
+        connector_id: DockingConnectorId,
+    ) -> Result<(), DockByConnectorId> {
         if self.connection.is_some() {
             Err(DockByConnectorId::Busy)
         } else {
-            self.connection = Some(DockingClampConnection { vessel, connector_id });
+            self.connection = Some(DockingClampConnection {
+                vessel,
+                connector_id,
+            });
             Ok(())
         }
     }
@@ -73,14 +82,22 @@ impl DockingClamp {
         if self.connection.is_some() {
             Err(DockError::Busy)
         } else {
-             let connector_id = vessel
+            let connector_id = vessel
                 .modules_with_capability(ModuleCapability::DockingConnector)
-                .map(|x| x.docking_connectors().into_iter().map(|x|x.id()).collect::<Vec<_>>())
+                .map(|x| {
+                    x.docking_connectors()
+                        .into_iter()
+                        .map(|x| x.id())
+                        .collect::<Vec<_>>()
+                })
                 .flatten()
                 .next()
                 .ok_or(DockError::ConnectorNotFound)?;
-            
-            self.connection = Some(DockingClampConnection { vessel, connector_id });
+
+            self.connection = Some(DockingClampConnection {
+                vessel,
+                connector_id,
+            });
             Ok(())
         }
     }
@@ -110,9 +127,7 @@ impl Display for DockError {
     }
 }
 
-impl Error for DockError {
-    
-}
+impl Error for DockError {}
 
 #[derive(Debug)]
 pub enum DockByConnectorId {
@@ -125,6 +140,4 @@ impl Display for DockByConnectorId {
     }
 }
 
-impl Error for DockByConnectorId {
-    
-}
+impl Error for DockByConnectorId {}

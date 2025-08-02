@@ -35,7 +35,7 @@ pub fn register_modules(
 ) -> DynDeserializeSeedVault<dyn Module> {
     vault
         .with(PersonnelAreaDynSeed::new(objective_seed_vault.clone()))
-        .with(ShuttleDynSeed)
+        .with(ShuttleDynSeed::new(objective_seed_vault.clone()))
         .with(DockyardDynSeed::new(
             objective_seed_vault.clone(),
             process_token_context.clone(),

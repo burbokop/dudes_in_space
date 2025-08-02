@@ -1,6 +1,8 @@
-use crate::objectives::crafting::{CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError};
+use crate::objectives::crafting::{
+    CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
+};
 use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
-use dudes_in_space_api::module::{ ModuleCapability, ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ProcessTokenContext};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
@@ -69,7 +71,12 @@ impl Objective for TradeFromScratchObjective {
             ) {
                 Ok(ok) => Ok(ok),
                 Err(TradeObjectiveError::SuitableVesselNotFound) => {
-                    assert!(!*second_attempt);
+                    if *second_attempt {
+                        return Err(
+                            TradeFromScratchObjectiveError::SuitableVesselNotFoundAfterCrafting,
+                        );
+                    }
+
                     logger.info("No suitable vessel found for trade. Crafting it...");
                     *self = Self::CraftVessel {
                         this_person: *this_person,
@@ -94,7 +101,9 @@ impl Objective for TradeFromScratchObjective {
                 match craft_vessel_objective
                     .pursue(this_module, this_vessel, process_token_context, logger)
                     .map_err(|err| {
-                        TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted { reason_why_can_not_be_crafted: err }
+                        TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted {
+                            reason_why_can_not_be_crafted: err,
+                        }
                     })? {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
@@ -102,7 +111,9 @@ impl Objective for TradeFromScratchObjective {
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
                             this_person: this_person.clone(),
-                            trade_objective: TradeObjective::SearchVessel { this_person: this_person.clone() },
+                            trade_objective: TradeObjective::SearchVessel {
+                                this_person: this_person.clone(),
+                            },
                         };
                         Ok(ObjectiveStatus::InProgress)
                     }
@@ -166,7 +177,8 @@ impl DynDeserializeSeed<dyn DynObjective> for TradeFromScratchObjectiveDynSeed {
 pub(crate) enum TradeFromScratchObjectiveError {
     SuitableVesselNotFoundAndCanNotBeCrafted {
         reason_why_can_not_be_crafted: CraftVesselFromScratchObjectiveError,
-    }
+    },
+    SuitableVesselNotFoundAfterCrafting,
 }
 
 impl Display for TradeFromScratchObjectiveError {
