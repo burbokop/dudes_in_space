@@ -2,8 +2,8 @@ use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
-    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage,
-     PackageId, ProcessTokenContext, TradingConsole,
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
+    ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
@@ -15,8 +15,8 @@ use dyn_serde::{
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
-use serde::{ Serialize};
-use serde_intermediate::{Intermediate,  to_intermediate};
+use serde::Serialize;
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
 
@@ -158,6 +158,10 @@ impl Module for PersonnelArea {
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
         todo!()
     }
 }

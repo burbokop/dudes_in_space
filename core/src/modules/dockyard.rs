@@ -9,7 +9,9 @@ use dudes_in_space_api::person::{
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface};
+use dudes_in_space_api::vessel::{
+    DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface,
+};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -24,6 +26,7 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
+static DOCKING_CLAMP_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Dockyard,
     ModuleCapability::ModuleStorage,
@@ -127,7 +130,7 @@ struct Console<'a> {
     requests: Vec<DockyardRequest>,
     state: &'a mut DockyardState,
     module_storage: &'a mut ModuleStorage,
-    docking_clamp: &'a DockingClamp,
+    docking_clamp: &'a mut DockingClamp,
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -159,7 +162,7 @@ impl<'a> ModuleConsole for Console<'a> {
         if !is_state_valid(self.state) {
             return false;
         }
-        
+
         if self.docking_clamp.is_docked() {
             return false;
         }
@@ -228,7 +231,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        std::slice::from_mut(self.docking_clamp)
     }
 }
 
@@ -272,7 +275,7 @@ impl Module for Dockyard {
             requests: vec![],
             state: &mut self.state,
             module_storage: &mut self.module_storage,
-            docking_clamp: &self.docking_clamp,
+            docking_clamp: &mut self.docking_clamp,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -297,13 +300,11 @@ impl Module for Dockyard {
                         modules,
                         process_token,
                     } => {
-                        if !self.docking_clamp.is_docked() {
+                        if self.docking_clamp.is_empty() {
                             let modules = self.module_storage.try_take(modules.iter()).unwrap();
-                            self.docking_clamp.dock(Vessel::new(
-                                this_vessel.owner(),
-                                (0., 0.).into(),
-                                modules,
-                            )).unwrap();
+                            self.docking_clamp
+                                .dock(Vessel::new(this_vessel.owner(), (0., 0.).into(), modules))
+                                .unwrap();
                             process_token.mark_completed(process_token_context);
                             self.state = DockyardState::Idle;
                         } else {
@@ -377,6 +378,10 @@ impl Module for Dockyard {
         std::slice::from_ref(&self.docking_clamp)
     }
 
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
     fn docking_connectors(&self) -> &[DockingConnector] {
         todo!()
     }
@@ -409,7 +414,7 @@ impl ModuleFactory for DockyardFactory {
     }
 
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
-        Box::new(Dockyard::new(0))
+        Box::new(Dockyard::new(DOCKING_CLAMP_COMPAT_TYPE))
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {

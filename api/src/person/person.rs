@@ -2,6 +2,7 @@ use crate::module::{ModuleConsole, ProcessTokenContext};
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
 use dyn_serde::DynDeserializeSeedVault;
@@ -11,7 +12,6 @@ use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use crate::utils::non_nil_uuid::NonNilUuid;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [

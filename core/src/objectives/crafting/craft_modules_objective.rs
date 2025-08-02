@@ -5,9 +5,9 @@ use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLog
 use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet};
+use std::collections::BTreeSet;
 use std::error::Error;
-use std::fmt::{ Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "crafting_modules_objective_stage")]
@@ -42,7 +42,10 @@ impl CraftModulesObjective {
         deploy: bool,
         logger: &mut PersonLogger,
     ) -> Self {
-        logger.info(format!( "Switched to craft modules objective (caps: {:?}, primary caps: {:?})",needed_capabilities,needed_primary_capabilities));
+        logger.info(format!(
+            "Switched to craft modules objective (caps: {:?}, primary caps: {:?})",
+            needed_capabilities, needed_primary_capabilities
+        ));
         Self::SearchingForCraftingModule {
             this_person,
             needed_capabilities,
@@ -122,7 +125,8 @@ impl Objective for CraftModulesObjective {
                         crafting_module.assembly_recipes(),
                         needed_capabilities.clone(),
                         needed_primary_capabilities.clone(),
-                    ) && crafting_module.free_person_slots_count() > 0 {
+                    ) && crafting_module.free_person_slots_count() > 0
+                    {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
                             this_person: this_person.clone(),
@@ -162,14 +166,18 @@ impl Objective for CraftModulesObjective {
                     match this_vessel.move_person_to_module(*this_person, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
-                            logger.info("Not enough space in crafting module. Searching another one...");
+                            logger.info(
+                                "Not enough space in crafting module. Searching another one...",
+                            );
                             *self = Self::SearchingForCraftingModule {
                                 this_person: this_person.clone(),
                                 needed_capabilities: std::mem::take(needed_capabilities),
-                                needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                needed_primary_capabilities: std::mem::take(
+                                    needed_primary_capabilities,
+                                ),
                                 deploy: *deploy,
                             };
-                            return Ok(ObjectiveStatus::InProgress)
+                            return Ok(ObjectiveStatus::InProgress);
                         }
                     }
                 }
@@ -191,12 +199,14 @@ impl Objective for CraftModulesObjective {
 
                         logger.info("Picking recipe for:");
                         for c in assembly_console.recipe_output_capabilities(recipe) {
-                            logger.info(format!("    {:?}", c));
-                            needed_capabilities.remove(c);
+                            if needed_capabilities.remove(c) {
+                                logger.info(format!("    {:?}", c));
+                            }
                         }
                         for c in assembly_console.recipe_output_primary_capabilities(recipe) {
-                            logger.info(format!("    {:?} (primary)", c));
-                            needed_primary_capabilities.remove(c);
+                            if needed_primary_capabilities.remove(c) {
+                                logger.info(format!("    {:?} (primary)", c));
+                            }
                         }
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -211,12 +221,14 @@ impl Objective for CraftModulesObjective {
                         *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
                         logger.info("Picking recipe for:");
                         for c in assembly_console.recipe_output_capabilities(recipe) {
-                            logger.info(format!("    {:?}", c));
-                            needed_capabilities.remove(c);
+                            if needed_capabilities.remove(c) {
+                                logger.info(format!("    {:?}", c));
+                            }
                         }
                         for c in assembly_console.recipe_output_primary_capabilities(recipe) {
-                            logger.info(format!("    {:?} (primary)", c));
-                            needed_primary_capabilities.remove(c);
+                            if needed_primary_capabilities.remove(c) {
+                                logger.info(format!("    {:?} (primary)", c));
+                            }
                         }
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -231,7 +243,7 @@ impl Objective for CraftModulesObjective {
                         return if needed_capabilities.is_empty()
                             && needed_primary_capabilities.is_empty()
                         {
-                            logger.info("Done");
+                            logger.info("Done crafting modules.");
                             *self = Self::Done;
                             Ok(ObjectiveStatus::Done)
                         } else {

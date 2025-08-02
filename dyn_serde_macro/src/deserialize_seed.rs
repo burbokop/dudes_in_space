@@ -62,7 +62,7 @@ pub(crate) fn deserialize_seed_impl(input: TokenStream) -> TokenStream {
     seed_type.path.segments.last_mut().unwrap().arguments = PathArguments::None;
     let seed_type = seed_type;
 
-    let output = match &input.data {
+    match &input.data {
         Data::Struct(data) => {
             assert!(serde_attrs.tag.is_none());
             deserialize_seed_struct(
@@ -93,12 +93,7 @@ pub(crate) fn deserialize_seed_impl(input: TokenStream) -> TokenStream {
             ),
         },
         Data::Union(_) => panic!("This macro don't support unions"),
-    };
-    println!(
-        "`dyn_serde_macro::DeserializeSeedXXX` macro output: {}",
-        output
-    );
-    output
+    }
 }
 
 fn deserialize_seed_struct(
@@ -169,8 +164,6 @@ fn deserialize_seed_struct_visitor(
 
         let seed: Option<Expr> = DeserializeSeedXXXFieldAttributes::from_field(field).expect("Wrong attributes").seed;
         let extra_seed = extra_field_seeds.iter().find_map(|(ident, seed)| if ident == &field_ident { Some(seed) } else { None });
-
-        println!("xxx_field: {} -> {:?} | {:?}", field_ident, seed, extra_seed);
 
         assert!(!(seed.is_some() && extra_seed.is_some()));
 
@@ -386,8 +379,6 @@ fn deserialize_seed_enum(
     seed_type: TypePath,
     variants: Vec<&Variant>,
 ) -> TokenStream {
-    println!("deserialize_seed_enum: {:#?}", variants);
-
     struct VariantRecipe {
         name: String,
         ident: Ident,
@@ -411,8 +402,6 @@ fn deserialize_seed_enum(
             };
 
             let struct_visitor = variant_attr.map(|variant_attr| {
-                println!("variant_attr: {:#?}", variant_attr);
-
                 deserialize_seed_struct_visitor(
                     &struct_ident,
                     seed_generic_args.clone(),
@@ -522,8 +511,6 @@ fn deserialize_seed_tagged_enum(
     variants: Vec<&Variant>,
     tag: String,
 ) -> TokenStream {
-    println!("deserialize_seed_tagged_enum: {:#?}", variants);
-
     struct VariantRecipe {
         name: String,
         ident: Ident,
@@ -549,10 +536,6 @@ fn deserialize_seed_tagged_enum(
             };
 
             let struct_seed_impl = variant_attr.map(|variant_attr| {
-                println!("variant_attr: {:#?}", variant_attr);
-
-
-
                 deserialize_seed_struct(
                     struct_ident.to_string(),
                     &struct_ident,

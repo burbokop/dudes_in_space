@@ -199,7 +199,9 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
-                        logger.info("CraftVesselFromScratchObjective::CraftingVesselModules::CheckingAllPrerequisites");
+                        logger.info(
+                            "Checking all prerequisites for crafting a vessel from scratch...",
+                        );
                         *self = Self::CheckingAllPrerequisites {
                             this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
@@ -222,7 +224,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
-                        logger.info("CraftVesselFromScratchObjective::Done");
+                        logger.info("Done crafting a vessel from scratch.");
                         *self = Self::Done;
                         Ok(ObjectiveStatus::Done)
                     }

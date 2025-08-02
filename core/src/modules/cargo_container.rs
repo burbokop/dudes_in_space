@@ -8,9 +8,9 @@ use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Rec
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
 static TYPE_ID: &str = "CargoContainer";
 static FACTORY_TYPE_ID: &str = "CargoContainerFactory";
@@ -20,12 +20,12 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStora
 #[derive(Debug, Serialize, Deserialize)]
 struct CargoContainer {
     id: ModuleId,
-    storage: ItemStorage
+    storage: ItemStorage,
 }
 
 impl DynSerialize for CargoContainer {
     fn type_id(&self) -> TypeId {
-        TYPE_ID.to_string()  
+        TYPE_ID.to_string()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
@@ -104,8 +104,12 @@ impl Module for CargoContainer {
         todo!()
     }
 
-    fn docking_connectors(&self) -> &[DockingConnector] {
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
         todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
+        &[]
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
@@ -143,7 +147,10 @@ impl ModuleFactory for CargoContainerFactory {
     }
 
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
-        Box::new(CargoContainer{ id: ModuleId::new_v4(), storage: ItemStorage::new() })
+        Box::new(CargoContainer {
+            id: ModuleId::new_v4(),
+            storage: ItemStorage::new(),
+        })
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {
@@ -157,7 +164,7 @@ impl ModuleFactory for CargoContainerFactory {
 
 impl DynSerialize for CargoContainerFactory {
     fn type_id(&self) -> TypeId {
-        FACTORY_TYPE_ID.to_string()   
+        FACTORY_TYPE_ID.to_string()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {

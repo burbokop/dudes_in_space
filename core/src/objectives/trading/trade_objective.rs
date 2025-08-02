@@ -1,17 +1,17 @@
+use crate::objectives::trading::{BuyGoodsObjective, SellGoodsObjective};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessTokenContext};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
-use dudes_in_space_api::vessel::{ VesselConsole, VesselId};
+use dudes_in_space_api::vessel::{VesselConsole, VesselId};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::ops::ControlFlow;
-use crate::objectives::trading::{BuyGoodsObjective, SellGoodsObjective};
 
 static TYPE_ID: &str = "TradeObjective";
 
@@ -29,17 +29,20 @@ pub(crate) enum TradeObjective {
     SearchVessel {
         this_person: PersonId,
     },
-    MoveToVessel {         this_person: PersonId,
-        vessel_id: VesselId, docking_port_module_id: Option<ModuleId> },
+    MoveToVessel {
+        this_person: PersonId,
+        vessel_id: VesselId,
+        docking_port_module_id: Option<ModuleId>,
+    },
     SearchForCockpit,
     MoveToCockpit,
     SearchForBuyOffers,
     MoveToVesselToBuy {
-        buy_goods_objective: BuyGoodsObjective
+        buy_goods_objective: BuyGoodsObjective,
     },
     SearchForSellOffers,
     MoveToVesselToSell {
-        sell_goods_objective: SellGoodsObjective
+        sell_goods_objective: SellGoodsObjective,
     },
 }
 
@@ -91,35 +94,38 @@ impl Objective for TradeObjective {
                     .break_value()
                 {
                     logger.info("Moving to vessel...");
-                    *self = Self::MoveToVessel { this_person: this_person.clone(), vessel_id, docking_port_module_id };
+                    *self = Self::MoveToVessel {
+                        this_person: this_person.clone(),
+                        vessel_id,
+                        docking_port_module_id,
+                    };
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
                 Err(TradeObjectiveError::SuitableVesselNotFound)
             }
-            Self::MoveToVessel { this_person, vessel_id, docking_port_module_id } => {
-                match docking_port_module_id {
-                    None => {
-                        let connection = person::utils::find_docking_clamp_with_vessel_with_id_mut(this_module.docking_clamps_mut(), *vessel_id)
-                             .unwrap()
-                             .connection()
-                             .unwrap();
-                        
-                        let connector = connection
-                            .vessel
-                            .modules_with_capability_mut(ModuleCapability::DockingConnector)
-                            .find(|x|{x.docking_connectors().iter().find(|c|c.id() == connection.connector_id).is_some()}).unwrap();
+            Self::MoveToVessel {
+                this_person,
+                vessel_id,
+                docking_port_module_id,
+            } => match docking_port_module_id {
+                None => {
+                    let connection_id = person::utils::find_docking_clamp_with_vessel_with_id_mut(
+                        this_module.docking_clamps_mut(),
+                        *vessel_id,
+                    )
+                    .unwrap()
+                    .connection()
+                    .unwrap()
+                    .connector_id;
 
+                    this_vessel
+                        .move_person_to_docked_vessel(this_module, *this_person, connection_id)
+                        .unwrap();
 
-                        
-                        this_vessel.move_person_to_docked_vessel(*this_person, connection.connector_id).unwrap();
-                        
-                        
-                        
-                        todo!()
-                    },
-                    Some(_) => todo!("Move to vessel with docking port"),
+                    todo!()
                 }
+                Some(_) => todo!("Move to vessel with docking port"),
             },
             Self::SearchForCockpit => todo!(),
             Self::MoveToCockpit => todo!(),

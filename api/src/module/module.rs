@@ -46,8 +46,9 @@ pub trait Module: Debug + DynSerialize {
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
 
     fn docking_clamps(&self) -> &[DockingClamp];
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp];
     fn docking_connectors(&self) -> &[DockingConnector];
-    
+
     fn trading_console(&self) -> Option<&dyn TradingConsole>;
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole>;
 }
