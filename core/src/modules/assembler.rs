@@ -462,3 +462,33 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
         Ok(Box::new(obj))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rand::rng;
+    use serde_intermediate::{to_intermediate, Intermediate};
+    use dudes_in_space_api::module::{Module, ProcessTokenContext};
+    use dudes_in_space_api::person::{DynObjective, Person};
+    use dudes_in_space_api::recipe::ModuleFactory;
+    use dyn_serde::{from_intermediate_seed, DynDeserializeSeedVault};
+    use super::{Assembler, AssemblerSeed};
+
+    #[test]
+    fn serde() {
+        let mut assembler = Assembler::new(vec![]);
+        assert!(assembler.can_insert_person());
+        assert!(assembler.insert_person(Person::random(&mut rng())));
+        assert!(!assembler.can_insert_person());
+
+        let intermediate = to_intermediate(&assembler).unwrap();
+        let json = serde_json::to_string(&intermediate).unwrap();
+        let parsed_intermediate: Intermediate = serde_json::from_str(&json).unwrap();
+        
+        let module_factory_vault = DynDeserializeSeedVault::<dyn ModuleFactory>::new();
+        let objective_vault = DynDeserializeSeedVault::<dyn DynObjective>::new();
+        let process_token_context = ProcessTokenContext::new();
+
+        let parsed_assembler: Assembler =
+            from_intermediate_seed(AssemblerSeed::new(&module_factory_vault, &objective_vault,&process_token_context), &parsed_intermediate).unwrap();
+    }
+}

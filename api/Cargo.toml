@@ -9,4 +9,10 @@ serde = { version = "1.0.219", features = ["derive", "rc"] }
 rand = "0.9.2"
 dyn_serde = { path = "../dyn_serde"}
 dyn_serde_macro = { path = "../dyn_serde_macro"}
-uuid = { version =  "1.17.0", features = ["serde"] }
+uuid = { version =  "1.17.0", features = ["serde", "v4"] }
+
+[dev-dependencies]
+approx = "0.5.1"
+
+[features]
+default = []
