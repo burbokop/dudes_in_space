@@ -270,7 +270,7 @@ impl Module for Dockyard {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut person_interface = Console {
+        let mut console = Console {
             id: self.id,
             requests: vec![],
             state: &mut self.state,
@@ -281,7 +281,7 @@ impl Module for Dockyard {
         if let Some(operator) = &mut self.operator {
             operator.proceed(
                 &mut rng(),
-                &mut person_interface,
+                &mut console,
                 this_vessel.console(),
                 process_token_context,
                 decider_vault,
@@ -289,7 +289,7 @@ impl Module for Dockyard {
             )
         }
 
-        for request in std::mem::take(&mut person_interface.requests) {
+        for request in std::mem::take(&mut console.requests) {
             match request {
                 DockyardRequest::SetRecipe(_) => {
                     todo!()
@@ -314,6 +314,8 @@ impl Module for Dockyard {
                 },
             }
         }
+        
+        self.docking_clamp.proceed(process_token_context, decider_vault, logger);
     }
 
     fn recipes(&self) -> Vec<Recipe> {

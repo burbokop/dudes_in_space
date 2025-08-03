@@ -10,7 +10,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "crafting_modules_objective_stage")]
+#[serde(tag = "craft_modules_objective_stage")]
 pub(crate) enum CraftModulesObjective {
     SearchingForCraftingModule {
         this_person: PersonId,
@@ -86,6 +86,7 @@ impl Objective for CraftModulesObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,

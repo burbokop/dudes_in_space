@@ -10,7 +10,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "building_vessels_objective_stage")]
+#[serde(tag = "build_vessel_objective_stage")]
 pub(crate) enum BuildVesselObjective {
     SearchingForDockyard {
         this_person: PersonId,
@@ -50,6 +50,7 @@ impl Objective for BuildVesselObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,

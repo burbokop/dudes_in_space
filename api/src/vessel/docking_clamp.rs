@@ -1,4 +1,4 @@
-use crate::module::{Module, ModuleCapability};
+use crate::module::{Module, ModuleCapability, ProcessTokenContext};
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::docking_connector::DockingConnectorId;
 use crate::vessel::{Vessel, VesselSeed};
@@ -7,6 +7,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use crate::person::{Logger, ObjectiveDeciderVault};
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::docking_clamp::DockingClampConnectionSeed::<'v>)]
@@ -112,6 +113,17 @@ impl DockingClamp {
 
     pub fn connection_mut(&mut self) -> Option<&mut DockingClampConnection> {
         todo!()
+    }
+
+    pub fn proceed(
+        &mut self,
+        process_token_context: &ProcessTokenContext,
+        decider_vault: &ObjectiveDeciderVault,
+        logger: &mut dyn Logger,
+    ) {
+        if let Some(connection) = self.connection.as_mut() {
+            connection.vessel.proceed(process_token_context, decider_vault, logger);
+        }
     }
 }
 

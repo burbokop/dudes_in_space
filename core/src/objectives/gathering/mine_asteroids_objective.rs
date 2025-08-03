@@ -20,6 +20,7 @@ impl Objective for MineAsteroidsObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
@@ -34,7 +35,7 @@ pub(crate) struct MineAsteroidsObjectiveDecider;
 impl ObjectiveDecider for MineAsteroidsObjectiveDecider {
     fn consider(
         &self,
-        person_id: PersonId,
+        person_id: &PersonId,
         age: u8,
         gender: Gender,
         passions: &[Passion],

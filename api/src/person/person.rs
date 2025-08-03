@@ -263,7 +263,7 @@ impl Person {
             None => {
                 self.objective = decider_vault.decide(
                     rng,
-                    self.id,
+                    &self.id,
                     self.age,
                     self.gender,
                     &self.passions,
@@ -275,6 +275,7 @@ impl Person {
             }
             Some(objective) => {
                 match objective.pursue_dyn(
+                    &self.id,
                     this_module,
                     this_vessel,
                     process_token_context,

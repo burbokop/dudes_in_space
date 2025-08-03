@@ -1,8 +1,5 @@
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
-    ProcessTokenContext, TradingConsole,
-};
+use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
@@ -18,6 +15,7 @@ use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
+use rand::rng;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
@@ -89,12 +87,27 @@ impl Module for Shuttle {
 
     fn proceed(
         &mut self,
-        v: &dyn VesselModuleInterface,
+        this_vessel: &dyn VesselModuleInterface,
         process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        todo!()
+        let mut console = DefaultModuleConsole::new(
+            self.id,
+            CAPABILITIES,
+            PRIMARY_CAPABILITIES,
+        );
+
+        if let Some(pilot) = &mut self.pilot {
+            pilot.proceed(
+                &mut rng(),
+                &mut console,
+                this_vessel.console(),
+                process_token_context,
+                decider_vault,
+                logger,
+            )
+        }
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -110,11 +123,17 @@ impl Module for Shuttle {
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
+        match &self.pilot {
+            None => {
+                self.pilot = Some(person);
+                true
+            }
+            Some(_) => false,
+        }
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
-        todo!()
+        self.pilot.as_ref().map(|p| p.id() == id).unwrap_or(false)
     }
 
     fn id(&self) -> ModuleId {

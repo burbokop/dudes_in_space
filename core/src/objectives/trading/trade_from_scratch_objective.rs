@@ -26,6 +26,7 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 ];
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "trade_from_scratch_objective_stage")]
 pub(crate) enum TradeFromScratchObjective {
     ExecuteTrade {
         second_attempt: bool,
@@ -43,7 +44,7 @@ impl TradeFromScratchObjective {
         Self::ExecuteTrade {
             second_attempt: false,
             this_person,
-            trade_objective: TradeObjective::new(this_person),
+            trade_objective: TradeObjective::new(),
         }
     }
 }
@@ -53,6 +54,7 @@ impl Objective for TradeFromScratchObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
@@ -64,6 +66,7 @@ impl Objective for TradeFromScratchObjective {
                 this_person,
                 trade_objective,
             } => match trade_objective.pursue(
+                this_person,
                 this_module,
                 this_vessel,
                 process_token_context,
@@ -99,7 +102,7 @@ impl Objective for TradeFromScratchObjective {
                 craft_vessel_objective,
             } => {
                 match craft_vessel_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(this_person, this_module, this_vessel, process_token_context, logger)
                     .map_err(|err| {
                         TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted {
                             reason_why_can_not_be_crafted: err,
@@ -112,7 +115,6 @@ impl Objective for TradeFromScratchObjective {
                             second_attempt: true,
                             this_person: this_person.clone(),
                             trade_objective: TradeObjective::SearchVessel {
-                                this_person: this_person.clone(),
                             },
                         };
                         Ok(ObjectiveStatus::InProgress)
@@ -138,7 +140,7 @@ pub(crate) struct TradeFromScratchObjectiveDecider;
 impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
     fn consider(
         &self,
-        person_id: PersonId,
+        person_id: &PersonId,
         age: u8,
         gender: Gender,
         passions: &[Passion],
@@ -149,7 +151,7 @@ impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
             logger.info("Trade from scratch objective decided.");
-            Some(Box::new(TradeFromScratchObjective::new(person_id)))
+            Some(Box::new(TradeFromScratchObjective::new(*person_id)))
         } else {
             None
         }

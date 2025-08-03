@@ -25,30 +25,21 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 ];
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "trade_objective_stage")]
 pub(crate) enum TradeObjective {
-    SearchVessel {
-        this_person: PersonId,
-    },
-    MoveToVessel {
-        this_person: PersonId,
-        vessel_id: VesselId,
-        docking_port_module_id: Option<ModuleId>,
-    },
+    SearchVessel,
+    MoveToVessel { vessel_id: VesselId, docking_port_module_id: Option<ModuleId>, },
     SearchForCockpit,
-    MoveToCockpit,
+    MoveToCockpit { dst: ModuleId, },
     SearchForBuyOffers,
-    MoveToVesselToBuy {
-        buy_goods_objective: BuyGoodsObjective,
-    },
+    MoveToVesselToBuy { buy_goods_objective: BuyGoodsObjective, },
     SearchForSellOffers,
-    MoveToVesselToSell {
-        sell_goods_objective: SellGoodsObjective,
-    },
+    MoveToVesselToSell { sell_goods_objective: SellGoodsObjective, },
 }
 
 impl TradeObjective {
-    pub fn new(this_person: PersonId) -> Self {
-        Self::SearchVessel { this_person }
+    pub fn new() -> Self {
+        Self::SearchVessel
     }
 }
 
@@ -57,13 +48,14 @@ impl Objective for TradeObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            Self::SearchVessel { this_person } => {
+            Self::SearchVessel => {
                 if person::utils::this_vessel_has_primary_caps(
                     this_module,
                     this_vessel,
@@ -74,7 +66,7 @@ impl Objective for TradeObjective {
                     NEEDED_CAPABILITIES.iter().cloned(),
                 ) {
                     logger.info("SearchForCockpit");
-                    *self = Self::SearchForCockpit;
+                    *self = Self::SearchForCockpit ;
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
@@ -95,7 +87,6 @@ impl Objective for TradeObjective {
                 {
                     logger.info("Moving to vessel...");
                     *self = Self::MoveToVessel {
-                        this_person: this_person.clone(),
                         vessel_id,
                         docking_port_module_id,
                     };
@@ -105,7 +96,6 @@ impl Objective for TradeObjective {
                 Err(TradeObjectiveError::SuitableVesselNotFound)
             }
             Self::MoveToVessel {
-                this_person,
                 vessel_id,
                 docking_port_module_id,
             } => match docking_port_module_id {
@@ -123,13 +113,39 @@ impl Objective for TradeObjective {
                         .move_person_to_docked_vessel(this_module, *this_person, connection_id)
                         .unwrap();
 
-                    todo!()
+                    *self = Self::SearchForCockpit ;
+                    Ok(ObjectiveStatus::InProgress)
                 }
                 Some(_) => todo!("Move to vessel with docking port"),
             },
-            Self::SearchForCockpit => todo!(),
-            Self::MoveToCockpit => todo!(),
-            Self::SearchForBuyOffers => todo!(),
+            Self::SearchForCockpit => {
+
+                if this_module.capabilities().contains(&ModuleCapability::Cockpit) {
+                    logger.info("Already in a cockpit.");
+                    *self = Self::SearchForBuyOffers {
+
+                    };
+                    return Ok(ObjectiveStatus::InProgress);
+                }
+
+                for module in
+                    this_vessel.modules_with_capability(ModuleCapability::Cockpit)
+                {
+                    if module.free_person_slots_count() > 0
+                    {
+                        logger.info("Moving to dockyard module...");
+                        *self = Self::MoveToCockpit {
+                            dst: module.id(),
+                        };
+                        return Ok(ObjectiveStatus::InProgress);
+                    }
+                }
+                todo!()
+            },
+            Self::MoveToCockpit {  dst } => todo!(),
+            Self::SearchForBuyOffers => {
+                todo!()
+            },
             Self::MoveToVesselToBuy { .. } => todo!(),
             Self::SearchForSellOffers => todo!(),
             Self::MoveToVesselToSell { .. } => todo!(),
@@ -152,7 +168,7 @@ pub(crate) struct TradeObjectiveDecider;
 impl ObjectiveDecider for TradeObjectiveDecider {
     fn consider(
         &self,
-        person_id: PersonId,
+        person_id: &PersonId,
         age: u8,
         gender: Gender,
         passions: &[Passion],
@@ -162,7 +178,7 @@ impl ObjectiveDecider for TradeObjectiveDecider {
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
-            Some(Box::new(TradeObjective::new(person_id)))
+            Some(Box::new(TradeObjective::new()))
         } else {
             None
         }

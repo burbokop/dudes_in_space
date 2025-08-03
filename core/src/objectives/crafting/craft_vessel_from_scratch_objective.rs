@@ -12,7 +12,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "crafting_vessels_objective_stage")]
+#[serde(tag = "craft_vessel_from_scratch_objective_stage")]
 pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
         this_person: PersonId,
@@ -82,6 +82,7 @@ impl Objective for CraftVesselFromScratchObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         process_token_context: &ProcessTokenContext,
@@ -170,7 +171,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(this_person, this_module, this_vessel, process_token_context, logger)
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
@@ -194,7 +195,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(this_person, this_module, this_vessel, process_token_context, logger)
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
@@ -219,7 +220,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 building_objective,
             } => {
                 match building_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(this_person, this_module, this_vessel, process_token_context, logger)
                     .map_err(CraftVesselFromScratchObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),

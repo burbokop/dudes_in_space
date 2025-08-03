@@ -56,9 +56,7 @@ impl Module for CargoContainer {
         process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
-    ) {
-        todo!()
-    }
+    ) {}
 
     fn recipes(&self) -> Vec<Recipe> {
         todo!()
