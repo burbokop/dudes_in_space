@@ -255,7 +255,7 @@ pub const fn noneg_float(value: Float) -> NoNeg<Float> {
 
 #[cfg(test)]
 mod tests {
-    use crate::math::noneg_float;
+    use super::noneg_float;
 
     #[test]
     fn limited_sub() {
