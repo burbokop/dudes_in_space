@@ -1,5 +1,5 @@
 use crate::module::{
-    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed, ProcessTokenContext,
+    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed,
 };
 use crate::person;
 use crate::person::{Logger, ObjectiveDeciderVault, PersonId};
@@ -18,6 +18,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
 use std::iter;
+use crate::environment::EnvironmentContext;
 
 pub type VesselId = NonNilUuid;
 
@@ -209,13 +210,13 @@ impl Vessel {
 
     pub(crate) fn proceed(
         &mut self,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
         for v in &self.modules {
             v.borrow_mut()
-                .proceed(self, process_token_context, decider_vault, logger)
+                .proceed(self, environment_context, decider_vault, logger)
         }
         for request in self.requests.take() {
             match request {

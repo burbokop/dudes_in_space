@@ -2,7 +2,7 @@ use crate::objectives::crafting::{
     CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
 };
 use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
-use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "TradeFromScratchObjective";
 
@@ -57,7 +58,7 @@ impl Objective for TradeFromScratchObjective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
@@ -69,7 +70,7 @@ impl Objective for TradeFromScratchObjective {
                 this_person,
                 this_module,
                 this_vessel,
-                process_token_context,
+                environment_context,
                 logger,
             ) {
                 Ok(ok) => Ok(ok),
@@ -102,7 +103,7 @@ impl Objective for TradeFromScratchObjective {
                 craft_vessel_objective,
             } => {
                 match craft_vessel_objective
-                    .pursue(this_person, this_module, this_vessel, process_token_context, logger)
+                    .pursue(this_person, this_module, this_vessel, environment_context, logger)
                     .map_err(|err| {
                         TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted {
                             reason_why_can_not_be_crafted: err,

@@ -1,5 +1,5 @@
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole};
+use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,  TradingConsole};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
@@ -16,6 +16,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 use rand::rng;
+use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
@@ -88,7 +89,7 @@ impl Module for Shuttle {
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
@@ -103,7 +104,7 @@ impl Module for Shuttle {
                 &mut rng(),
                 &mut console,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )

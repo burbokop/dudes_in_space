@@ -1,5 +1,5 @@
 use crate::objectives::trading::{BuyGoodsObjective, SellGoodsObjective};
-use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessTokenContext};
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
@@ -12,6 +12,7 @@ use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::ops::ControlFlow;
+use dudes_in_space_api::environment::{EnvironmentContext, FindBestBuyOffer};
 
 static TYPE_ID: &str = "TradeObjective";
 
@@ -51,7 +52,7 @@ impl Objective for TradeObjective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
@@ -144,6 +145,8 @@ impl Objective for TradeObjective {
             },
             Self::MoveToCockpit {  dst } => todo!(),
             Self::SearchForBuyOffers => {
+                let future = FindBestBuyOffer{}.push(environment_context);
+                
                 todo!()
             },
             Self::MoveToVesselToBuy { .. } => todo!(),

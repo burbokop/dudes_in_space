@@ -23,6 +23,7 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
+use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
@@ -266,7 +267,7 @@ impl Module for Dockyard {
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
@@ -283,7 +284,7 @@ impl Module for Dockyard {
                 &mut rng(),
                 &mut console,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )
@@ -305,7 +306,7 @@ impl Module for Dockyard {
                             self.docking_clamp
                                 .dock(Vessel::new(this_vessel.owner(), (0., 0.).into(), modules))
                                 .unwrap();
-                            process_token.mark_completed(process_token_context);
+                            process_token.mark_completed(environment_context.process_token_context());
                             self.state = DockyardState::Idle;
                         } else {
                             todo!()
@@ -315,7 +316,7 @@ impl Module for Dockyard {
             }
         }
         
-        self.docking_clamp.proceed(process_token_context, decider_vault, logger);
+        self.docking_clamp.proceed(environment_context, decider_vault, logger);
     }
 
     fn recipes(&self) -> Vec<Recipe> {

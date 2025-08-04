@@ -1,10 +1,11 @@
 use dudes_in_space_api::item::WeakSellOrder;
-use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use dudes_in_space_api::environment::EnvironmentContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct SellGoodsObjective {
@@ -25,7 +26,7 @@ impl Objective for SellGoodsObjective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         todo!()

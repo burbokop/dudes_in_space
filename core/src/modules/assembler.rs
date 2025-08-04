@@ -21,6 +21,7 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
+use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
@@ -296,7 +297,7 @@ impl Module for Assembler {
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
@@ -313,7 +314,7 @@ impl Module for Assembler {
                 &mut rng(),
                 &mut console,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )

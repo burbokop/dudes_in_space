@@ -1,4 +1,4 @@
-use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::{ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_intermediate::Intermediate;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "MineAsteroidsObjective";
 
@@ -23,7 +24,7 @@ impl Objective for MineAsteroidsObjective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         todo!()

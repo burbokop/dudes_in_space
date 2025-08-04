@@ -2,7 +2,7 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
-use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
+use dudes_in_space_api::environment::{Environment, EnvironmentContext, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::{Logger, PersonId, Severity};
 use dudes_in_space_core::env_presets;
@@ -100,9 +100,11 @@ fn main() {
     // }
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
+    
+    let mut environment_context = EnvironmentContext::new();
 
     environment.proceed(
-        &process_token_context,
+        &mut environment_context,
         &objectives_decider_vault,
         &mut StdOutLogger,
     );

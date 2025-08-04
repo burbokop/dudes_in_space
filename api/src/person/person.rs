@@ -1,4 +1,4 @@
-use crate::module::{ModuleConsole, ProcessTokenContext};
+use crate::module::{ModuleConsole};
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
@@ -12,6 +12,7 @@ use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+use crate::environment::EnvironmentContext;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -255,7 +256,7 @@ impl Person {
         rng: &mut R,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
@@ -278,7 +279,7 @@ impl Person {
                     &self.id,
                     this_module,
                     this_vessel,
-                    process_token_context,
+                    environment_context,
                     &mut PersonLogger::new(&self.id, &self.name, logger),
                 ) {
                     Ok(ObjectiveStatus::InProgress) => {}

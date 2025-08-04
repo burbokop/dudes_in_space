@@ -1,5 +1,5 @@
 use dudes_in_space_api::module::{
-    ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext,
+    ModuleCapability, ModuleConsole, ModuleId, ProcessToken,
 };
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::recipe::AssemblyRecipe;
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use dudes_in_space_api::environment::EnvironmentContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "craft_modules_objective_stage")]
@@ -89,7 +90,7 @@ impl Objective for CraftModulesObjective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
@@ -238,7 +239,7 @@ impl Objective for CraftModulesObjective {
                 }
                 Some(some_process_token) => {
                     if some_process_token
-                        .is_completed(process_token_context)
+                        .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
                         return if needed_capabilities.is_empty()

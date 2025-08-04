@@ -1,4 +1,4 @@
-use crate::module::{ModuleConsole, ProcessTokenContext};
+use crate::module::{ModuleConsole};
 use crate::person::logger::PersonLogger;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 use crate::vessel::VesselConsole;
@@ -8,6 +8,7 @@ use rand::Rng;
 use rand::prelude::SliceRandom;
 use std::error::Error;
 use std::fmt::Debug;
+use crate::environment::EnvironmentContext;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -22,7 +23,7 @@ pub trait Objective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error>;
 }
@@ -33,7 +34,7 @@ pub trait DynObjective: Debug + DynSerialize {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>>;
 }
@@ -46,11 +47,11 @@ impl<T: Objective + Debug + DynSerialize> DynObjective for T {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>> {
         Ok(self
-            .pursue(this_person, this_module, this_vessel, process_token_context, logger)
+            .pursue(this_person, this_module, this_vessel, environment_context, logger)
             .map_err(|e| Box::new(e))?)
     }
 }

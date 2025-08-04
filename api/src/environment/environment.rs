@@ -1,5 +1,5 @@
-use crate::environment::Nebula;
-use crate::module::{Module, ProcessTokenContext};
+use crate::environment::{EnvironmentContext, Nebula};
+use crate::module::{Module};
 use crate::person::{Logger, ObjectiveDeciderVault};
 use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
@@ -41,12 +41,12 @@ impl Environment {
 
     pub fn proceed(
         &mut self,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
         for v in &mut self.vessels {
-            v.proceed(process_token_context, decider_vault, logger)
+            v.proceed(environment_context, decider_vault, logger)
         }
     }
 }

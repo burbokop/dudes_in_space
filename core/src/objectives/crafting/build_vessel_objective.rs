@@ -1,5 +1,5 @@
 use dudes_in_space_api::module::{
-    ModuleCapability, ModuleConsole, ModuleId, ProcessToken, ProcessTokenContext,
+    ModuleCapability, ModuleConsole, ModuleId, ProcessToken,
 };
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use dudes_in_space_api::environment::EnvironmentContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "build_vessel_objective_stage")]
@@ -53,7 +54,7 @@ impl Objective for BuildVesselObjective {
         this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
@@ -165,7 +166,7 @@ impl Objective for BuildVesselObjective {
                 }
                 Some(process_token) => {
                     if process_token
-                        .is_completed(process_token_context)
+                        .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
                         logger.info("Done building the vessel.");
