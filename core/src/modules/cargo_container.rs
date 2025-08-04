@@ -1,4 +1,4 @@
-use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::item::{ItemCount, ItemStorage};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
      TradingConsole,
@@ -17,6 +17,7 @@ static TYPE_ID: &str = "CargoContainer";
 static FACTORY_TYPE_ID: &str = "CargoContainerFactory";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
+static ITEM_STORAGE_CAPACITY: ItemCount = 1000;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct CargoContainer {
@@ -84,7 +85,7 @@ impl Module for CargoContainer {
     }
 
     fn storages(&self) -> &[ItemStorage] {
-        todo!()
+        std::slice::from_ref(&self.storage)
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {
@@ -148,7 +149,7 @@ impl ModuleFactory for CargoContainerFactory {
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
         Box::new(CargoContainer {
             id: ModuleId::new_v4(),
-            storage: ItemStorage::new(),
+            storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
         })
     }
 

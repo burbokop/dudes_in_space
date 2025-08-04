@@ -192,8 +192,14 @@ impl Vessel {
         &'a self,
         cap: ModuleCapability,
     ) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
-        #[allow(unreachable_code)]
-        iter::once(todo!())
+        self.modules.iter().filter_map(move |module| {
+            if let Ok(module) = module.try_borrow() {
+                if module.primary_capabilities().contains(&cap) {
+                    return Some(module);
+                }
+            }
+            None
+        })
     }
 
     pub fn modules_with_primary_capability_mut<'a>(

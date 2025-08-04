@@ -13,6 +13,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::ops::ControlFlow;
 use dudes_in_space_api::environment::{EnvironmentContext, FindBestBuyOffer};
+use dudes_in_space_api::item::ItemCount;
 
 static TYPE_ID: &str = "TradeObjective";
 
@@ -145,7 +146,9 @@ impl Objective for TradeObjective {
             },
             Self::MoveToCockpit {  dst } => todo!(),
             Self::SearchForBuyOffers => {
-                let future = FindBestBuyOffer{}.push(environment_context);
+                let total_primary_free_space = this_vessel.modules_with_primary_capability(ModuleCapability::ItemStorage).iter().map(|module|module.storages().iter().map(|storage|storage.free_space()).sum::<ItemCount>()).sum();
+
+                let future = FindBestBuyOffer{ free_storage_space: total_primary_free_space }.push(environment_context);
                 
                 todo!()
             },

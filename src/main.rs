@@ -101,7 +101,7 @@ fn main() {
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
     
-    let mut environment_context = EnvironmentContext::new();
+    let mut environment_context = EnvironmentContext::new(process_token_context);
 
     environment.proceed(
         &mut environment_context,
