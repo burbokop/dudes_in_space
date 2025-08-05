@@ -153,10 +153,15 @@ pub struct ReqFuture<T> {
     _pd: std::marker::PhantomData<T>,
 }
 
-#[derive(Clone)]
 pub struct ReqFutureSeed<'context, T> {
     context: &'context ReqContext,
     _pd: std::marker::PhantomData<T>,
+}
+
+impl<'context, T> Clone for ReqFutureSeed<'context, T> {
+    fn clone(&self) -> Self {
+        Self { context: self.context, _pd: Default::default() }
+    }
 }
 
 impl<'context, T> ReqFutureSeed<'context, T> {
@@ -170,7 +175,13 @@ impl<T: Serialize + 'static> Serialize for ReqFuture<T> {
     where
         S: Serializer
     {
-        self.data.borrow().downcast_ref::<T>().unwrap().serialize(serializer)
+        #[derive(Serialize)]
+        struct Impl<'a, T> {
+            data: ReqData<&'a T>,
+            id: NonNilUuid,
+        }
+
+        Impl { data: self.data.borrow().downcast_ref::<T>().unwrap(), id: self.id }.serialize(serializer)
     }
 }
 
@@ -198,7 +209,7 @@ impl<T> ReqFuture<T> {
     // }
 
     pub fn take(&mut self) -> Result<T, ReqTakeError>
-    where T: Default + 'static {
+    where T: 'static {
         let mut data = self.data.borrow_mut();
         data.downcast_mut().unwrap().take()
     }

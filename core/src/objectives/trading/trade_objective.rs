@@ -6,14 +6,16 @@ use dudes_in_space_api::person::{
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
 use dudes_in_space_api::vessel::{VesselConsole, VesselId};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::ops::ControlFlow;
-use dudes_in_space_api::environment::{EnvironmentContext, FindBestBuyOffer};
-use dudes_in_space_api::item::ItemCount;
+use std::rc::Rc;
+use dudes_in_space_api::environment::{EnvironmentContext, FindBestBuyOffer, FindBestBuyOfferResult};
+use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
+use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "TradeObjective";
 
@@ -26,17 +28,30 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::FuelTank,
 ];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "trade_objective_stage")]
+#[deserialize_seed_xxx(seed = crate::objectives::trading::trade_objective::TradeObjectiveSeed::<'context>)]
 pub(crate) enum TradeObjective {
     SearchVessel,
     MoveToVessel { vessel_id: VesselId, docking_port_module_id: Option<ModuleId>, },
     SearchForCockpit,
     MoveToCockpit { dst: ModuleId, },
-    SearchForBuyOffers,
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
+    SearchForBuyOffers { future: ReqFuture<FindBestBuyOfferResult> },
     MoveToVesselToBuy { buy_goods_objective: BuyGoodsObjective, },
     SearchForSellOffers,
     MoveToVesselToSell { sell_goods_objective: SellGoodsObjective, },
+}
+
+#[derive(Clone)]
+pub(crate) struct TradeObjectiveSeed<'context> {
+    req_future_seed: ReqFutureSeed<'context, FindBestBuyOfferResult>
+}
+
+impl<'context> TradeObjectiveSeed<'context> {
+    pub fn new(context: &'context ReqContext) -> Self {
+        Self { req_future_seed: ReqFutureSeed::new(context) }
+    }
 }
 
 impl TradeObjective {
@@ -125,7 +140,8 @@ impl Objective for TradeObjective {
                 if this_module.capabilities().contains(&ModuleCapability::Cockpit) {
                     logger.info("Already in a cockpit.");
                     *self = Self::SearchForBuyOffers {
-
+                        future: FindBestBuyOffer { free_storage_space: person::utils::total_primary_free_space(this_module, this_vessel) }
+                            .push(environment_context.request_storage_mut())
                     };
                     return Ok(ObjectiveStatus::InProgress);
                 }
@@ -145,12 +161,12 @@ impl Objective for TradeObjective {
                 todo!()
             },
             Self::MoveToCockpit {  dst } => todo!(),
-            Self::SearchForBuyOffers => {
-                let total_primary_free_space = this_vessel.modules_with_primary_capability(ModuleCapability::ItemStorage).iter().map(|module|module.storages().iter().map(|storage|storage.free_space()).sum::<ItemCount>()).sum();
-
-                let future = FindBestBuyOffer{ free_storage_space: total_primary_free_space }.push(environment_context);
-                
-                todo!()
+            Self::SearchForBuyOffers { future } => {
+                 match future.take() {
+                     Ok(x) => todo!(),
+                     Err(ReqTakeError::Pending) => { Ok(ObjectiveStatus::InProgress) }
+                     Err(ReqTakeError::AlreadyTaken) => unreachable!()
+                 }
             },
             Self::MoveToVesselToBuy { .. } => todo!(),
             Self::SearchForSellOffers => todo!(),
@@ -191,7 +207,15 @@ impl ObjectiveDecider for TradeObjectiveDecider {
     }
 }
 
-pub(crate) struct TradeObjectiveDynSeed;
+pub(crate) struct TradeObjectiveDynSeed {
+    req_context: Rc<ReqContext>
+}
+
+impl TradeObjectiveDynSeed {
+    pub fn new(req_context: Rc<ReqContext>) -> Self {
+        Self { req_context }
+    }
+}
 
 impl DynDeserializeSeed<dyn DynObjective> for TradeObjectiveDynSeed {
     fn type_id(&self) -> TypeId {
@@ -203,7 +227,7 @@ impl DynDeserializeSeed<dyn DynObjective> for TradeObjectiveDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
     ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
-        let obj: TradeObjective = from_intermediate(&intermediate).map_err(Box::new)?;
+        let obj: TradeObjective = from_intermediate_seed(TradeObjectiveSeed::new(&self.req_context), &intermediate).map_err(Box::new)?;
         Ok(Box::new(obj))
     }
 }

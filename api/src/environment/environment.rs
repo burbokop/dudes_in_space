@@ -1,5 +1,5 @@
-use crate::environment::{EnvironmentContext, Nebula};
-use crate::module::{Module};
+use crate::environment::{EnvironmentContext, Nebula, RequestStorage};
+use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault};
 use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
@@ -12,6 +12,7 @@ pub struct Environment {
     #[deserialize_seed_xxx(seed = self.seed.vessel_seed)]
     vessels: Vec<Vessel>,
     nebulae: Vec<Nebula>,
+    request_storage: RequestStorage
 }
 
 pub struct EnvironmentSeed<'v> {
@@ -28,7 +29,7 @@ impl<'v> EnvironmentSeed<'v> {
 
 impl Environment {
     pub fn new(vessels: Vec<Vessel>, nebulae: Vec<Nebula>) -> Self {
-        Self { vessels, nebulae }
+        Self { vessels, nebulae, request_storage: Default::default() }
     }
 
     pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
@@ -41,12 +42,13 @@ impl Environment {
 
     pub fn proceed(
         &mut self,
-        environment_context: &mut EnvironmentContext,
+        process_token_context: &ProcessTokenContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
+        let mut environment_context = EnvironmentContext::new(process_token_context, &mut self.request_storage);
         for v in &mut self.vessels {
-            v.proceed(environment_context, decider_vault, logger)
+            v.proceed(&mut environment_context, decider_vault, logger)
         }
     }
 }

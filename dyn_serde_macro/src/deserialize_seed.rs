@@ -24,6 +24,7 @@ struct DeserializeSeedXXXFieldAttributes {
 #[derive(deluxe::ExtractAttributes, Debug)]
 #[deluxe(attributes(deserialize_seed_xxx))]
 struct DeserializeSeedXXXVariantAttributes {
+    #[deluxe(default)]
     seeds: Vec<(Ident, Expr)>,
 }
 

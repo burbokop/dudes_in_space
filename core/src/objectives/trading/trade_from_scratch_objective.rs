@@ -1,19 +1,22 @@
 use crate::objectives::crafting::{
     CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
 };
-use crate::objectives::trading::{TradeObjective, TradeObjectiveError};
+use crate::objectives::trading::{TradeObjective, TradeObjectiveError, TradeObjectiveSeed};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
 use dudes_in_space_api::vessel::VesselConsole;
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::rc::Rc;
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::utils::request::{ReqContext};
+use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "TradeFromScratchObjective";
 
@@ -26,9 +29,11 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::FuelTank,
 ];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "trade_from_scratch_objective_stage")]
+#[deserialize_seed_xxx(seed = crate::objectives::trading::trade_from_scratch_objective::TradeFromScratchObjectiveSeed::<'context>)]
 pub(crate) enum TradeFromScratchObjective {
+    #[deserialize_seed_xxx(seeds = [(trade_objective, self.seed.seed.trade_objective_seed)])]
     ExecuteTrade {
         second_attempt: bool,
         this_person: PersonId,
@@ -38,6 +43,17 @@ pub(crate) enum TradeFromScratchObjective {
         this_person: PersonId,
         craft_vessel_objective: CraftVesselFromScratchObjective,
     },
+}
+
+#[derive(Clone)]
+struct TradeFromScratchObjectiveSeed<'context> {
+    trade_objective_seed: TradeObjectiveSeed<'context>
+}
+
+impl<'context> TradeFromScratchObjectiveSeed<'context> {
+    pub fn new(context: &'context ReqContext) -> Self {
+        Self { trade_objective_seed: TradeObjectiveSeed::new(context) }
+    }
 }
 
 impl TradeFromScratchObjective {
@@ -159,7 +175,15 @@ impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
     }
 }
 
-pub(crate) struct TradeFromScratchObjectiveDynSeed;
+pub(crate) struct TradeFromScratchObjectiveDynSeed{
+    req_context: Rc<ReqContext>
+}
+
+impl TradeFromScratchObjectiveDynSeed {
+    pub fn new(req_context: Rc<ReqContext>) -> Self {
+        Self { req_context }
+    }
+}
 
 impl DynDeserializeSeed<dyn DynObjective> for TradeFromScratchObjectiveDynSeed {
     fn type_id(&self) -> TypeId {
@@ -171,7 +195,7 @@ impl DynDeserializeSeed<dyn DynObjective> for TradeFromScratchObjectiveDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
     ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
-        let obj: TradeFromScratchObjective = from_intermediate(&intermediate).map_err(Box::new)?;
+        let obj: TradeFromScratchObjective = from_intermediate_seed(TradeFromScratchObjectiveSeed::new(&self.req_context), &intermediate).map_err(Box::new)?;
         Ok(Box::new(obj))
     }
 }

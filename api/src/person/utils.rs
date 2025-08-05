@@ -6,6 +6,7 @@ use crate::vessel::{
 };
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
+use crate::item::ItemCount;
 
 pub fn this_vessel_caps(
     this_module: &dyn ModuleConsole,
@@ -210,4 +211,15 @@ pub fn are_dockyard_components_suitable(
                 needed_primary_capabilities.is_empty()
             })()
         })
+}
+
+pub fn total_primary_free_space(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> ItemCount {
+    this_vessel
+        .modules_with_primary_capability(ModuleCapability::ItemStorage)
+        .iter()
+        .map(|module|module.storages().iter().map(|storage|storage.free_space()).sum::<ItemCount>()).sum::<ItemCount>()
+    + if this_module.primary_capabilities().contains(&ModuleCapability::ItemStorage) { this_module.storages().iter().map(|storage|storage.free_space()).sum::<ItemCount>()} else {0}
 }
