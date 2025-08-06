@@ -1,7 +1,7 @@
-use std::any::Any;
 use crate::utils::non_nil_uuid::NonNilUuid;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::any::Any;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -41,14 +41,12 @@ impl<T: 'static> ReqData<T> {
             ReqData::Taken => ReqData::Taken,
         }
     }
-    
-
 }
 
 impl<T> ReqData<&mut T> {
     fn take(&mut self) -> Result<T, ReqTakeError> {
         match self {
-            ReqData::Ready(v) => {},
+            ReqData::Ready(v) => {}
             ReqData::Pending => Err(ReqTakeError::Pending)?,
             ReqData::Taken => Err(ReqTakeError::AlreadyTaken)?,
         }
@@ -85,8 +83,9 @@ impl AnyReqData {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReqPromise<T> {
     #[serde(skip)]
-    data: Option<Weak<RefCell< AnyReqData>>>,
+    data: Option<Weak<RefCell<AnyReqData>>>,
     id: NonNilUuid,
+    #[serde(skip)]
     _pd: std::marker::PhantomData<T>,
 }
 
@@ -95,7 +94,11 @@ impl<T> ReqPromise<T> {
         let data = Rc::new(RefCell::new(ReqData::Pending));
         let id = NonNilUuid::new_v4();
         (
-            Self { data: Some(Rc::downgrade(&data)), id, _pd: Default::default() },
+            Self {
+                data: Some(Rc::downgrade(&data)),
+                id,
+                _pd: Default::default(),
+            },
             ReqFuture {
                 data,
                 id,
@@ -104,11 +107,10 @@ impl<T> ReqPromise<T> {
         )
     }
 
-    pub fn make_ready(
-        &mut self,
-        context: &ReqContext,
-        value: T,
-    ) -> Result<(), ReqMakeReadyError> where T: 'static {
+    pub fn make_ready(&mut self, context: &ReqContext, value: T) -> Result<(), ReqMakeReadyError>
+    where
+        T: 'static,
+    {
         match &self.data {
             None => {
                 let data = context.data.borrow();
@@ -128,7 +130,7 @@ impl<T> ReqPromise<T> {
                         } else {
                             Err(ReqMakeReadyError::AlreadyMadeReady)
                         }
-                    },
+                    }
                 }
             }
             Some(data) => match data.upgrade() {
@@ -140,7 +142,7 @@ impl<T> ReqPromise<T> {
                     } else {
                         Err(ReqMakeReadyError::AlreadyMadeReady)
                     }
-                },
+                }
             },
         }
     }
@@ -160,20 +162,26 @@ pub struct ReqFutureSeed<'context, T> {
 
 impl<'context, T> Clone for ReqFutureSeed<'context, T> {
     fn clone(&self) -> Self {
-        Self { context: self.context, _pd: Default::default() }
+        Self {
+            context: self.context,
+            _pd: Default::default(),
+        }
     }
 }
 
 impl<'context, T> ReqFutureSeed<'context, T> {
     pub fn new(context: &'context ReqContext) -> Self {
-        Self { context, _pd: Default::default() }
+        Self {
+            context,
+            _pd: Default::default(),
+        }
     }
 }
 
 impl<T: Serialize + 'static> Serialize for ReqFuture<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         #[derive(Serialize)]
         struct Impl<'a, T> {
@@ -181,11 +189,17 @@ impl<T: Serialize + 'static> Serialize for ReqFuture<T> {
             id: NonNilUuid,
         }
 
-        Impl { data: self.data.borrow().downcast_ref::<T>().unwrap(), id: self.id }.serialize(serializer)
+        Impl {
+            data: self.data.borrow().downcast_ref::<T>().unwrap(),
+            id: self.id,
+        }
+        .serialize(serializer)
     }
 }
 
-impl<'de, 'context, T: Deserialize<'de> + 'static> DeserializeSeed<'de> for ReqFutureSeed<'context, T> {
+impl<'de, 'context, T: Deserialize<'de> + 'static> DeserializeSeed<'de>
+    for ReqFutureSeed<'context, T>
+{
     type Value = ReqFuture<T>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -209,7 +223,9 @@ impl<T> ReqFuture<T> {
     // }
 
     pub fn take(&mut self) -> Result<T, ReqTakeError>
-    where T: 'static {
+    where
+        T: 'static,
+    {
         let mut data = self.data.borrow_mut();
         data.downcast_mut().unwrap().take()
     }
@@ -243,7 +259,6 @@ impl Display for ReqTakeError {
 
 impl Error for ReqTakeError {}
 
-
 pub struct ReqContext {
     data: RefCell<BTreeMap<NonNilUuid, Weak<RefCell<ReqData<Box<dyn Any>>>>>>,
 }
@@ -261,6 +276,10 @@ impl ReqContext {
             .borrow_mut()
             .try_insert(id, Rc::downgrade(&data))
             .unwrap();
-        ReqFuture { data, id, _pd: Default::default() }
+        ReqFuture {
+            data,
+            id,
+            _pd: Default::default(),
+        }
     }
 }

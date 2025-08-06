@@ -3,7 +3,6 @@ mod crafting;
 mod gathering;
 mod trading;
 
-use std::rc::Rc;
 use crate::objectives::gathering::{
     GatherResearchDataObjectiveDecider, GatherResearchDataObjectiveDynSeed,
     MineAsteroidsObjectiveDecider, MineAsteroidsObjectiveDynSeed, ScavengeObjectiveDecider,
@@ -15,6 +14,7 @@ use crate::objectives::trading::{
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dudes_in_space_api::utils::request::ReqContext;
 use dyn_serde::DynDeserializeSeedVault;
+use std::rc::Rc;
 
 pub fn register_objectives(
     vault: DynDeserializeSeedVault<dyn DynObjective>,

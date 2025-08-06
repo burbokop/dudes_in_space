@@ -2,21 +2,23 @@ use crate::objectives::crafting::{
     CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
 };
 use crate::objectives::trading::{TradeObjective, TradeObjectiveError, TradeObjectiveSeed};
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
+use dudes_in_space_api::utils::request::ReqContext;
 use dudes_in_space_api::vessel::VesselConsole;
-use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::utils::request::{ReqContext};
-use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "TradeFromScratchObjective";
 
@@ -47,12 +49,14 @@ pub(crate) enum TradeFromScratchObjective {
 
 #[derive(Clone)]
 struct TradeFromScratchObjectiveSeed<'context> {
-    trade_objective_seed: TradeObjectiveSeed<'context>
+    trade_objective_seed: TradeObjectiveSeed<'context>,
 }
 
 impl<'context> TradeFromScratchObjectiveSeed<'context> {
     pub fn new(context: &'context ReqContext) -> Self {
-        Self { trade_objective_seed: TradeObjectiveSeed::new(context) }
+        Self {
+            trade_objective_seed: TradeObjectiveSeed::new(context),
+        }
     }
 }
 
@@ -119,7 +123,13 @@ impl Objective for TradeFromScratchObjective {
                 craft_vessel_objective,
             } => {
                 match craft_vessel_objective
-                    .pursue(this_person, this_module, this_vessel, environment_context, logger)
+                    .pursue(
+                        this_person,
+                        this_module,
+                        this_vessel,
+                        environment_context,
+                        logger,
+                    )
                     .map_err(|err| {
                         TradeFromScratchObjectiveError::SuitableVesselNotFoundAndCanNotBeCrafted {
                             reason_why_can_not_be_crafted: err,
@@ -131,8 +141,7 @@ impl Objective for TradeFromScratchObjective {
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
                             this_person: this_person.clone(),
-                            trade_objective: TradeObjective::SearchVessel {
-                            },
+                            trade_objective: TradeObjective::SearchVessel {},
                         };
                         Ok(ObjectiveStatus::InProgress)
                     }
@@ -175,8 +184,8 @@ impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
     }
 }
 
-pub(crate) struct TradeFromScratchObjectiveDynSeed{
-    req_context: Rc<ReqContext>
+pub(crate) struct TradeFromScratchObjectiveDynSeed {
+    req_context: Rc<ReqContext>,
 }
 
 impl TradeFromScratchObjectiveDynSeed {
@@ -195,7 +204,11 @@ impl DynDeserializeSeed<dyn DynObjective> for TradeFromScratchObjectiveDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
     ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
-        let obj: TradeFromScratchObjective = from_intermediate_seed(TradeFromScratchObjectiveSeed::new(&self.req_context), &intermediate).map_err(Box::new)?;
+        let obj: TradeFromScratchObjective = from_intermediate_seed(
+            TradeFromScratchObjectiveSeed::new(&self.req_context),
+            &intermediate,
+        )
+        .map_err(Box::new)?;
         Ok(Box::new(obj))
     }
 }

@@ -14,7 +14,7 @@ pub struct ItemStorage {
 impl<'de> Deserialize<'de> for ItemStorage {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         #[derive(Deserialize)]
         pub struct Impl {
@@ -24,7 +24,11 @@ impl<'de> Deserialize<'de> for ItemStorage {
 
         let Impl { content, capacity } = Impl::deserialize(deserializer)?;
         let total_count = Self::eval_total_count(&content);
-        Ok(Self { content, capacity, total_count })
+        Ok(Self {
+            content,
+            capacity,
+            total_count,
+        })
     }
 }
 
@@ -52,7 +56,11 @@ impl TryFrom<Vec<Item>> for ItemStorage {
 
 impl ItemStorage {
     pub fn new(capacity: ItemCount) -> Self {
-        Self { content: BTreeMap::new(), capacity, total_count: 0 }
+        Self {
+            content: BTreeMap::new(),
+            capacity,
+            total_count: 0,
+        }
     }
 
     pub fn capacity(&self) -> ItemCount {
@@ -69,7 +77,6 @@ impl ItemStorage {
 
     /// returns the rest that did not fit inside storage space
     pub fn add_item(&mut self, _item: Item) -> Item {
-
         debug_assert_eq!(self.total_count, Self::eval_total_count(&self.content));
         debug_assert!(self.total_count <= self.capacity);
         todo!()
@@ -77,7 +84,6 @@ impl ItemStorage {
 
     /// returns true if an item was added, false if not due to full storage
     pub fn try_add_item(&mut self, _item: Item) -> bool {
-
         debug_assert_eq!(self.total_count, Self::eval_total_count(&self.content));
         debug_assert!(self.total_count <= self.capacity);
         todo!()
@@ -85,7 +91,6 @@ impl ItemStorage {
 
     /// remove as many items as possible
     pub fn remove_item(&mut self, _item_id: ItemId, _count: ItemCount) -> Item {
-
         debug_assert_eq!(self.total_count, Self::eval_total_count(&self.content));
         debug_assert!(self.total_count <= self.capacity);
         todo!()
@@ -93,14 +98,12 @@ impl ItemStorage {
 
     /// returns true if an item was removed, false if not due to not enough item count in storage
     pub fn try_remove_item(&mut self, _item: Item) -> bool {
-
         debug_assert_eq!(self.total_count, Self::eval_total_count(&self.content));
         debug_assert!(self.total_count <= self.capacity);
         todo!()
     }
 
     pub fn count(&self, _item_id: ItemId) -> ItemCount {
-
         debug_assert_eq!(self.total_count, Self::eval_total_count(&self.content));
         debug_assert!(self.total_count <= self.capacity);
         todo!()

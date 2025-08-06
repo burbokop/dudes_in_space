@@ -1,5 +1,9 @@
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,  TradingConsole};
+use dudes_in_space_api::module::{
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
+    PackageId, TradingConsole,
+};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
 };
@@ -10,13 +14,12 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use rand::rng;
-use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
@@ -93,11 +96,7 @@ impl Module for Shuttle {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut console = DefaultModuleConsole::new(
-            self.id,
-            CAPABILITIES,
-            PRIMARY_CAPABILITIES,
-        );
+        let mut console = DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES);
 
         if let Some(pilot) = &mut self.pilot {
             pilot.proceed(

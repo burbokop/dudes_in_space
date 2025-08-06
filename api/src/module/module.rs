@@ -1,3 +1,4 @@
+use crate::environment::EnvironmentContext;
 use crate::item::ItemStorage;
 use crate::module::{ModuleCapability, ModuleStorage, TradingConsole};
 use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
@@ -7,7 +8,6 @@ use crate::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
-use crate::environment::EnvironmentContext;
 
 pub type PackageId = String;
 pub type ModuleTypeId = String;

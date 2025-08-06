@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::Weak;
 use uuid::NonNilUuid;
 
-pub(crate) type Money = usize;
+pub(crate) type Money = u32;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {

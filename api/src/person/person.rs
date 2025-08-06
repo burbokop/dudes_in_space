@@ -1,4 +1,5 @@
-use crate::module::{ModuleConsole};
+use crate::environment::EnvironmentContext;
+use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
@@ -12,7 +13,6 @@ use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use crate::environment::EnvironmentContext;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [

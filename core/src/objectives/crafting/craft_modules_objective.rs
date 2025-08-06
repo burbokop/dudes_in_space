@@ -1,6 +1,5 @@
-use dudes_in_space_api::module::{
-    ModuleCapability, ModuleConsole, ModuleId, ProcessToken,
-};
+use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
@@ -8,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use dudes_in_space_api::environment::EnvironmentContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "craft_modules_objective_stage")]

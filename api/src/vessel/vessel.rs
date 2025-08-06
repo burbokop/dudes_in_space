@@ -1,6 +1,5 @@
-use crate::module::{
-    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed,
-};
+use crate::environment::EnvironmentContext;
+use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed};
 use crate::person;
 use crate::person::{Logger, ObjectiveDeciderVault, PersonId};
 use crate::utils::math::Point;
@@ -18,7 +17,6 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
 use std::iter;
-use crate::environment::EnvironmentContext;
 
 pub type VesselId = NonNilUuid;
 

@@ -1,4 +1,5 @@
-use dudes_in_space_api::module::{ModuleConsole};
+use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
@@ -9,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_intermediate::Intermediate;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "GatherResearchDataObjective";
 

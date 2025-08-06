@@ -1,4 +1,6 @@
+use crate::environment::EnvironmentContext;
 use crate::module::{Module, ModuleCapability};
+use crate::person::{Logger, ObjectiveDeciderVault};
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::docking_connector::DockingConnectorId;
 use crate::vessel::{Vessel, VesselSeed};
@@ -7,8 +9,6 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use crate::environment::EnvironmentContext;
-use crate::person::{Logger, ObjectiveDeciderVault};
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::vessel::docking_clamp::DockingClampConnectionSeed::<'v>)]
@@ -123,7 +123,9 @@ impl DockingClamp {
         logger: &mut dyn Logger,
     ) {
         if let Some(connection) = self.connection.as_mut() {
-            connection.vessel.proceed(environment_context, decider_vault, logger);
+            connection
+                .vessel
+                .proceed(environment_context, decider_vault, logger);
         }
     }
 }

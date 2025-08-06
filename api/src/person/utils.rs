@@ -1,3 +1,4 @@
+use crate::item::ItemCount;
 use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
 };
@@ -6,7 +7,6 @@ use crate::vessel::{
 };
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
-use crate::item::ItemCount;
 
 pub fn this_vessel_caps(
     this_module: &dyn ModuleConsole,
@@ -220,6 +220,24 @@ pub fn total_primary_free_space(
     this_vessel
         .modules_with_primary_capability(ModuleCapability::ItemStorage)
         .iter()
-        .map(|module|module.storages().iter().map(|storage|storage.free_space()).sum::<ItemCount>()).sum::<ItemCount>()
-    + if this_module.primary_capabilities().contains(&ModuleCapability::ItemStorage) { this_module.storages().iter().map(|storage|storage.free_space()).sum::<ItemCount>()} else {0}
+        .map(|module| {
+            module
+                .storages()
+                .iter()
+                .map(|storage| storage.free_space())
+                .sum::<ItemCount>()
+        })
+        .sum::<ItemCount>()
+        + if this_module
+            .primary_capabilities()
+            .contains(&ModuleCapability::ItemStorage)
+        {
+            this_module
+                .storages()
+                .iter()
+                .map(|storage| storage.free_space())
+                .sum::<ItemCount>()
+        } else {
+            0
+        }
 }

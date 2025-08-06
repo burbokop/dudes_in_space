@@ -3,21 +3,20 @@ use crate::module::ProcessTokenContext;
 
 pub struct EnvironmentContext<'ptc, 'rs> {
     process_token_context: &'ptc ProcessTokenContext,
-    request_storage: &'rs mut RequestStorage
+    request_storage: &'rs mut RequestStorage,
 }
 
-impl<'ptc, 'rs> EnvironmentContext<'ptc, 'rs>
-{
+impl<'ptc, 'rs> EnvironmentContext<'ptc, 'rs> {
     pub fn new(
         process_token_context: &'ptc ProcessTokenContext,
-        request_storage: &'rs mut RequestStorage
+        request_storage: &'rs mut RequestStorage,
     ) -> Self {
-    Self{
-        process_token_context,
-        request_storage,
+        Self {
+            process_token_context,
+            request_storage,
+        }
     }
-    }
-    
+
     pub fn process_token_context(&self) -> &ProcessTokenContext {
         &self.process_token_context
     }
@@ -30,4 +29,3 @@ impl<'ptc, 'rs> EnvironmentContext<'ptc, 'rs>
         &mut self.request_storage
     }
 }
-

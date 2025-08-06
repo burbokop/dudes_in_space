@@ -1,4 +1,5 @@
-use crate::module::{ModuleConsole};
+use crate::environment::EnvironmentContext;
+use crate::module::ModuleConsole;
 use crate::person::logger::PersonLogger;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 use crate::vessel::VesselConsole;
@@ -8,7 +9,6 @@ use rand::Rng;
 use rand::prelude::SliceRandom;
 use std::error::Error;
 use std::fmt::Debug;
-use crate::environment::EnvironmentContext;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -51,7 +51,13 @@ impl<T: Objective + Debug + DynSerialize> DynObjective for T {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>> {
         Ok(self
-            .pursue(this_person, this_module, this_vessel, environment_context, logger)
+            .pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            )
             .map_err(|e| Box::new(e))?)
     }
 }

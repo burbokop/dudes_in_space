@@ -5,6 +5,7 @@
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::{Logger, PersonId, Severity};
+use dudes_in_space_api::utils::request::ReqContext;
 use dudes_in_space_core::env_presets;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
@@ -12,7 +13,6 @@ use serde::Serialize;
 use serde::de::DeserializeSeed;
 use std::env::home_dir;
 use std::rc::Rc;
-use dudes_in_space_api::utils::request::ReqContext;
 
 fn env_from_json(
     registry: &DynDeserializeSeedVault<dyn Module>,
@@ -28,7 +28,7 @@ fn env_from_json(
 fn env_to_json(env: &Environment) -> Result<Vec<u8>, serde_json::Error> {
     let mut writer = Vec::with_capacity(128);
     let mut ser = serde_json::Serializer::pretty(&mut writer);
-    env.serialize(&mut ser).unwrap();
+    env.serialize(&mut ser)?;
     Ok(writer)
 }
 
@@ -60,7 +60,8 @@ fn main() {
     let process_token_context = Rc::new(ProcessTokenContext::new());
     let req_context = Rc::new(ReqContext::new());
 
-    let objectives_seed_vault = dudes_in_space_core::register_objectives(Default::default(), req_context);
+    let objectives_seed_vault =
+        dudes_in_space_core::register_objectives(Default::default(), req_context.clone());
     let objectives_decider_vault =
         dudes_in_space_core::register_objective_deciders(Default::default());
 
@@ -102,10 +103,10 @@ fn main() {
     // }
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
-    
 
     environment.proceed(
         &process_token_context,
+        &req_context,
         &objectives_decider_vault,
         &mut StdOutLogger,
     );

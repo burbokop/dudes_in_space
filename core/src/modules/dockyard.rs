@@ -1,3 +1,4 @@
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -23,7 +24,6 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
@@ -306,7 +306,8 @@ impl Module for Dockyard {
                             self.docking_clamp
                                 .dock(Vessel::new(this_vessel.owner(), (0., 0.).into(), modules))
                                 .unwrap();
-                            process_token.mark_completed(environment_context.process_token_context());
+                            process_token
+                                .mark_completed(environment_context.process_token_context());
                             self.state = DockyardState::Idle;
                         } else {
                             todo!()
@@ -315,8 +316,9 @@ impl Module for Dockyard {
                 },
             }
         }
-        
-        self.docking_clamp.proceed(environment_context, decider_vault, logger);
+
+        self.docking_clamp
+            .proceed(environment_context, decider_vault, logger);
     }
 
     fn recipes(&self) -> Vec<Recipe> {

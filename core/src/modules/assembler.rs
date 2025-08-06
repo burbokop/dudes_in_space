@@ -1,4 +1,5 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -21,7 +22,6 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
-use dudes_in_space_api::environment::EnvironmentContext;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
@@ -493,13 +493,13 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
 
 #[cfg(test)]
 mod tests {
-    use rand::rng;
-    use serde_intermediate::{to_intermediate, Intermediate};
+    use super::{Assembler, AssemblerSeed};
     use dudes_in_space_api::module::{Module, ProcessTokenContext};
     use dudes_in_space_api::person::{DynObjective, Person};
     use dudes_in_space_api::recipe::ModuleFactory;
-    use dyn_serde::{from_intermediate_seed, DynDeserializeSeedVault};
-    use super::{Assembler, AssemblerSeed};
+    use dyn_serde::{DynDeserializeSeedVault, from_intermediate_seed};
+    use rand::rng;
+    use serde_intermediate::{Intermediate, to_intermediate};
 
     #[test]
     fn serde() {
@@ -511,12 +511,19 @@ mod tests {
         let intermediate = to_intermediate(&assembler).unwrap();
         let json = serde_json::to_string(&intermediate).unwrap();
         let parsed_intermediate: Intermediate = serde_json::from_str(&json).unwrap();
-        
+
         let module_factory_vault = DynDeserializeSeedVault::<dyn ModuleFactory>::new();
         let objective_vault = DynDeserializeSeedVault::<dyn DynObjective>::new();
         let process_token_context = ProcessTokenContext::new();
 
-        let parsed_assembler: Assembler =
-            from_intermediate_seed(AssemblerSeed::new(&module_factory_vault, &objective_vault,&process_token_context), &parsed_intermediate).unwrap();
+        let parsed_assembler: Assembler = from_intermediate_seed(
+            AssemblerSeed::new(
+                &module_factory_vault,
+                &objective_vault,
+                &process_token_context,
+            ),
+            &parsed_intermediate,
+        )
+        .unwrap();
     }
 }
