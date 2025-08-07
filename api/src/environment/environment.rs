@@ -1,12 +1,12 @@
 use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, Nebula, RequestStorage};
-use crate::item::{ TradeTable};
-use crate::module::{Module,  ProcessTokenContext};
+use crate::item::TradeTable;
+use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault};
+use crate::utils::request::ReqContext;
 use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
-use crate::utils::request::ReqContext;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -61,25 +61,30 @@ impl Environment {
         self.process_requests(req_context);
     }
 
-    fn process_requests(&mut self, req_context: & ReqContext) {
+    fn process_requests(&mut self, req_context: &ReqContext) {
         for req in &mut self.request_storage.find_best_buy_offer_requests {
-
-
             let trade_table = TradeTable::build(&self.vessels);
-
-            let ((max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer), max_profit_record) = trade_table
+            if let Some((
+                (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
+                max_profit_record,
+            )) = trade_table
                 .iter()
                 .map(|(item_id, record)| {
                     (record.eval_max_profit(req.input.free_storage_space), record)
                 })
-                .max_by(|((a,_,_), _), ((b,_,_), _)| a.cmp(b))
-                .unwrap();
-
-            req.promise.make_ready(req_context, FindBestBuyOfferResult {
-                max_estimated_profit,
-                max_profit_buy_offer,
-                max_profit_sell_offer
-            } ).unwrap()
+                .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b))
+            {
+                req.promise
+                    .make_ready(
+                        req_context,
+                        FindBestBuyOfferResult {
+                            max_estimated_profit,
+                            max_profit_buy_offer,
+                            max_profit_sell_offer,
+                        },
+                    )
+                    .unwrap()
+            }
         }
     }
 }

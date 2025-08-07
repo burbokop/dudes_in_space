@@ -38,22 +38,6 @@ impl FromIterator<Item> for ItemStorage {
     }
 }
 
-impl TryFrom<Vec<Item>> for ItemStorage {
-    type Error = DuplicateItemError;
-
-    fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
-        todo!()
-        // let mut result = Self::new();
-        // for v in value {
-        //     result
-        //         .content
-        //         .try_insert(v.id, v.count)
-        //         .map_err(|_| DuplicateItemError)?;
-        // }
-        // Ok(result)
-    }
-}
-
 impl ItemStorage {
     pub fn new(capacity: ItemCount) -> Self {
         Self {
@@ -61,6 +45,17 @@ impl ItemStorage {
             capacity,
             total_count: 0,
         }
+    }
+
+    pub fn try_from_vec(value: Vec<Item>, capacity: ItemCount) -> Result<Self, DuplicateItemError> {
+        let mut result = Self::new(capacity);
+        for v in value {
+            result
+                .content
+                .try_insert(v.id, v.count)
+                .map_err(|_| DuplicateItemError)?;
+        }
+        Ok(result)
     }
 
     pub fn capacity(&self) -> ItemCount {

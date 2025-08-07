@@ -17,8 +17,8 @@ pub struct FindBestBuyOffer {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestBuyOfferResult {
     pub max_estimated_profit: Money,
-    pub max_profit_buy_offer: OfferRef< BuyOffer>,
-    pub max_profit_sell_offer: OfferRef< SellOffer>,
+    pub max_profit_buy_offer: OfferRef<BuyOffer>,
+    pub max_profit_sell_offer: OfferRef<SellOffer>,
 }
 
 impl FindBestBuyOffer {

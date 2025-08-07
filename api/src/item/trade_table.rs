@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
-use serde::{Deserialize, Serialize};
 use crate::item::{BuyOffer, ItemCount, ItemId, Money, SellOffer};
 use crate::module::{ModuleCapability, ModuleId};
 use crate::vessel::{Vessel, VesselId};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
-#[derive(Debug, Clone,Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OfferRef<Offer> {
     vessel_id: VesselId,
     module_id: ModuleId,
@@ -64,8 +64,6 @@ impl TradeTable {
     }
 
     pub(crate) fn build(vessels: &[Vessel]) -> Self {
-
-
         let buy_offer_refs: Vec<_> = vessels
             .iter()
             .map(|vessel| {

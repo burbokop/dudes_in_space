@@ -4,6 +4,7 @@ mod core_module;
 mod dockyard;
 mod personnel_area;
 mod shuttle;
+mod unmanned_trading_terminal;
 
 pub(crate) use assembler::*;
 pub(crate) use cargo_container::*;
@@ -11,6 +12,7 @@ pub(crate) use core_module::*;
 pub(crate) use dockyard::*;
 pub(crate) use personnel_area::*;
 pub(crate) use shuttle::*;
+pub(crate) use unmanned_trading_terminal::*;
 
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
@@ -25,6 +27,7 @@ pub fn register_module_factories(
         .with(ShuttleFactoryDynSeed)
         .with(DockyardFactoryDynSeed)
         .with(CargoContainerFactoryDynSeed)
+        .with(UnmannedTradingTerminalFactoryDynSeed)
 }
 
 pub fn register_modules(
@@ -46,4 +49,5 @@ pub fn register_modules(
             process_token_context,
         ))
         .with(CargoContainerDynSeed)
+        .with(UnmannedTradingTerminalDynSeed)
 }
