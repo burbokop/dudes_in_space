@@ -1,5 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{BuyOffer, ItemCount, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder};
+use dudes_in_space_api::item::{
+    BuyOffer, ItemCount, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder,
+};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
@@ -68,7 +70,6 @@ impl Module for UnmannedTradingTerminal {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -138,7 +139,7 @@ impl TradingConsole for UnmannedTradingTerminal {
     }
 
     fn sell_offers(&self) -> &[SellOffer] {
-        todo!()
+        &self.sell_offers
     }
 
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {

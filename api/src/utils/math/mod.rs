@@ -9,6 +9,7 @@ mod rect;
 mod size;
 mod traits;
 mod vector;
+mod rational;
 
 pub use angle::*;
 pub use complex::*;
@@ -21,3 +22,4 @@ pub use rect::*;
 pub use size::*;
 pub use traits::*;
 pub use vector::*;
+pub use rational::*;

@@ -1,4 +1,4 @@
-use crate::item::Item;
+use crate::item::{Item, ItemRefStack};
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -11,14 +11,14 @@ pub(crate) type Money = u32;
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
     vessel_to_buy_from: VesselId,
-    items: Vec<Item>,
+    items: Vec<ItemRefStack>,
     price: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct SellOrderImpl {
     vessel_to_sell_to: VesselId,
-    items: Vec<Item>,
+    items: Vec<ItemRefStack>,
     price: Money,
 }
 

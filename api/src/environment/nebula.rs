@@ -9,6 +9,6 @@ pub struct Nebula {
 
 impl Nebula {
     pub fn new(bound: Vec<Point<Float>>) -> Self {
-        Self { bound }   
+        Self { bound }
     }
 }

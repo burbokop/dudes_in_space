@@ -1,6 +1,6 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault};
 use dudes_in_space_api::module::{
     AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
@@ -59,13 +59,14 @@ impl<'context> AssemblerStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'sv, 'context>)]
 pub struct Assembler {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
     recipes: Vec<AssemblyRecipe>,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: AssemblerState,
+    #[deserialize_seed_xxx(seed = self.seed.item_storage_seed)]
     storage: ItemStorage,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
@@ -73,21 +74,24 @@ pub struct Assembler {
 }
 
 #[derive(Clone)]
-pub struct AssemblerSeed<'v, 'context> {
+pub struct AssemblerSeed<'v, 'sv, 'context> {
     recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+    item_storage_seed: ItemStorageSeed<'sv>,
     state_seed: AssemblerStateSeed<'context>,
 }
 
-impl<'v, 'context> AssemblerSeed<'v, 'context> {
+impl<'v, 'sv, 'context> AssemblerSeed<'v, 'sv, 'context> {
     pub fn new(
         module_factory_vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        item_vault: &'sv ItemVault,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
             recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(module_factory_vault)),
             person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+            item_storage_seed: ItemStorageSeed::new(item_vault),
             state_seed: AssemblerStateSeed::new(context),
         }
     }
@@ -450,6 +454,7 @@ impl CoreModule for Assembler {
 pub(crate) struct AssemblerDynSeed {
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    item_vault: Rc<ItemVault>,
     context: Rc<ProcessTokenContext>,
 }
 
@@ -457,11 +462,13 @@ impl AssemblerDynSeed {
     pub fn new(
         factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        item_vault: Rc<ItemVault>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             factory_seed_vault,
             objective_seed_vault,
+            item_vault,
             context,
         }
     }
@@ -481,6 +488,7 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
             AssemblerSeed::new(
                 &self.factory_seed_vault,
                 &self.objective_seed_vault,
+                &self.item_vault,
                 &self.context,
             ),
             &intermediate,
