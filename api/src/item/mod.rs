@@ -9,3 +9,6 @@ pub use order::*;
 
 mod offer;
 pub use offer::*;
+
+mod trade_table;
+pub use trade_table::*;

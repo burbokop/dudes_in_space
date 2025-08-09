@@ -1,19 +1,25 @@
 mod assembler;
+mod cargo_container;
 mod core_module;
 mod dockyard;
 mod personnel_area;
 mod shuttle;
+mod unmanned_trading_terminal;
 
-pub use assembler::*;
-pub use core_module::*;
-pub use dockyard::*;
+pub(crate) use assembler::*;
+pub(crate) use cargo_container::*;
+pub(crate) use core_module::*;
+pub(crate) use dockyard::*;
+pub(crate) use personnel_area::*;
+pub(crate) use shuttle::*;
+pub(crate) use unmanned_trading_terminal::*;
+
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
 use dyn_serde::DynDeserializeSeedVault;
-pub use personnel_area::*;
-pub use shuttle::*;
 use std::rc::Rc;
+use dudes_in_space_api::item::{ItemVault};
 
 pub fn register_module_factories(
     vault: DynDeserializeSeedVault<dyn ModuleFactory>,
@@ -21,17 +27,20 @@ pub fn register_module_factories(
     vault
         .with(ShuttleFactoryDynSeed)
         .with(DockyardFactoryDynSeed)
+        .with(CargoContainerFactoryDynSeed)
+        .with(UnmannedTradingTerminalFactoryDynSeed)
 }
 
 pub fn register_modules(
     vault: DynDeserializeSeedVault<dyn Module>,
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    item_vault: Rc<ItemVault>,
     process_token_context: Rc<ProcessTokenContext>,
 ) -> DynDeserializeSeedVault<dyn Module> {
     vault
         .with(PersonnelAreaDynSeed::new(objective_seed_vault.clone()))
-        .with(ShuttleDynSeed)
+        .with(ShuttleDynSeed::new(objective_seed_vault.clone()))
         .with(DockyardDynSeed::new(
             objective_seed_vault.clone(),
             process_token_context.clone(),
@@ -39,6 +48,9 @@ pub fn register_modules(
         .with(AssemblerDynSeed::new(
             factory_seed_vault,
             objective_seed_vault,
+            item_vault.clone(),
             process_token_context,
         ))
+        .with(CargoContainerDynSeed::new(item_vault))
+        .with(UnmannedTradingTerminalDynSeed)
 }

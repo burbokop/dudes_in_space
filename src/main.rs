@@ -1,14 +1,19 @@
+#![deny(warnings)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
-use dudes_in_space_api::person::{DynObjective, Logger, PersonId, Severity};
+use dudes_in_space_api::person::{Logger, PersonId, Severity};
+use dudes_in_space_api::utils::request::ReqContext;
+use dudes_in_space_core::env_presets;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
 use serde::de::DeserializeSeed;
 use std::env::home_dir;
 use std::rc::Rc;
-
-mod env_presets;
+use dudes_in_space_api::item::ItemVault;
 
 fn env_from_json(
     registry: &DynDeserializeSeedVault<dyn Module>,
@@ -24,18 +29,28 @@ fn env_from_json(
 fn env_to_json(env: &Environment) -> Result<Vec<u8>, serde_json::Error> {
     let mut writer = Vec::with_capacity(128);
     let mut ser = serde_json::Serializer::pretty(&mut writer);
-    env.serialize(&mut ser).unwrap();
+    env.serialize(&mut ser)?;
     Ok(writer)
 }
 
 struct StdOutLogger;
 
 impl Logger for StdOutLogger {
-    fn log(&mut self, person: &PersonId, severity: Severity, message: String) {
+    fn log(
+        &mut self,
+        person_id: &PersonId,
+        person_name: &str,
+        severity: Severity,
+        message: String,
+    ) {
         match severity {
-            Severity::Error =>         eprintln!("{}: {}", person, message),
-            Severity::Warning => eprintln!("{}: {}", person, message),
-            Severity::Info => println!("{}: {}", person, message),
+            Severity::Error => {
+                eprintln!("{} {} ({}): {}", severity, person_id, person_name, message)
+            }
+            Severity::Warning => {
+                eprintln!("{} {} ({}): {}", severity, person_id, person_name, message)
+            }
+            Severity::Info => println!("{} {} ({}): {}", severity, person_id, person_name, message),
         }
     }
 }
@@ -44,8 +59,12 @@ fn main() {
     let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
 
     let process_token_context = Rc::new(ProcessTokenContext::new());
+    let req_context = Rc::new(ReqContext::new());
 
-    let objectives_seed_vault = dudes_in_space_core::register_objectives(Default::default());
+    let item_vault = Rc::new( dudes_in_space_core::register_items(ItemVault::new()));
+    
+    let objectives_seed_vault =
+        dudes_in_space_core::register_objectives(Default::default(), req_context.clone());
     let objectives_decider_vault =
         dudes_in_space_core::register_objective_deciders(Default::default());
 
@@ -56,6 +75,7 @@ fn main() {
         Default::default(),
         module_factory_seed_vault,
         objectives_seed_vault.into_rc(),
+        item_vault.clone(),
         process_token_context.clone(),
     )
     .into_rc();
@@ -67,7 +87,7 @@ fn main() {
         )
         .unwrap()
     } else {
-        env_presets::preset0::new(&mut rng())
+        env_presets::preset0::new(&mut rng(), &item_vault)
     };
 
     // struct MyAssVisitor;
@@ -88,7 +108,12 @@ fn main() {
 
     // environment.vessel_by_id_mut(0).unwrap().visit_modules_mut(&MyAssVisitor);
 
-    environment.proceed(&process_token_context, &objectives_decider_vault, &mut StdOutLogger);
+    environment.proceed(
+        &process_token_context,
+        &req_context,
+        &objectives_decider_vault,
+        &mut StdOutLogger,
+    );
 
     // println!("{:#?}", environment);
 

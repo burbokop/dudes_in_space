@@ -1,30 +1,30 @@
-use crate::item::Item;
+use crate::item::{Item, ItemRefStack};
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Weak;
-use uuid::Uuid;
+use uuid::NonNilUuid;
 
-pub(crate) type Money = usize;
+pub(crate) type Money = u32;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
     vessel_to_buy_from: VesselId,
-    items: Vec<Item>,
+    items: Vec<ItemRefStack>,
     price: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct SellOrderImpl {
     vessel_to_sell_to: VesselId,
-    items: Vec<Item>,
+    items: Vec<ItemRefStack>,
     price: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Option<Weak<BuyOrderImpl>>,
 }
 
@@ -42,7 +42,7 @@ impl WeakBuyOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuyOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Rc<BuyOrderImpl>,
 }
 
@@ -64,7 +64,7 @@ impl BuyOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Option<Weak<SellOrderImpl>>,
 }
 
@@ -82,7 +82,7 @@ impl WeakSellOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SellOrder {
-    id: Uuid,
+    id: NonNilUuid,
     data: Rc<SellOrderImpl>,
 }
 
@@ -103,6 +103,6 @@ impl SellOrder {
 }
 
 struct OrderHolder {
-    buy_orders: BTreeMap<Uuid, Weak<BuyOrderImpl>>,
-    sell_orders: BTreeMap<Uuid, Weak<WeakSellOrder>>,
+    buy_orders: BTreeMap<NonNilUuid, Weak<BuyOrderImpl>>,
+    sell_orders: BTreeMap<NonNilUuid, Weak<WeakSellOrder>>,
 }

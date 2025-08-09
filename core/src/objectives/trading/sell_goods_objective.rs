@@ -1,5 +1,6 @@
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::WeakSellOrder;
-use dudes_in_space_api::module::{ModuleConsole, ProcessTokenContext};
+use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
@@ -22,10 +23,11 @@ impl Objective for SellGoodsObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonId,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        environment_context: &mut EnvironmentContext,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         todo!()
     }

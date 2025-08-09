@@ -9,7 +9,6 @@ use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
 use std::collections::BTreeSet;
-use std::ops::Deref;
 
 /// interface through which a person can interact with a module
 pub trait ModuleConsole {
@@ -46,17 +45,27 @@ pub trait ModuleConsole {
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp];
 }
 
-pub struct DefaultModuleConsole {
+pub struct DefaultModuleConsole<'c, 'pc> {
     id: ModuleId,
+    capabilities: &'c [ModuleCapability],
+    primary_capabilities: &'pc [ModuleCapability],
 }
 
-impl DefaultModuleConsole {
-    pub fn new(id: ModuleId) -> Self {
-        Self { id }
+impl<'c, 'pc, 'd> DefaultModuleConsole<'c, 'pc> {
+    pub fn new(
+        id: ModuleId,
+        capabilities: &'c [ModuleCapability],
+        primary_capabilities: &'pc [ModuleCapability],
+    ) -> Self {
+        Self {
+            id,
+            capabilities,
+            primary_capabilities,
+        }
     }
 }
 
-impl ModuleConsole for DefaultModuleConsole {
+impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     fn id(&self) -> ModuleId {
         self.id
     }
@@ -66,11 +75,11 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        self.capabilities
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        self.primary_capabilities
     }
 
     fn interact(&mut self) -> bool {
@@ -82,7 +91,7 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
-        todo!()
+        None
     }
 
     fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
@@ -122,7 +131,7 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -130,7 +139,7 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
@@ -143,7 +152,9 @@ pub trait ModuleInfoConsole {}
 pub trait AssemblyConsole {
     // returns index in array. TODO replace with uuid
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
+    fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
+    fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability];
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;
     fn active_recipe(&self) -> Option<usize>;
@@ -180,7 +191,7 @@ pub trait TradingAdminConsole {
 }
 
 pub(crate) trait CaptainControlPanel {
-    fn give_command(&self, role: Role) {}
+    fn give_command(&self, _role: Role) {}
 }
 
 pub(crate) trait NavigatorControlPanel {
@@ -194,7 +205,7 @@ pub(crate) trait GunnerControlPanel {
         todo!()
     }
 
-    fn fire_at(&self, vessel_id: u32) {
+    fn fire_at(&self, _vessel_id: u32) {
         todo!()
     }
 }

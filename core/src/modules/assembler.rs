@@ -1,10 +1,17 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
-use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault};
+use dudes_in_space_api::module::{
+    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
+    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
@@ -22,6 +29,8 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::ItemStorage,
     ModuleCapability::PersonnelRoom,
 ];
+
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]
@@ -50,13 +59,14 @@ impl<'context> AssemblerStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'sv, 'context>)]
 pub struct Assembler {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
     recipes: Vec<AssemblyRecipe>,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: AssemblerState,
+    #[deserialize_seed_xxx(seed = self.seed.item_storage_seed)]
     storage: ItemStorage,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
@@ -64,33 +74,36 @@ pub struct Assembler {
 }
 
 #[derive(Clone)]
-pub struct AssemblerSeed<'v, 'context> {
+pub struct AssemblerSeed<'v, 'sv, 'context> {
     recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+    item_storage_seed: ItemStorageSeed<'sv>,
     state_seed: AssemblerStateSeed<'context>,
 }
 
-impl<'v, 'context> AssemblerSeed<'v, 'context> {
+impl<'v, 'sv, 'context> AssemblerSeed<'v, 'sv, 'context> {
     pub fn new(
         module_factory_vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        item_vault: &'sv ItemVault,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
             recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(module_factory_vault)),
             person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+            item_storage_seed: ItemStorageSeed::new(item_vault),
             state_seed: AssemblerStateSeed::new(context),
         }
     }
 }
 
 impl Assembler {
-    pub fn new(recipes: Vec<AssemblyRecipe>) -> Box<Self> {
+    pub fn new(recipes: Vec<AssemblyRecipe>, storage: ItemStorage) -> Box<Self> {
         Box::new(Self {
             id: ModuleId::new_v4(),
             recipes,
             state: AssemblerState::Idle,
-            storage: Default::default(),
+            storage,
             operator: None,
         })
     }
@@ -116,7 +129,7 @@ enum AssemblerRequest {
 }
 
 struct Console<'a> {
-    id: PersonId,
+    id: ModuleId,
     recipes: &'a [AssemblyRecipe],
     requests: Vec<AssemblerRequest>,
     state: &'a mut AssemblerState,
@@ -137,7 +150,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -210,7 +223,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
@@ -225,8 +238,18 @@ impl<'a> AssemblyConsole for Console<'a> {
             .position(|recipe| recipe.output_capabilities().contains(&capability))
     }
 
+    fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize> {
+        self.recipes
+            .iter()
+            .position(|recipe| recipe.output_primary_capabilities().contains(&capability))
+    }
+
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
         self.recipes[index].output_capabilities()
+    }
+
+    fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability] {
+        self.recipes[index].output_primary_capabilities()
     }
 
     fn has_resources_for_recipe(&self, index: usize) -> bool {
@@ -272,13 +295,13 @@ impl Module for Assembler {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
@@ -295,7 +318,7 @@ impl Module for Assembler {
                 &mut rng(),
                 &mut console,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )
@@ -324,7 +347,7 @@ impl Module for Assembler {
                         } else {
                             let mut storage_modules = this_vessel
                                 .console()
-                                .modules_with_cap(ModuleCapability::ModuleStorage);
+                                .modules_with_capability_mut(ModuleCapability::ModuleStorage);
                             assert!(!storage_modules.is_empty());
                             assert!(!storage_modules[0].module_storages().is_empty());
                             let storage = &mut storage_modules[0].module_storages_mut()[0];
@@ -369,8 +392,9 @@ impl Module for Assembler {
         }
     }
 
-    fn can_insert_person(&self) -> bool {
-        self.operator.is_none()
+    fn free_person_slots_count(&self) -> usize {
+        const CAPACITY: usize = 1;
+        CAPACITY - self.operator.iter().len()
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
@@ -400,6 +424,14 @@ impl Module for Assembler {
         todo!()
     }
 
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
+        todo!()
+    }
+
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
         todo!()
     }
@@ -422,6 +454,7 @@ impl CoreModule for Assembler {
 pub(crate) struct AssemblerDynSeed {
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    item_vault: Rc<ItemVault>,
     context: Rc<ProcessTokenContext>,
 }
 
@@ -429,11 +462,13 @@ impl AssemblerDynSeed {
     pub fn new(
         factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        item_vault: Rc<ItemVault>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             factory_seed_vault,
             objective_seed_vault,
+            item_vault,
             context,
         }
     }
@@ -453,6 +488,7 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
             AssemblerSeed::new(
                 &self.factory_seed_vault,
                 &self.objective_seed_vault,
+                &self.item_vault,
                 &self.context,
             ),
             &intermediate,
@@ -465,13 +501,13 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
 
 #[cfg(test)]
 mod tests {
-    use rand::rng;
-    use serde_intermediate::{to_intermediate, Intermediate};
+    use super::{Assembler, AssemblerSeed};
     use dudes_in_space_api::module::{Module, ProcessTokenContext};
     use dudes_in_space_api::person::{DynObjective, Person};
     use dudes_in_space_api::recipe::ModuleFactory;
-    use dyn_serde::{from_intermediate_seed, DynDeserializeSeedVault};
-    use super::{Assembler, AssemblerSeed};
+    use dyn_serde::{DynDeserializeSeedVault, from_intermediate_seed};
+    use rand::rng;
+    use serde_intermediate::{Intermediate, to_intermediate};
 
     #[test]
     fn serde() {
@@ -483,12 +519,19 @@ mod tests {
         let intermediate = to_intermediate(&assembler).unwrap();
         let json = serde_json::to_string(&intermediate).unwrap();
         let parsed_intermediate: Intermediate = serde_json::from_str(&json).unwrap();
-        
+
         let module_factory_vault = DynDeserializeSeedVault::<dyn ModuleFactory>::new();
         let objective_vault = DynDeserializeSeedVault::<dyn DynObjective>::new();
         let process_token_context = ProcessTokenContext::new();
 
-        let parsed_assembler: Assembler =
-            from_intermediate_seed(AssemblerSeed::new(&module_factory_vault, &objective_vault,&process_token_context), &parsed_intermediate).unwrap();
+        let parsed_assembler: Assembler = from_intermediate_seed(
+            AssemblerSeed::new(
+                &module_factory_vault,
+                &objective_vault,
+                &process_token_context,
+            ),
+            &parsed_intermediate,
+        )
+        .unwrap();
     }
 }

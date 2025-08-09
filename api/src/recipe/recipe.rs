@@ -1,4 +1,4 @@
-use crate::item::{DuplicateItemError, Item, ItemCount, ItemId};
+use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
 
@@ -18,18 +18,18 @@ pub struct InputRecipeIntoIter {
 }
 
 impl Iterator for InputRecipeIntoIter {
-    type Item = Item;
+    type Item = ItemRefStack;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.i.next() {
             None => None,
-            Some((id, count)) => Some(Item::new(id, count)),
+            Some((id, count)) => Some(ItemRefStack { id, count}),
         }
     }
 }
 
 impl IntoIterator for InputRecipe {
-    type Item = Item;
+    type Item = ItemRefStack;
     type IntoIter = InputRecipeIntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -39,11 +39,20 @@ impl IntoIterator for InputRecipe {
     }
 }
 
-impl TryFrom<Vec<Item>> for InputRecipe {
+impl TryFrom<Vec<ItemRefStack>> for InputRecipe {
     type Error = DuplicateItemError;
 
-    fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(value: Vec<ItemRefStack>) -> Result<Self, Self::Error> {
+        let mut result = Self {
+            input: BTreeMap::new(),
+        };
+        for v in value {
+            result
+                .input
+                .try_insert(v.id, v.count)
+                .map_err(|_| DuplicateItemError)?;
+        }
+        Ok(result)
     }
 }
 
@@ -54,7 +63,7 @@ pub(crate) struct OutputRecipe {
 impl TryFrom<Vec<Item>> for OutputRecipe {
     type Error = DuplicateItemError;
 
-    fn try_from(value: Vec<Item>) -> Result<Self, Self::Error> {
+    fn try_from(_value: Vec<Item>) -> Result<Self, Self::Error> {
         todo!()
     }
 }

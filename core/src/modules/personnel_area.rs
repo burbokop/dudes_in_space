@@ -1,23 +1,29 @@
 use crate::CORE_PACKAGE_ID;
-use crate::modules::{CoreModule, DockyardDynSeed, ModuleVisitor, ModuleVisitorMut};
+use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, PackageId, ProcessTokenContext, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::module::{
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
+    TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
-use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
-use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use serde::Serialize;
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
 
 static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v>)]
@@ -43,7 +49,7 @@ impl<'v> PersonnelAreaSeed<'v> {
 impl PersonnelArea {
     pub fn new(personnel: Vec<Person>) -> Box<Self> {
         Box::new(Self {
-            id: PersonId::new_v4(),
+            id: ModuleId::new_v4(),
             personnel,
         })
     }
@@ -79,17 +85,18 @@ impl Module for PersonnelArea {
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut person_interface = DefaultModuleConsole::new(self.id);
+        let mut person_interface =
+            DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES);
         for person in &mut self.personnel {
             person.proceed(
                 &mut rng(),
                 &mut person_interface,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )
@@ -115,10 +122,6 @@ impl Module for PersonnelArea {
         todo!()
     }
 
-    fn can_insert_person(&self) -> bool {
-        todo!()
-    }
-
     fn contains_person(&self, id: PersonId) -> bool {
         self.personnel.iter().find(|p| (*p).id() == id).is_some()
     }
@@ -128,7 +131,7 @@ impl Module for PersonnelArea {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.to_string()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
@@ -140,7 +143,7 @@ impl Module for PersonnelArea {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
@@ -148,6 +151,18 @@ impl Module for PersonnelArea {
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn free_person_slots_count(&self) -> usize {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
         todo!()
     }
 }

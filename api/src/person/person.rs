@@ -1,21 +1,18 @@
-use crate::module::{
-    ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ProcessTokenContext,
-};
-use crate::person::objective::{Objective, ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault};
+use crate::environment::EnvironmentContext;
+use crate::module::ModuleConsole;
+use crate::person::logger::{Logger, PersonLogger};
+use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
+use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::Rng;
 use rand::distr::StandardUniform;
-use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
-use serde::de::DeserializeSeed;
+use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use std::error::Error;
-use uuid::Uuid;
-use crate::person::logger::{Logger, PersonLogger};
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -199,7 +196,7 @@ impl Distribution<Gender> for StandardUniform {
     }
 }
 
-pub type PersonId = Uuid;
+pub type PersonId = NonNilUuid;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v>)]
@@ -238,7 +235,7 @@ impl Person {
     pub fn random<R: Rng>(rng: &mut R) -> Self {
         let gender = rng.random();
         Self {
-            id: Uuid::new_v4(),
+            id: NonNilUuid::new_v4(),
             name: random_name(rng, gender),
             age: rng.random_range(15..=80),
             gender,
@@ -259,35 +256,40 @@ impl Person {
         rng: &mut R,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
         match &mut self.objective {
             None => {
-                self.objective = Some(
-                    decider_vault
-                        .decide(
-                            rng,
-                            self.id,
-                            self.age,
-                            self.gender,
-                            &self.passions,
-                            self.morale,
-                            self.boldness,
-                            self.awareness,
-                        )
-                        .unwrap(),
+                self.objective = decider_vault.decide(
+                    rng,
+                    &self.id,
+                    self.age,
+                    self.gender,
+                    &self.passions,
+                    self.morale,
+                    self.boldness,
+                    self.awareness,
+                    &mut PersonLogger::new(&self.id, &self.name, logger),
                 )
             }
             Some(objective) => {
-                match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, logger)) {
+                match objective.pursue_dyn(
+                    &self.id,
+                    this_module,
+                    this_vessel,
+                    environment_context,
+                    &mut PersonLogger::new(&self.id, &self.name, logger),
+                ) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {
-                        eprintln!(
-                            "Objective performed by person {} ({}) failed: {}",
-                            self.id, self.name, err
+                        logger.log(
+                            &self.id,
+                            &self.name,
+                            Severity::Error,
+                            format!("{} failed: {}", objective.type_id(), err),
                         );
                         self.objective = None
                     }

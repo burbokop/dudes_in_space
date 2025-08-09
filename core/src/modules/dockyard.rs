@@ -1,9 +1,18 @@
+use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::module::{
+    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
+    ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, Vessel, VesselModuleInterface};
+use dudes_in_space_api::vessel::{
+    DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface,
+};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -18,12 +27,14 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
+static DOCKING_CLAMP_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Dockyard,
     ModuleCapability::ModuleStorage,
     ModuleCapability::PersonnelRoom,
     ModuleCapability::DockingClamp,
 ];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Dockyard];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardStateSeed::<'context>)]
@@ -66,12 +77,12 @@ pub struct Dockyard {
 }
 
 impl Dockyard {
-    fn new() -> Self {
+    fn new(compat_type: usize) -> Self {
         Self {
             id: ModuleId::new_v4(),
             state: DockyardState::Idle,
             module_storage: Default::default(),
-            docking_clamp: Default::default(),
+            docking_clamp: DockingClamp::new(compat_type),
             operator: None,
         }
     }
@@ -116,10 +127,11 @@ enum DockyardRequest {
 }
 
 struct Console<'a> {
-    id: PersonId,
+    id: ModuleId,
     requests: Vec<DockyardRequest>,
     state: &'a mut DockyardState,
     module_storage: &'a mut ModuleStorage,
+    docking_clamp: &'a mut DockingClamp,
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -136,7 +148,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -149,6 +161,10 @@ impl<'a> ModuleConsole for Console<'a> {
         };
 
         if !is_state_valid(self.state) {
+            return false;
+        }
+
+        if self.docking_clamp.is_docked() {
             return false;
         }
 
@@ -212,11 +228,11 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        std::slice::from_ref(self.docking_clamp)
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        std::slice::from_mut(self.docking_clamp)
     }
 }
 
@@ -245,35 +261,36 @@ impl Module for Dockyard {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut person_interface = Console {
+        let mut console = Console {
             id: self.id,
             requests: vec![],
             state: &mut self.state,
             module_storage: &mut self.module_storage,
+            docking_clamp: &mut self.docking_clamp,
         };
 
         if let Some(operator) = &mut self.operator {
             operator.proceed(
                 &mut rng(),
-                &mut person_interface,
+                &mut console,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )
         }
 
-        for request in std::mem::take(&mut person_interface.requests) {
+        for request in std::mem::take(&mut console.requests) {
             match request {
                 DockyardRequest::SetRecipe(_) => {
                     todo!()
@@ -284,15 +301,13 @@ impl Module for Dockyard {
                         modules,
                         process_token,
                     } => {
-                        if !self.docking_clamp.is_docked() {
+                        if self.docking_clamp.is_empty() {
                             let modules = self.module_storage.try_take(modules.iter()).unwrap();
-                            let ok = self.docking_clamp.dock(Vessel::new(
-                                this_vessel.owner(),
-                                (0., 0.).into(),
-                                modules,
-                            ));
-                            assert!(ok);
-                            process_token.mark_completed(process_token_context);
+                            self.docking_clamp
+                                .dock(Vessel::new(this_vessel.owner(), (0., 0.).into(), modules))
+                                .unwrap();
+                            process_token
+                                .mark_completed(environment_context.process_token_context());
                             self.state = DockyardState::Idle;
                         } else {
                             todo!()
@@ -301,6 +316,9 @@ impl Module for Dockyard {
                 },
             }
         }
+
+        self.docking_clamp
+            .proceed(environment_context, decider_vault, logger);
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -333,8 +351,9 @@ impl Module for Dockyard {
         }
     }
 
-    fn can_insert_person(&self) -> bool {
-        self.operator.is_none()
+    fn free_person_slots_count(&self) -> usize {
+        const CAPACITY: usize = 1;
+        CAPACITY - self.operator.iter().len()
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
@@ -361,6 +380,14 @@ impl Module for Dockyard {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
+        std::slice::from_ref(&self.docking_clamp)
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
         todo!()
     }
 
@@ -374,7 +401,7 @@ impl Module for Dockyard {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct DockyardFactory {}
+pub(crate) struct DockyardFactory {}
 
 impl DynSerialize for DockyardFactory {
     fn type_id(&self) -> TypeId {
@@ -392,11 +419,15 @@ impl ModuleFactory for DockyardFactory {
     }
 
     fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
-        Box::new(Dockyard::new())
+        Box::new(Dockyard::new(DOCKING_CLAMP_COMPAT_TYPE))
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {
         CAPABILITIES
+    }
+
+    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
+        PRIMARY_CAPABILITIES
     }
 }
 

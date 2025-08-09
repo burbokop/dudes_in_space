@@ -7,4 +7,4 @@ pub use objective::*;
 mod logger;
 pub use logger::*;
 
-mod utils;
+pub mod utils;
