@@ -1,27 +1,42 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemCount, ItemStorage};
+use dudes_in_space_api::item::{ ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
+use dudes_in_space_api::utils::physics::{ M3};
+use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "CargoContainer";
 static FACTORY_TYPE_ID: &str = "CargoContainerFactory";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
-static ITEM_STORAGE_CAPACITY: ItemCount = 1000;
+static ITEM_STORAGE_CAPACITY: ItemVolume = M3(1000);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::cargo_container::CargoContainerSeed::<'context>)]
 struct CargoContainer {
     id: ModuleId,
+    #[deserialize_seed_xxx(seed = self.seed.storage_seed)]
     storage: ItemStorage,
+}
+
+struct CargoContainerSeed<'v> {
+    storage_seed: ItemStorageSeed<'v>,
+}
+
+impl<'v> CargoContainerSeed<'v> {
+    fn new(vault: &'v ItemVault) -> Self {
+        Self { storage_seed: ItemStorageSeed::new(vault) }
+    }
 }
 
 impl DynSerialize for CargoContainer {
@@ -121,7 +136,15 @@ impl Module for CargoContainer {
     }
 }
 
-pub(crate) struct CargoContainerDynSeed;
+pub(crate) struct CargoContainerDynSeed {
+    vault: Rc<ItemVault>,
+}
+
+impl CargoContainerDynSeed {
+    pub(crate) fn new(vault: Rc<ItemVault>) -> Self {
+        Self { vault }
+    }
+}
 
 impl DynDeserializeSeed<dyn Module> for CargoContainerDynSeed {
     fn type_id(&self) -> TypeId {
@@ -133,7 +156,7 @@ impl DynDeserializeSeed<dyn Module> for CargoContainerDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: CargoContainer = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+        let obj: CargoContainer = from_intermediate_seed(CargoContainerSeed::new(&self.vault), &intermediate).map_err(|e| e.to_string())?;
         Ok(Box::new(obj))
     }
 }

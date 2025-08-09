@@ -1,4 +1,4 @@
-use crate::item::ItemCount;
+use crate::item::{ ItemVolume};
 use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
 };
@@ -7,6 +7,7 @@ use crate::vessel::{
 };
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
+use crate::utils::physics::M3;
 
 pub fn this_vessel_caps(
     this_module: &dyn ModuleConsole,
@@ -216,7 +217,7 @@ pub fn are_dockyard_components_suitable(
 pub fn total_primary_free_space(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
-) -> ItemCount {
+) -> ItemVolume {
     this_vessel
         .modules_with_primary_capability(ModuleCapability::ItemStorage)
         .iter()
@@ -225,9 +226,9 @@ pub fn total_primary_free_space(
                 .storages()
                 .iter()
                 .map(|storage| storage.free_space())
-                .sum::<ItemCount>()
+                .sum::<ItemVolume>()
         })
-        .sum::<ItemCount>()
+        .sum::<ItemVolume>()
         + if this_module
             .primary_capabilities()
             .contains(&ModuleCapability::ItemStorage)
@@ -236,8 +237,8 @@ pub fn total_primary_free_space(
                 .storages()
                 .iter()
                 .map(|storage| storage.free_space())
-                .sum::<ItemCount>()
+                .sum::<ItemVolume>()
         } else {
-            0
+            M3(0)
         }
 }

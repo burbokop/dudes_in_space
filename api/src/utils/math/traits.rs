@@ -145,7 +145,7 @@ impl Abs for f64 {
     }
 }
 
-pub(crate) trait Floor {
+pub trait Floor {
     type Output;
     fn floor(self) -> Self::Output;
 }
@@ -165,6 +165,32 @@ impl Floor for f64 {
         f64::floor(self)
     }
 }
+
+pub trait Round {
+    type Output;
+    fn round(self) -> Self::Output;
+}
+
+
+impl Round for f32 {
+    type Output = f32;
+
+    fn round(self) -> Self::Output {
+        f32::round(self)
+    }
+}
+
+impl Round for f64 {
+    type Output = f64;
+
+    fn round(self) -> Self::Output {
+        f64::round(self)
+    }
+}
+
+
+
+
 
 pub(crate) trait Clamp: Sized {
     type Output;
@@ -205,6 +231,12 @@ impl Zero for f64 {
     }
 }
 
+impl Zero for u32 {
+    fn zero() -> Self {
+        0
+    }
+}
+
 pub trait One {
     fn one() -> Self;
 }
@@ -218,6 +250,12 @@ impl One for f32 {
 impl One for f64 {
     fn one() -> Self {
         1.
+    }
+}
+
+impl One for u32 {
+    fn one() -> Self {
+        1
     }
 }
 

@@ -8,6 +8,7 @@ use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::Vessel;
 use rand::Rng;
 use std::rc::Rc;
+use dudes_in_space_api::utils::physics::M3;
 
 fn recipes() -> Vec<AssemblyRecipe> {
     vec![
@@ -25,13 +26,13 @@ fn recipes() -> Vec<AssemblyRecipe> {
 }
 
 fn storage(item_vault: &ItemVault) -> ItemStorage {
-    ItemStorage::try_from_vec(
+    ItemStorage::from_vec(
         vec![
             ItemStack::new(item_vault,"steel".to_string(), 900000).unwrap(),
             ItemStack::new(item_vault,"plastic".to_string(), 90000).unwrap(),
             ItemStack::new(item_vault,"microelectronics".to_string(), 100).unwrap(),
         ],
-        1000000,
+        M3(1000000),
     )
     .unwrap()
 }

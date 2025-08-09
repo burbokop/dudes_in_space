@@ -1,28 +1,52 @@
-use std::ops::{Div, Rem};
-use crate::utils::math::Zero;
+use std::ops::{Div, Mul, Rem, Sub};
+use crate::utils::math::{Floor, One, Zero};
 
-#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Rational<T> {
-    pub numerator: T,
-    pub denominator: T,
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord,Clone)]
+pub struct Rational<N, D> {
+    pub numerator: N,
+    pub denominator: D,
 }
 
-impl<T> Rational<T> {
-    fn from_f32(v: f32) -> Result< Self ,<T as TryFrom<f32>>::Error>
-        where T: TryFrom<f32> + PartialOrd + Rem<Output=T> + Clone + Zero + Div<Output=T>
+impl<N, D> From<N> for  Rational<N, D>
+where D: One {
+    fn from(value: N) -> Self {
+        Self { numerator: value, denominator: D::one() }
+    }
+}
+
+pub trait ApplyRationalPrecision<T> {
+    fn apply_rational_precision(x: T) -> Self;
+    fn precision() -> Self;
+}
+
+impl ApplyRationalPrecision<f32> for u32 {
+    fn apply_rational_precision(x: f32) -> Self {
+        (1000000000. * x).round() as Self
+    }
+
+    fn precision() -> Self {
+        1000000000
+    }
+}
+
+impl<T>  Rational<T, T>
+{
+    pub fn from_float<F>(value: F) -> Self
+    where 
+        T: ApplyRationalPrecision<F> + PartialOrd + Rem<Output=T> + Clone + Zero + Div<Output=T>,
+        F: Floor<Output=F>+Clone + Sub<Output=F> + Mul<Output=F>
     {
-        static PRECISION: f32 = 1000000000.;
-        let frac = v - v.floor();
+            let frac = value.clone() - value.floor();
 
-        let frac_mul_precision: T = TryFrom::try_from((frac * PRECISION).round())?;
-        let precision: T = TryFrom::try_from(PRECISION)?;
+            let frac_mul_precision: T = ApplyRationalPrecision::apply_rational_precision(frac);
+            let precision: T = ApplyRationalPrecision::precision();
 
-        let gcd = greatest_common_divisor(frac_mul_precision.clone(), precision.clone());
+            let gcd = greatest_common_divisor(frac_mul_precision.clone(), precision.clone());
 
-        let denominator = precision / gcd.clone();
-        let numerator = frac_mul_precision / gcd;
+            let denominator = precision / gcd.clone();
+            let numerator = frac_mul_precision / gcd;
 
-        Ok(Self { numerator, denominator })
+            Self { numerator, denominator }
     }
 }
 

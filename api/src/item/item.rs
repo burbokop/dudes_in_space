@@ -3,24 +3,46 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::{Rc, Weak};
-use crate::utils::math::Rational;
+use crate::utils::physics::{ Kg, KgPerM3, M3};
 
 pub type ItemId = String;
 pub type ItemCount = u32;
-pub type ItemWeight = u32;
-pub type ItemDensity = Rational<u32>;
+pub type ItemWeight = Kg<u32>;
+pub type ItemVolume = M3<u32>;
+pub type ItemDensity = KgPerM3<u32>;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq)]
 pub struct Item {
     pub(crate) id: ItemId,
-    pub(crate) weight: ItemWeight,
+    pub(crate) volume: ItemVolume,
     pub(crate) density: ItemDensity,
+}
+
+impl Item {
+    pub fn new(
+        id: ItemId,
+        volume: ItemVolume,
+        density: ItemDensity,
+    ) -> Self {
+        Self {
+            id,
+            volume,
+            density,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct ItemStack {
     pub(crate) item: Weak<Item>,
     pub(crate) count: ItemCount,
+}
+
+impl ItemStack {
+    pub(crate) fn volume(&self) -> ItemVolume {
+        let item = self.item.upgrade().unwrap();
+        item.volume * self.count
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -123,10 +145,10 @@ impl ItemVault {
             .iter()
             .find(|item| item.id == id)
             .map(Rc::downgrade)
-            .ok_or(ItemNotFoundInVaultError)
+            .ok_or(ItemNotFoundInVaultError{ id })
     }
 
-    fn with(mut self, item: Item) -> Self {
+    pub fn with(mut self, item: Item) -> Self {
         self.data.push(Rc::new(item));
         self
     }
@@ -144,7 +166,7 @@ impl Display for DuplicateItemError {
 impl Error for DuplicateItemError {}
 
 #[derive(Debug)]
-pub struct ItemNotFoundInVaultError;
+pub struct ItemNotFoundInVaultError { id: ItemId }
 
 impl Display for ItemNotFoundInVaultError {
     fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {

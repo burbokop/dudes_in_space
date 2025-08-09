@@ -13,6 +13,7 @@ use serde::Serialize;
 use serde::de::DeserializeSeed;
 use std::env::home_dir;
 use std::rc::Rc;
+use dudes_in_space_api::item::ItemVault;
 
 fn env_from_json(
     registry: &DynDeserializeSeedVault<dyn Module>,
@@ -60,6 +61,8 @@ fn main() {
     let process_token_context = Rc::new(ProcessTokenContext::new());
     let req_context = Rc::new(ReqContext::new());
 
+    let item_vault = Rc::new( dudes_in_space_core::register_items(ItemVault::new()));
+    
     let objectives_seed_vault =
         dudes_in_space_core::register_objectives(Default::default(), req_context.clone());
     let objectives_decider_vault =
@@ -72,6 +75,7 @@ fn main() {
         Default::default(),
         module_factory_seed_vault,
         objectives_seed_vault.into_rc(),
+        item_vault.clone(),
         process_token_context.clone(),
     )
     .into_rc();
@@ -83,7 +87,7 @@ fn main() {
         )
         .unwrap()
     } else {
-        env_presets::preset0::new(&mut rng())
+        env_presets::preset0::new(&mut rng(), &item_vault)
     };
 
     // struct MyAssVisitor;

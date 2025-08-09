@@ -1,4 +1,4 @@
-use crate::item::{BuyOffer, ItemCount, Money, OfferRef, SellOffer};
+use crate::item::{BuyOffer, ItemVolume, Money, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -11,7 +11,7 @@ pub struct RequestStorage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestBuyOffer {
-    pub free_storage_space: ItemCount,
+    pub free_storage_space: ItemVolume,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

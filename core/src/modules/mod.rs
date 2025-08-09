@@ -19,6 +19,7 @@ use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
+use dudes_in_space_api::item::{ItemVault};
 
 pub fn register_module_factories(
     vault: DynDeserializeSeedVault<dyn ModuleFactory>,
@@ -34,6 +35,7 @@ pub fn register_modules(
     vault: DynDeserializeSeedVault<dyn Module>,
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    item_vault: Rc<ItemVault>,
     process_token_context: Rc<ProcessTokenContext>,
 ) -> DynDeserializeSeedVault<dyn Module> {
     vault
@@ -46,8 +48,9 @@ pub fn register_modules(
         .with(AssemblerDynSeed::new(
             factory_seed_vault,
             objective_seed_vault,
+            item_vault.clone(),
             process_token_context,
         ))
-        .with(CargoContainerDynSeed)
+        .with(CargoContainerDynSeed::new(item_vault))
         .with(UnmannedTradingTerminalDynSeed)
 }

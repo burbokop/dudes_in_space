@@ -1,4 +1,4 @@
-use crate::item::{BuyOffer, ItemCount, ItemId, Money, SellOffer};
+use crate::item::{BuyOffer, ItemCount, ItemId, ItemVolume, Money, SellOffer};
 use crate::module::{ModuleCapability, ModuleId};
 use crate::vessel::{Vessel, VesselId};
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ impl ItemRecord {
 
     pub(crate) fn eval_max_profit(
         &self,
-        free_storage_space: ItemCount,
+        free_storage_space: ItemVolume,
     ) -> (Money, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
