@@ -6,9 +6,7 @@ use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
     TradingConsole,
 };
-use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-};
+use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -164,6 +162,18 @@ impl Module for PersonnelArea {
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
         todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
+        &self.personnel
+    }
+
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        for person in &self.personnel {
+            person.collect_status(collector);       
+        }
+        collector.exit_module();
     }
 }
 

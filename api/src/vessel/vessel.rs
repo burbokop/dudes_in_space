@@ -1,7 +1,7 @@
 use crate::environment::EnvironmentContext;
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed};
 use crate::person;
-use crate::person::{Logger, ObjectiveDeciderVault, PersonId};
+use crate::person::{Logger, ObjectiveDeciderVault, PersonId, StatusCollector};
 use crate::utils::math::Point;
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
@@ -40,6 +40,7 @@ enum VesselRequest {
 #[deserialize_seed_xxx(seed = crate::vessel::VesselSeed::<'v>)]
 pub struct Vessel {
     id: VesselId,
+    name: String,
     owner: PersonId,
     pos: Point<Float>,
     #[deserialize_seed_xxx(seed = self.seed.module_seq_seed)]
@@ -106,13 +107,23 @@ impl Vessel {
     pub fn id(&self) -> VesselId {
         self.id
     }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub(crate) fn owner(&self) -> PersonId {
         self.owner
     }
 
-    pub fn new(owner: PersonId, pos: Point<Float>, modules: Vec<Box<dyn Module>>) -> Self {
+    pub fn new(
+        name: String,
+        owner: PersonId,
+        pos: Point<Float>,
+        modules: Vec<Box<dyn Module>>,
+    ) -> Self {
         Self {
             id: VesselId::new_v4(),
+            name,
             owner,
             pos,
             modules: modules.into_iter().map(RefCell::new).collect(),
@@ -311,6 +322,14 @@ impl Vessel {
                 }
             }
         }
+    }
+
+    pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_vessel(self);
+        for module in &self.modules {
+            module.borrow().collect_status(collector);
+        }
+        collector.exit_vessel();
     }
 }
 

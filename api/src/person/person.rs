@@ -2,11 +2,11 @@ use crate::environment::EnvironmentContext;
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault, Severity};
+use crate::person::{DynObjective, ObjectiveDeciderVault, Severity, StatusCollector};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
-use dyn_serde::DynDeserializeSeedVault;
+use dyn_serde::{DynDeserializeSeedVault, TypeId};
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::Rng;
 use rand::distr::StandardUniform;
@@ -232,6 +232,12 @@ impl Person {
     pub fn id(&self) -> PersonId {
         self.id
     }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn objective_type_id(&self) -> Option<TypeId> {
+        self.objective.as_ref().map(|x| x.type_id().clone())
+    }
 
     pub fn random<R: Rng>(rng: &mut R) -> Self {
         let gender = rng.random();
@@ -297,5 +303,10 @@ impl Person {
                 }
             }
         }
+    }
+
+    pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_person(self);
+        collector.exit_person();
     }
 }

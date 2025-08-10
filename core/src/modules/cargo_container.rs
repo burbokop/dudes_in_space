@@ -3,7 +3,7 @@ use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolu
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
+use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -79,6 +79,11 @@ impl Module for CargoContainer {
     ) {
     }
 
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        collector.exit_module();
+    }
+
     fn recipes(&self) -> Vec<Recipe> {
         todo!()
     }
@@ -100,6 +105,10 @@ impl Module for CargoContainer {
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
+        todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
         todo!()
     }
 

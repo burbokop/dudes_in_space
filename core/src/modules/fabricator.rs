@@ -4,7 +4,7 @@ use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
     ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
 };
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
+use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
@@ -109,6 +109,10 @@ impl Module for Fabricator {
         todo!()
     }
 
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        todo!()
+    }
+
     fn recipes(&self) -> Vec<Recipe> {
         todo!()
     }
@@ -130,6 +134,10 @@ impl Module for Fabricator {
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
+        todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
         todo!()
     }
 

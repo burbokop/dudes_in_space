@@ -5,7 +5,7 @@ use dudes_in_space_api::item::{
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
+use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
@@ -72,6 +72,11 @@ impl Module for UnmannedTradingTerminal {
     ) {
     }
 
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        collector.exit_module();
+    }
+
     fn recipes(&self) -> Vec<Recipe> {
         todo!()
     }
@@ -94,6 +99,10 @@ impl Module for UnmannedTradingTerminal {
 
     fn contains_person(&self, id: PersonId) -> bool {
         todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
+        &[]
     }
 
     fn storages(&self) -> &[ItemStorage] {

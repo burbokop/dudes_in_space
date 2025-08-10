@@ -5,9 +5,7 @@ use dudes_in_space_api::module::{
     ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
     ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
 };
-use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-};
+use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{
@@ -17,7 +15,7 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
-use rand::rng;
+use rand::{Rng, rng};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
@@ -271,6 +269,8 @@ impl Module for Dockyard {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
+        let rng = &mut rng();
+
         let mut console = Console {
             id: self.id,
             requests: vec![],
@@ -281,7 +281,7 @@ impl Module for Dockyard {
 
         if let Some(operator) = &mut self.operator {
             operator.proceed(
-                &mut rng(),
+                rng,
                 &mut console,
                 this_vessel.console(),
                 environment_context,
@@ -303,8 +303,14 @@ impl Module for Dockyard {
                     } => {
                         if self.docking_clamp.is_empty() {
                             let modules = self.module_storage.try_take(modules.iter()).unwrap();
+
                             self.docking_clamp
-                                .dock(Vessel::new(this_vessel.owner(), (0., 0.).into(), modules))
+                                .dock(Vessel::new(
+                                    format!("SS-{}", rng.random_range(1000..9999)),
+                                    this_vessel.owner(),
+                                    (0., 0.).into(),
+                                    modules,
+                                ))
                                 .unwrap();
                             process_token
                                 .mark_completed(environment_context.process_token_context());
@@ -319,6 +325,17 @@ impl Module for Dockyard {
 
         self.docking_clamp
             .proceed(environment_context, decider_vault, logger);
+    }
+
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        if let Some(operator) = &self.operator {
+            operator.collect_status(collector);
+        }
+        if let Some(connection) = &self.docking_clamp.connection() {
+            connection.vessel.collect_status(collector);
+        }
+        collector.exit_module();
     }
 
     fn recipes(&self) -> Vec<Recipe> {
@@ -361,6 +378,13 @@ impl Module for Dockyard {
             .as_ref()
             .map(|p| p.id() == id)
             .unwrap_or(false)
+    }
+
+    fn persons(&self) -> &[Person] {
+        match self.operator.as_ref() {
+            None => &[],
+            Some(person) => std::slice::from_ref(person),
+        }
     }
 
     fn storages(&self) -> &[ItemStorage] {

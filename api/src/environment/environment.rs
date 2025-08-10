@@ -1,7 +1,7 @@
 use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, Nebula, RequestStorage};
 use crate::item::{ItemVault, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
-use crate::person::{Logger, ObjectiveDeciderVault};
+use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
 use crate::utils::request::ReqContext;
 use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
@@ -38,6 +38,10 @@ impl Environment {
         }
     }
 
+    pub fn vessels(&self) -> &[Vessel] {
+        &self.vessels
+    }
+
     pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
         self.vessels.iter().find(|v| v.id() == id)
     }
@@ -60,6 +64,14 @@ impl Environment {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
         self.process_requests(req_context, item_vault);
+    }
+
+    pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_environment(self);
+        for v in &self.vessels {   
+            v.collect_status(collector);
+        }
+        collector.exit_environment();
     }
 
     fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault) {

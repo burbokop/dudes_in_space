@@ -1,7 +1,7 @@
 use crate::environment::EnvironmentContext;
 use crate::item::ItemStorage;
 use crate::module::{ModuleCapability, ModuleStorage, TradingConsole};
-use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
+use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
 use crate::recipe::{AssemblyRecipe, Recipe};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -28,6 +28,8 @@ pub trait Module: Debug + DynSerialize {
         logger: &mut dyn Logger,
     );
 
+    fn collect_status(&self, collector: &mut dyn StatusCollector);
+
     /// crafting
     fn recipes(&self) -> Vec<Recipe>;
     /// assembly
@@ -38,6 +40,7 @@ pub trait Module: Debug + DynSerialize {
     fn insert_person(&mut self, person: Person) -> bool;
     fn free_person_slots_count(&self) -> usize;
     fn contains_person(&self, id: PersonId) -> bool;
+    fn persons(&self) -> &[Person];
 
     /// storage
     fn storages(&self) -> &[ItemStorage];

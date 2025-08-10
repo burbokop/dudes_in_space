@@ -65,6 +65,7 @@ fn station0<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     let trading_terminal = UnmannedTradingTerminal::new();
 
     Vessel::new(
+        "station0".to_string(),
         person0_id,
         (600., -300.).into(),
         vec![personnel_area, assembler, trading_terminal],
@@ -82,6 +83,7 @@ fn station1<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     let trading_terminal = UnmannedTradingTerminal::new();
 
     Vessel::new(
+        "station1".to_string(),
         person0_id,
         (-500., -500.).into(),
         vec![personnel_area, assembler, trading_terminal],

@@ -6,9 +6,7 @@ use dudes_in_space_api::module::{
     ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
     ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
 };
-use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-};
+use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -362,6 +360,14 @@ impl Module for Assembler {
         }
     }
 
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        if let Some(operator) = &self.operator {
+            operator.collect_status(collector);
+        }
+        collector.exit_module();
+    }
+
     fn recipes(&self) -> Vec<Recipe> {
         vec![]
     }
@@ -402,6 +408,13 @@ impl Module for Assembler {
             .as_ref()
             .map(|p| p.id() == id)
             .unwrap_or(false)
+    }
+
+    fn persons(&self) -> &[Person] {
+        match self.operator.as_ref() {
+            None => &[],
+            Some(person) => std::slice::from_ref(person),
+        }
     }
 
     fn storages(&self) -> &[ItemStorage] {

@@ -4,9 +4,7 @@ use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
     PackageId, TradingConsole,
 };
-use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-};
+use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -175,6 +173,18 @@ impl Module for Shuttle {
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
         todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
+        todo!()
+    }
+
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        if let Some(pilot) = &self.pilot {
+            pilot.collect_status(collector);
+        }
+        collector.exit_module();
     }
 }
 

@@ -1,8 +1,8 @@
 mod common;
 mod crafting;
 mod gathering;
-mod trading;
 mod management;
+mod trading;
 
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dudes_in_space_api::utils::request::ReqContext;
@@ -14,10 +14,12 @@ use crate::objectives::gathering::{
     MineAsteroidsObjectiveDecider, MineAsteroidsObjectiveDynSeed, ScavengeObjectiveDecider,
     ScavengeObjectiveDynSeed,
 };
+use crate::objectives::management::{
+    ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed,
+};
 use crate::objectives::trading::{
     TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed,
 };
-use crate::objectives::management::{ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed};
 
 pub fn register_objectives(
     vault: DynDeserializeSeedVault<dyn DynObjective>,
