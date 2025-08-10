@@ -17,17 +17,12 @@ pub use objectives::register_objective_deciders;
 pub use objectives::register_objectives;
 
 pub fn register_items(vault: ItemVault) -> ItemVault {
-    vault.with(Item::new(
-        "steel".into(),
-        M3(1),
-        KgPerM3::from(7850),
-    )).with(Item::new(
-        "plastic".into(),
-        M3(1),
-        KgPerM3::from(900),
-    )).with(Item::new(
-        "microelectronics".into(),
-        M3(10),
-        KgPerM3::from(2500),
-    ))
+    vault
+        .with(Item::new("steel".into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new("plastic".into(), M3(1), KgPerM3::from(900)))
+        .with(Item::new(
+            "microelectronics".into(),
+            M3(10),
+            KgPerM3::from(2500),
+        ))
 }

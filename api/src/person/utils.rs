@@ -1,13 +1,13 @@
-use crate::item::{ ItemVolume};
+use crate::item::ItemVolume;
 use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
 };
+use crate::utils::physics::M3;
 use crate::vessel::{
     DockingClamp, DockingClampConnection, DockingConnectorId, VesselConsole, VesselId,
 };
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
-use crate::utils::physics::M3;
 
 pub fn this_vessel_caps(
     this_module: &dyn ModuleConsole,

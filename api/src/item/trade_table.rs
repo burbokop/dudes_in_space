@@ -1,5 +1,6 @@
-use crate::item::{BuyOffer, ItemCount, ItemId, ItemVolume, Money, SellOffer};
+use crate::item::{BuyOffer, ItemCount, ItemId, ItemVault, ItemVolume, Money, SellOffer};
 use crate::module::{ModuleCapability, ModuleId};
+use crate::utils::range::Range;
 use crate::vessel::{Vessel, VesselId};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -29,20 +30,47 @@ impl ItemRecord {
     pub(crate) fn eval_max_profit(
         &self,
         free_storage_space: ItemVolume,
+        item_vault: &ItemVault,
     ) -> (Money, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
-            .filter(|offer| offer.offer.count_range.contains(&free_storage_space))
-            .map(|offer| (free_storage_space * offer.offer.price_per_unit, offer))
+            .filter(|offer| {
+                volume_range(&offer.offer.item, offer.offer.count_range, item_vault)
+                    .contains(&free_storage_space)
+            })
+            .map(|offer| {
+                (
+                    total_price(
+                        &offer.offer.item,
+                        free_storage_space,
+                        offer.offer.price_per_unit,
+                        item_vault,
+                    ),
+                    offer,
+                )
+            })
             .min_by(|(a, _), (b, _)| a.cmp(b))
             .unwrap();
 
         let (max_sell_price, max_price_sell_offer) = self
             .sell_offers
             .iter()
-            .filter(|offer| offer.offer.count_range.contains(&free_storage_space))
-            .map(|offer| (free_storage_space * offer.offer.price_per_unit, offer))
+            .filter(|offer| {
+                volume_range(&offer.offer.item, offer.offer.count_range, item_vault)
+                    .contains(&free_storage_space)
+            })
+            .map(|offer| {
+                (
+                    total_price(
+                        &offer.offer.item,
+                        free_storage_space,
+                        offer.offer.price_per_unit,
+                        item_vault,
+                    ),
+                    offer,
+                )
+            })
             .max_by(|(a, _), (b, _)| a.cmp(b))
             .unwrap();
 
@@ -128,4 +156,28 @@ impl TradeTable {
 
         Self { data }
     }
+}
+
+fn volume_range(
+    item_id: &ItemId,
+    count_range: Range<ItemCount>,
+    item_vault: &ItemVault,
+) -> Range<ItemVolume> {
+    let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
+    Range {
+        start: item.volume * count_range.start,
+        end: item.volume * count_range.end,
+    }
+}
+
+fn total_price(
+    item_id: &ItemId,
+    free_storage_space: ItemVolume,
+    price_per_unit: Money,
+    item_vault: &ItemVault,
+) -> Money {
+    let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
+    let count: ItemCount = free_storage_space / item.volume;
+
+    count * price_per_unit
 }

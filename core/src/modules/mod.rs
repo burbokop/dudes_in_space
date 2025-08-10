@@ -14,12 +14,12 @@ pub(crate) use personnel_area::*;
 pub(crate) use shuttle::*;
 pub(crate) use unmanned_trading_terminal::*;
 
+use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
-use dudes_in_space_api::item::{ItemVault};
 
 pub fn register_module_factories(
     vault: DynDeserializeSeedVault<dyn ModuleFactory>,

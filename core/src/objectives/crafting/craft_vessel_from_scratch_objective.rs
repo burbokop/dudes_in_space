@@ -112,7 +112,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .collect();
 
                 if dockyards.is_empty() {
-                    logger.info("CraftingDockyard");
+                    logger.info("Crafting dockyard...");
                     *self = Self::CraftingDockyard {
                         this_person: this_person.clone(),
                         needed_capabilities: std::mem::take(needed_capabilities),

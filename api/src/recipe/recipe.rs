@@ -23,7 +23,7 @@ impl Iterator for InputRecipeIntoIter {
     fn next(&mut self) -> Option<Self::Item> {
         match self.i.next() {
             None => None,
-            Some((id, count)) => Some(ItemRefStack { id, count}),
+            Some((id, count)) => Some(ItemRefStack { id, count }),
         }
     }
 }

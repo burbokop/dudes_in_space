@@ -1,19 +1,21 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
+use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
-use dyn_serde::{from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use dudes_in_space_api::utils::physics::{ M3};
-use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "CargoContainer";
 static FACTORY_TYPE_ID: &str = "CargoContainerFactory";
@@ -35,7 +37,9 @@ struct CargoContainerSeed<'v> {
 
 impl<'v> CargoContainerSeed<'v> {
     fn new(vault: &'v ItemVault) -> Self {
-        Self { storage_seed: ItemStorageSeed::new(vault) }
+        Self {
+            storage_seed: ItemStorageSeed::new(vault),
+        }
     }
 }
 
@@ -156,7 +160,9 @@ impl DynDeserializeSeed<dyn Module> for CargoContainerDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: CargoContainer = from_intermediate_seed(CargoContainerSeed::new(&self.vault), &intermediate).map_err(|e| e.to_string())?;
+        let obj: CargoContainer =
+            from_intermediate_seed(CargoContainerSeed::new(&self.vault), &intermediate)
+                .map_err(|e| e.to_string())?;
         Ok(Box::new(obj))
     }
 }

@@ -1,5 +1,5 @@
 use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, Nebula, RequestStorage};
-use crate::item::TradeTable;
+use crate::item::{ItemVault, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault};
 use crate::utils::request::ReqContext;
@@ -51,6 +51,7 @@ impl Environment {
         process_token_context: &ProcessTokenContext,
         req_context: &ReqContext,
         decider_vault: &ObjectiveDeciderVault,
+        item_vault: &ItemVault,
         logger: &mut dyn Logger,
     ) {
         let mut environment_context =
@@ -58,10 +59,10 @@ impl Environment {
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
-        self.process_requests(req_context);
+        self.process_requests(req_context, item_vault);
     }
 
-    fn process_requests(&mut self, req_context: &ReqContext) {
+    fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault) {
         for req in &mut self.request_storage.find_best_buy_offer_requests {
             let trade_table = TradeTable::build(&self.vessels);
             if let Some((
@@ -70,7 +71,10 @@ impl Environment {
             )) = trade_table
                 .iter()
                 .map(|(item_id, record)| {
-                    (record.eval_max_profit(req.input.free_storage_space), record)
+                    (
+                        record.eval_max_profit(req.input.free_storage_space, item_vault),
+                        record,
+                    )
                 })
                 .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b))
             {

@@ -171,7 +171,6 @@ pub trait Round {
     fn round(self) -> Self::Output;
 }
 
-
 impl Round for f32 {
     type Output = f32;
 
@@ -187,10 +186,6 @@ impl Round for f64 {
         f64::round(self)
     }
 }
-
-
-
-
 
 pub(crate) trait Clamp: Sized {
     type Output;

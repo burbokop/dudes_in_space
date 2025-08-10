@@ -1,23 +1,35 @@
 use crate::modules::{
-    Assembler, DockyardFactory, PersonnelArea, ShuttleFactory, UnmannedTradingTerminal,
+    Assembler, CargoContainerFactory, DockyardFactory, PersonnelArea, ShuttleFactory,
+    UnmannedTradingTerminal,
 };
 use dudes_in_space_api::environment::{Environment, Nebula};
 use dudes_in_space_api::item::{ItemRefStack, ItemStack, ItemStorage, ItemVault};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::recipe::AssemblyRecipe;
+use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::Vessel;
 use rand::Rng;
 use std::rc::Rc;
-use dudes_in_space_api::utils::physics::M3;
 
 fn recipes() -> Vec<AssemblyRecipe> {
     vec![
         AssemblyRecipe::new(
-            vec![ItemRefStack::new("steel".to_string(), 10)].try_into().unwrap(),
+            vec![
+                ItemRefStack::new("steel".to_string(), 10),
+                ItemRefStack::new("microelectronics".to_string(), 2),
+            ]
+            .try_into()
+            .unwrap(),
             Rc::new(ShuttleFactory {}),
         ),
         AssemblyRecipe::new(
-            vec![ItemRefStack::new( "steel".to_string(), 100)]
+            vec![ItemRefStack::new("steel".to_string(), 40)]
+                .try_into()
+                .unwrap(),
+            Rc::new(CargoContainerFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 100)]
                 .try_into()
                 .unwrap(),
             Rc::new(DockyardFactory {}),
@@ -28,9 +40,9 @@ fn recipes() -> Vec<AssemblyRecipe> {
 fn storage(item_vault: &ItemVault) -> ItemStorage {
     ItemStorage::from_vec(
         vec![
-            ItemStack::new(item_vault,"steel".to_string(), 900000).unwrap(),
-            ItemStack::new(item_vault,"plastic".to_string(), 90000).unwrap(),
-            ItemStack::new(item_vault,"microelectronics".to_string(), 100).unwrap(),
+            ItemStack::new(item_vault, "steel".to_string(), 900000).unwrap(),
+            ItemStack::new(item_vault, "plastic".to_string(), 90000).unwrap(),
+            ItemStack::new(item_vault, "microelectronics".to_string(), 100).unwrap(),
         ],
         M3(1000000),
     )
@@ -80,5 +92,8 @@ fn nebula() -> Nebula {
 }
 
 pub fn new<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Environment {
-    Environment::new(vec![station0(rng,item_vault), station1(rng,item_vault)], vec![nebula()])
+    Environment::new(
+        vec![station0(rng, item_vault), station1(rng, item_vault)],
+        vec![nebula()],
+    )
 }

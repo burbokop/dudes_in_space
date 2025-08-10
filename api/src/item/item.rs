@@ -1,9 +1,9 @@
+use crate::utils::physics::{Kg, KgPerM3, M3};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::{Rc, Weak};
-use crate::utils::physics::{ Kg, KgPerM3, M3};
 
 pub type ItemId = String;
 pub type ItemCount = u32;
@@ -19,11 +19,7 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn new(
-        id: ItemId,
-        volume: ItemVolume,
-        density: ItemDensity,
-    ) -> Self {
+    pub fn new(id: ItemId, volume: ItemVolume, density: ItemDensity) -> Self {
         Self {
             id,
             volume,
@@ -52,10 +48,7 @@ pub struct ItemRefStack {
 }
 
 impl ItemRefStack {
-    pub fn new(
-        id: ItemId,
-        count: ItemCount,
-    ) -> Self {
+    pub fn new(id: ItemId, count: ItemCount) -> Self {
         Self { id, count }
     }
 }
@@ -104,8 +97,7 @@ impl<'de, 'v> DeserializeSeed<'de> for ItemStackSeed<'v> {
 
         let Impl { id, count } = Impl::deserialize(deserializer)?;
         Ok(Self::Value {
-            item: self.vault.get_impl(id).map_err(serde::de::Error::custom)?
-            ,
+            item: self.vault.get(id).map_err(serde::de::Error::custom)?,
             count,
         })
     }
@@ -118,7 +110,7 @@ impl ItemStack {
         count: ItemCount,
     ) -> Result<Self, ItemNotFoundInVaultError> {
         Ok(Self {
-            item: vault.get_impl(id)?,
+            item: vault.get(id)?,
             count,
         })
     }
@@ -139,13 +131,12 @@ impl ItemVault {
         Self { data: Vec::new() }
     }
 
-    pub(crate) fn get_impl(&self, id: ItemId) -> Result<Weak<Item>, ItemNotFoundInVaultError> {
-        self
-            .data
+    pub fn get(&self, id: ItemId) -> Result<Weak<Item>, ItemNotFoundInVaultError> {
+        self.data
             .iter()
             .find(|item| item.id == id)
             .map(Rc::downgrade)
-            .ok_or(ItemNotFoundInVaultError{ id })
+            .ok_or(ItemNotFoundInVaultError { id })
     }
 
     pub fn with(mut self, item: Item) -> Self {
@@ -166,7 +157,9 @@ impl Display for DuplicateItemError {
 impl Error for DuplicateItemError {}
 
 #[derive(Debug)]
-pub struct ItemNotFoundInVaultError { id: ItemId }
+pub struct ItemNotFoundInVaultError {
+    id: ItemId,
+}
 
 impl Display for ItemNotFoundInVaultError {
     fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
