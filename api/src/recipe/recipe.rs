@@ -2,9 +2,10 @@ use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Recipe {
-    input: Vec<Item>,
-    output: Vec<Item>,
+    input: InputRecipe,
+    output: OutputRecipe,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -56,7 +57,9 @@ impl TryFrom<Vec<ItemRefStack>> for InputRecipe {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct OutputRecipe {
+    #[serde(flatten)]
     output: BTreeMap<ItemId, ItemCount>,
 }
 

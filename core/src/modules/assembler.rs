@@ -17,7 +17,7 @@ use dyn_serde::{
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::ops::Deref;
@@ -35,7 +35,7 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting]
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]
 #[serde(tag = "tp")]
-pub enum AssemblerState {
+enum AssemblerState {
     Idle,
     #[deserialize_seed_xxx(seeds = [(process_token, self.seed.seed.process_token_seed)])]
     Assembling {
@@ -51,7 +51,7 @@ struct AssemblerStateSeed<'context> {
 }
 
 impl<'context> AssemblerStateSeed<'context> {
-    pub fn new(context: &'context ProcessTokenContext) -> Self {
+    fn new(context: &'context ProcessTokenContext) -> Self {
         Self {
             process_token_seed: ProcessTokenMutSeed::new(context),
         }

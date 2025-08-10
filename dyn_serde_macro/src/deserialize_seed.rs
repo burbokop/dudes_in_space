@@ -433,7 +433,7 @@ fn deserialize_seed_enum(
                     }
                 } else {
                     quote! {
-                        #[derive(Deserialize)]
+                        #[derive(serde::Deserialize)]
                         #[allow(non_camel_case_types)] struct #struct_ident #fields;
                     }
                 }
@@ -472,7 +472,7 @@ fn deserialize_seed_enum(
             where
                 D: serde::de::Deserializer<'__de>,
             {
-                #[derive(Deserialize)]
+                #[derive(serde::Deserialize)]
                 enum Discriminant { #(#variant_idents),*, }
                 #(#variant_struct_declarations)*
 
@@ -568,7 +568,7 @@ fn deserialize_seed_tagged_enum(
                     }
                 } else {
                     quote! {
-                        #[derive(Deserialize)]
+                        #[derive(serde::Deserialize)]
                         #[allow(non_camel_case_types)] struct #struct_ident #fields;
                     }
                 }
@@ -630,7 +630,7 @@ fn deserialize_seed_tagged_enum(
                             return Err(serde::de::Error::missing_field(#tag));
                         }
 
-                        #[derive(Deserialize)]
+                        #[derive(serde::Deserialize)]
                         enum Tag { #(#variant_idents),*, }
 
                         match map.next_value::<Tag>()? {

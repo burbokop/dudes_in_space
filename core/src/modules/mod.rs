@@ -2,6 +2,7 @@ mod assembler;
 mod cargo_container;
 mod core_module;
 mod dockyard;
+mod fabricator;
 mod personnel_area;
 mod shuttle;
 mod unmanned_trading_terminal;
@@ -10,6 +11,7 @@ pub(crate) use assembler::*;
 pub(crate) use cargo_container::*;
 pub(crate) use core_module::*;
 pub(crate) use dockyard::*;
+pub(crate) use fabricator::*;
 pub(crate) use personnel_area::*;
 pub(crate) use shuttle::*;
 pub(crate) use unmanned_trading_terminal::*;
@@ -29,6 +31,7 @@ pub fn register_module_factories(
         .with(DockyardFactoryDynSeed)
         .with(CargoContainerFactoryDynSeed)
         .with(UnmannedTradingTerminalFactoryDynSeed)
+        .with(FabricatorFactoryDynSeed)
 }
 
 pub fn register_modules(
@@ -53,4 +56,5 @@ pub fn register_modules(
         ))
         .with(CargoContainerDynSeed::new(item_vault))
         .with(UnmannedTradingTerminalDynSeed)
+        .with(FabricatorDynSeed)
 }

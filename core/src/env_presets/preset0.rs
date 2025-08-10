@@ -1,6 +1,6 @@
 use crate::modules::{
-    Assembler, CargoContainerFactory, DockyardFactory, PersonnelArea, ShuttleFactory,
-    UnmannedTradingTerminal,
+    Assembler, CargoContainerFactory, DockyardFactory, FabricatorFactory, PersonnelArea,
+    ShuttleFactory, UnmannedTradingTerminal,
 };
 use dudes_in_space_api::environment::{Environment, Nebula};
 use dudes_in_space_api::item::{ItemRefStack, ItemStack, ItemStorage, ItemVault};
@@ -33,6 +33,12 @@ fn recipes() -> Vec<AssemblyRecipe> {
                 .try_into()
                 .unwrap(),
             Rc::new(DockyardFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 50)]
+                .try_into()
+                .unwrap(),
+            Rc::new(FabricatorFactory {}),
         ),
     ]
 }
