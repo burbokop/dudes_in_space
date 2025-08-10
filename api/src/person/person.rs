@@ -75,6 +75,7 @@ pub enum Passion {
     Flying,
     Ruling,
     Money,
+    Management,
     Drugs,
     Sex,
 }

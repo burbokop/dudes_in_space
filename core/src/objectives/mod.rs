@@ -2,6 +2,12 @@ mod common;
 mod crafting;
 mod gathering;
 mod trading;
+mod management;
+
+use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
+use dudes_in_space_api::utils::request::ReqContext;
+use dyn_serde::DynDeserializeSeedVault;
+use std::rc::Rc;
 
 use crate::objectives::gathering::{
     GatherResearchDataObjectiveDecider, GatherResearchDataObjectiveDynSeed,
@@ -11,10 +17,7 @@ use crate::objectives::gathering::{
 use crate::objectives::trading::{
     TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed,
 };
-use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
-use dudes_in_space_api::utils::request::ReqContext;
-use dyn_serde::DynDeserializeSeedVault;
-use std::rc::Rc;
+use crate::objectives::management::{ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed};
 
 pub fn register_objectives(
     vault: DynDeserializeSeedVault<dyn DynObjective>,
@@ -25,6 +28,7 @@ pub fn register_objectives(
         .with(GatherResearchDataObjectiveDynSeed)
         .with(MineAsteroidsObjectiveDynSeed)
         .with(ScavengeObjectiveDynSeed)
+        .with(ManageProductionStationObjectiveDynSeed)
 }
 
 pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDeciderVault {
@@ -33,4 +37,5 @@ pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDec
         .with(GatherResearchDataObjectiveDecider)
         .with(MineAsteroidsObjectiveDecider)
         .with(ScavengeObjectiveDecider)
+        .with(ManageProductionStationObjectiveDecider)
 }
