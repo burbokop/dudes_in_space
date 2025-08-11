@@ -14,6 +14,12 @@ pub struct InputItemRecipe {
     input: BTreeMap<ItemId, ItemCount>,
 }
 
+impl<const N: usize> From<[(ItemId, ItemCount); N]> for InputItemRecipe {
+    fn from(arr: [(ItemId, ItemCount); N]) -> Self {
+        Self { input: BTreeMap::from(arr) }
+    }
+}
+
 pub struct InputItemRecipeIntoIter {
     i: btree_map::IntoIter<ItemId, ItemCount>,
 }
@@ -63,11 +69,17 @@ pub struct OutputItemRecipe {
     output: BTreeMap<ItemId, ItemCount>,
 }
 
+impl<const N: usize> From<[(ItemId, ItemCount); N]> for OutputItemRecipe {
+    fn from(arr: [(ItemId, ItemCount); N]) -> Self {
+        Self { output: BTreeMap::from(arr) }
+    }
+}
+
 impl OutputItemRecipe {
     pub fn len(&self) -> usize {
         self.output.len()
     }
-    
+
     pub fn first(&self) -> Option<(&ItemId, &ItemCount)> {
         self.output.first_key_value()
     }

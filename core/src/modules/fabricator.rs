@@ -1,5 +1,6 @@
+use std::convert::Into;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVolume};
+use dudes_in_space_api::item::{ItemRefStack, ItemStorage, ItemStorageSeed, ItemVolume};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
     ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
@@ -13,8 +14,8 @@ use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use dyn_serde_macro::DeserializeSeedXXX;
-use serde::Serialize;
-use serde_intermediate::Intermediate;
+use serde::{Deserialize, Serialize};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
 
@@ -26,7 +27,39 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::PersonnelRoom,
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemCrafting];
-static ITEM_STORAGE_CAPACITY: ItemVolume = M3(1000);
+static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
+
+/// basic resources
+biomass;
+silicon_ore;
+iron_ore;
+rare_earth_ore;
+ice;
+
+/// recipes
+ice -> water;
+biomass -> carbon;
+carbon -> plastic;
+silicon_ore -> silicon;
+iron_ore + carbon -> steel;
+rare_earth_ore -> rare_earth_alloys;
+silicon + rare_earth_alloys + plastic -> microelctronics;
+steel -> heat_cell;
+
+/// cooling
+heat_cell -> hot_heat_cell;
+hot_heat_cell -> heat_cell;
+
+static RECIPES: &[ItemRecipe] = &[
+    ItemRecipe {
+        input: [("x".into(),10)].into(),
+        output: [("y".into(),10)].into(),
+    },
+    ItemRecipe {
+        input: [("x".into(),10)].into(),
+        output: [("y".into(),10)].into(),
+    },
+];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorStateSeed::<'context>)]
@@ -119,7 +152,6 @@ impl Module for Fabricator {
         todo!()
     }
 
-
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
@@ -197,6 +229,7 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub(crate) struct FabricatorFactory {}
 struct FabricatorFactorySeed {}
 
@@ -208,11 +241,11 @@ impl Debug for FabricatorFactory {
 
 impl DynSerialize for FabricatorFactory {
     fn type_id(&self) -> TypeId {
-        todo!()
+        FACTORY_TYPE_ID.into()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
@@ -222,15 +255,22 @@ impl ModuleFactory for FabricatorFactory {
     }
 
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
-        todo!()
+        Box::new(Fabricator{
+            id: ModuleId::new_v4(),
+            recipes: vec![],
+            state: FabricatorState::Idle,
+            input_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
+            output_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
+            operator: None,
+        })
     }
 
     fn output_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn output_primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 }
 
@@ -246,6 +286,8 @@ impl DynDeserializeSeed<dyn ModuleFactory> for FabricatorFactoryDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
-        todo!()
+        let r: Box<FabricatorFactory> =
+            serde_intermediate::from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+        Ok(r)
     }
 }

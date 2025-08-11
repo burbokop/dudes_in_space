@@ -1,23 +1,27 @@
-use std::collections::VecDeque;
-use crate::objectives::crafting::{CraftItemsObjective, CraftModulesObjective};
-use dudes_in_space_api::environment::{EnvironmentContext, FindBestOffersForItem, FindBestOffersForItemResult};
+use crate::objectives::crafting::{
+    CraftItemsObjective, CraftModulesObjective, CraftModulesObjectiveError,
+};
+use dudes_in_space_api::environment::{
+    EnvironmentContext, FindBestOffersForItem, FindBestOffersForItemResult,
+};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
+use dudes_in_space_api::recipe::ItemRecipe;
+use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
-use serde::{ Serialize};
+use dyn_serde_macro::DeserializeSeedXXX;
+use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
+use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
-use dudes_in_space_api::recipe::ItemRecipe;
-use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dyn_serde_macro::DeserializeSeedXXX;
 
 static TYPE_ID: &str = "ManageProductionStationObjective";
 
@@ -43,7 +47,9 @@ pub(crate) enum ManageProductionStationObjective {
 }
 
 impl ManageProductionStationObjective {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(logger: &mut PersonLogger) -> Self {
+        logger.info("ManageProductionStationObjective::new");
+
         Self::CheckAllPrerequisites {
             recipes_to_consider: VecDeque::new(),
         }
@@ -74,30 +80,29 @@ impl Objective for ManageProductionStationObjective {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            Self::CheckAllPrerequisites {recipes_to_consider} => {
-
+            Self::CheckAllPrerequisites {
+                recipes_to_consider,
+            } => {
                 while let Some(recipe) = recipes_to_consider.pop_front() {
                     if recipe.output.len() == 1 {
-                        let (item, _) = recipe.output.first().unwrap()
-                            ;
+                        let (item, _) = recipe.output.first().unwrap();
 
+                        logger.info("ManageProductionStationObjective::FindBestOffersForItem");
                         *self = Self::FindBestOffersForItem {
-                            future: FindBestOffersForItem {
-                                item: item.clone(),
-                            }
+                            future: FindBestOffersForItem { item: item.clone() }
                                 .push(environment_context.request_storage_mut()),
                             recipes_to_consider: std::mem::take(recipes_to_consider),
                         };
- return                       Ok(ObjectiveStatus::InProgress)
+                        return Ok(ObjectiveStatus::InProgress);
                     }
                 }
 
-
                 struct ItemCrafter {
-                    item_recipes: Vec<ItemRecipe>
+                    item_recipes: Vec<ItemRecipe>,
                 }
 
-                let item_crafter_modules = this_vessel.modules_with_capability(ModuleCapability::ItemCrafting);
+                let item_crafter_modules =
+                    this_vessel.modules_with_capability(ModuleCapability::ItemCrafting);
 
                 let item_crafter_modules: Vec<_> = item_crafter_modules
                     .iter()
@@ -108,11 +113,11 @@ impl Objective for ManageProductionStationObjective {
                         this_module
                             .capabilities()
                             .contains(&ModuleCapability::ItemCrafting)
-                            .then_some(
-                                this_module.crafting_console()
-                                ).flatten().map(|console|ItemCrafter {
-                            item_recipes: console.item_recipes().iter().cloned().collect(),
-                        })
+                            .then_some(this_module.crafting_console())
+                            .flatten()
+                            .map(|console| ItemCrafter {
+                                item_recipes: console.item_recipes().iter().cloned().collect(),
+                            })
                             .into_iter(),
                     )
                     .collect();
@@ -131,18 +136,44 @@ impl Objective for ManageProductionStationObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-               *recipes_to_consider = item_crafter_modules.into_iter().map(|x|x.item_recipes).flatten().collect();
+                *recipes_to_consider = item_crafter_modules
+                    .into_iter()
+                    .map(|x| x.item_recipes)
+                    .flatten()
+                    .collect();
                 Ok(ObjectiveStatus::InProgress)
             }
-            Self::FindBestOffersForItem { future, recipes_to_consider } => {
-                match future.take() {
-                    Ok(x) => todo!(),
-                    Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
-                    Err(ReqTakeError::AlreadyTaken) => unreachable!(),
-                }
+            Self::FindBestOffersForItem {
+                future,
+                recipes_to_consider,
+            } => match future.take() {
+                Ok(x) => todo!(),
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
+                Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::ExecuteProduction { second_attempt, craft_objective } => todo!(),
-            Self::CraftFabricator { craft_objective } => todo!(),
+            Self::ExecuteProduction {
+                second_attempt,
+                craft_objective,
+            } => {
+                todo!()
+            }
+            Self::CraftFabricator { craft_objective } => match craft_objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done) => {
+                    logger.info("ManageProductionStationObjective::CheckAllPrerequisites");
+                    *self = Self::CheckAllPrerequisites {
+                        recipes_to_consider: VecDeque::new(),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+                Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
+            },
         }
     }
 }
@@ -163,7 +194,7 @@ impl ObjectiveDecider for ManageProductionStationObjectiveDecider {
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Management) || passions.contains(&Passion::Ruling) {
             logger.info("Manage production station objective decided.");
-            Some(Box::new(ManageProductionStationObjective::new()))
+            Some(Box::new(ManageProductionStationObjective::new(logger)))
         } else {
             None
         }
@@ -181,14 +212,12 @@ impl DynSerialize for ManageProductionStationObjective {
 }
 
 pub(crate) struct ManageProductionStationObjectiveDynSeed {
-    req_context: Rc<ReqContext>
+    req_context: Rc<ReqContext>,
 }
 
 impl ManageProductionStationObjectiveDynSeed {
     pub fn new(req_context: Rc<ReqContext>) -> Self {
-        Self {
-            req_context
-        }
+        Self { req_context }
     }
 }
 
@@ -202,19 +231,23 @@ impl DynDeserializeSeed<dyn DynObjective> for ManageProductionStationObjectiveDy
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
     ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
-        let obj: ManageProductionStationObjective =
-            from_intermediate_seed(ManageProductionStationObjectiveSeed::new(&self.req_context), &intermediate)
-                .map_err(Box::new)?;
+        let obj: ManageProductionStationObjective = from_intermediate_seed(
+            ManageProductionStationObjectiveSeed::new(&self.req_context),
+            &intermediate,
+        )
+        .map_err(Box::new)?;
         Ok(Box::new(obj))
     }
 }
 
 #[derive(Debug)]
-pub(crate) enum ManageProductionStationObjectiveError {}
+pub(crate) enum ManageProductionStationObjectiveError {
+    CraftingFabricatorError(CraftModulesObjectiveError),
+}
 
 impl Display for ManageProductionStationObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{:?}", self)
     }
 }
 

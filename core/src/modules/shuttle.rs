@@ -1,5 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ ItemStorage};
+use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
     PackageId, TradingConsole,
@@ -109,8 +109,6 @@ impl Module for Shuttle {
             )
         }
     }
-
-
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()

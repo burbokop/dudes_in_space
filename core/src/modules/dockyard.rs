@@ -1,6 +1,10 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::module::{
+    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
+    ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
@@ -183,7 +187,6 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
-
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
         todo!()
     }
@@ -340,7 +343,6 @@ impl Module for Dockyard {
     fn item_recipes(&self) -> &[ItemRecipe] {
         todo!()
     }
-
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()

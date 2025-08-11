@@ -1,11 +1,17 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemId, ItemStorage, ItemStorageSeed, ItemVault};
-use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::module::{
+    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
+    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ItemRecipe, ModuleFactory, OutputItemRecipe};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, AssemblyRecipeSeed, ItemRecipe, ModuleFactory, OutputItemRecipe,
+};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -284,9 +290,8 @@ impl<'a> CraftingConsole for Console<'a> {
         todo!()
     }
 
-
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        self.recipes
     }
 }
 

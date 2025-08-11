@@ -1,4 +1,6 @@
-use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemResult, Nebula, RequestStorage};
+use crate::environment::{
+    EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemResult, Nebula, RequestStorage,
+};
 use crate::item::{ItemVault, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
@@ -102,9 +104,6 @@ impl Environment {
                     .unwrap()
             }
         }
-
-
-
 
         for req in &mut self.request_storage.find_best_offers_for_item_requests {
             if let Some(record) = TradeTable::build(&self.vessels).get(&req.input.item) {

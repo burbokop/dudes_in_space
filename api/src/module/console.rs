@@ -91,11 +91,11 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     }
 
     fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
-        todo!()
+        None
     }
 
     fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
-        todo!()
+        None
     }
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
@@ -158,7 +158,7 @@ pub trait CraftingConsole {
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
     fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability];
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
-    
+
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;
     fn active_recipe(&self) -> Option<usize>;

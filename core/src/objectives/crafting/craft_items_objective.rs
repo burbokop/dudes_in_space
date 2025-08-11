@@ -1,13 +1,13 @@
-use std::collections::{BTreeMap};
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
-use dudes_in_space_api::recipe::{ItemRecipe};
+use dudes_in_space_api::recipe::ItemRecipe;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "craft_items_objective_stage")]
@@ -35,7 +35,10 @@ impl CraftItemsObjective {
         Self::SearchingForCraftingModule { needed_items }
     }
 
-    fn is_recipe_set_suitable(recipes: &[ItemRecipe], mut needed_items: Vec<(ItemId, ItemCount)>) -> bool {
+    fn is_recipe_set_suitable(
+        recipes: &[ItemRecipe],
+        mut needed_items: Vec<(ItemId, ItemCount)>,
+    ) -> bool {
         for r in recipes {
             for (item_id, _) in r.output.clone() {
                 if let Some(i) = needed_items.iter().position(|(x, _)| *x == item_id) {
@@ -89,16 +92,11 @@ impl Objective for CraftItemsObjective {
                 }
                 Err(CraftItemsObjectiveError::CanNotFindCraftingModule)
             }
-            Self::MovingToCraftingModule {
-                dst,
-needed_items,
-            } => {
+            Self::MovingToCraftingModule { dst, needed_items } => {
                 if *dst == this_module.id() {
                     logger.info("Crafting modules...");
                     *self = Self::Crafting {
-                        needed_items: BTreeMap::from_iter(std::mem::take(
-                            needed_items,
-                        )),
+                        needed_items: BTreeMap::from_iter(std::mem::take(needed_items)),
                         process_token: None,
                     };
                 } else {
@@ -125,7 +123,9 @@ needed_items,
                 None => {
                     if let Some((item, _)) = needed_items.first_key_value() {
                         let crafting_console = this_module.crafting_console_mut().unwrap();
-                        let recipe = crafting_console.recipe_by_output_item(item.clone()).unwrap();
+                        let recipe = crafting_console
+                            .recipe_by_output_item(item.clone())
+                            .unwrap();
                         assert!(crafting_console.has_resources_for_recipe(recipe));
                         assert!(process_token.is_none());
                         *process_token = Some(crafting_console.start(recipe, false).unwrap());
@@ -151,8 +151,7 @@ needed_items,
                         .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
-                        return if needed_items.is_empty()
-                        {
+                        return if needed_items.is_empty() {
                             logger.info("Done crafting modules.");
                             *self = Self::Done;
                             Ok(ObjectiveStatus::Done)

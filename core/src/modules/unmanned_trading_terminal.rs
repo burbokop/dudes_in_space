@@ -83,7 +83,6 @@ impl Module for UnmannedTradingTerminal {
         todo!()
     }
 
-
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
