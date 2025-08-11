@@ -3,8 +3,10 @@ use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolu
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::person::{
+    Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
+};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -84,7 +86,7 @@ impl Module for CargoContainer {
         collector.exit_module();
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
+    fn item_recipes(&self) -> &[ItemRecipe] {
         todo!()
     }
 
@@ -184,7 +186,7 @@ impl ModuleFactory for CargoContainerFactory {
         todo!()
     }
 
-    fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
+    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(CargoContainer {
             id: ModuleId::new_v4(),
             storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),

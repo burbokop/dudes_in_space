@@ -143,6 +143,7 @@ fn deserialize_seed_struct_visitor(
 ) -> proc_macro2::TokenStream {
     struct FieldRecipe {
         field_ident: Ident,
+        has_unnamed_ident: bool,
         variant_ident: Ident,
         field_name: String,
         var_decl: proc_macro2::TokenStream,
@@ -153,7 +154,7 @@ fn deserialize_seed_struct_visitor(
     }
 
     let fields: Vec<FieldRecipe> = fields.into_iter().enumerate().map(|(index, field)| {
-        let field_ident = field.ident.as_ref().unwrap_or(&format_ident!("field{}", index)).clone();
+        let field_ident = field.ident.as_ref().unwrap_or(&format_ident!("field_{}", index)).clone();
         let field_type: Type = field.ty.clone();
         let field_name = field_ident.to_string();
         let variant_ident = Ident::new(&field_ident.to_string().to_case(Case::Pascal), field_ident.span());
@@ -217,7 +218,7 @@ fn deserialize_seed_struct_visitor(
             let #locale_variable_ident: #field_type = #locale_variable_ident.ok_or_else(|| serde::de::Error::missing_field(#field_name))?;
         };
 
-        FieldRecipe { field_ident, variant_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
+        FieldRecipe { field_ident, has_unnamed_ident: field.ident.is_none(), variant_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
     }).collect();
 
     let expected_root: String = format!("struct {}", ident);
@@ -311,6 +312,20 @@ fn deserialize_seed_struct_visitor(
         })
         .collect();
 
+    let result_construction = if !fields.is_empty() && fields.iter().any(|f| f.has_unnamed_ident) {
+        quote! {
+            #ident (
+                #(#field_assignments),*,
+            )
+        }
+    } else {
+        quote! {
+            #ident {
+                #(#field_assignments),*,
+            }
+        }
+    };
+
     quote! {
         const NAMES: &[&str] = &[ #(#field_names),* ];
 
@@ -364,9 +379,9 @@ fn deserialize_seed_struct_visitor(
                     }
                 }
                 #(#check_missings)*
-                Ok(#ident {
-                    #(#field_assignments),*,
-                })
+                Ok(
+                    #result_construction
+                )
             }
         }
     }
@@ -517,6 +532,7 @@ fn deserialize_seed_tagged_enum(
         ident: Ident,
         struct_declaration: proc_macro2::TokenStream,
         arm: proc_macro2::TokenStream,
+        is_tuple: bool,
     }
 
     let variants: Vec<_> = variants
@@ -547,22 +563,43 @@ fn deserialize_seed_tagged_enum(
                 )
             });
 
-            let fields_copy_list = fields
+            let is_tuple = match &fields {
+                Fields::Unnamed(_) => true,
+                _ => false,
+            };
+
+            let fields_copy_list: Vec<_> = fields
                 .iter()
                 .enumerate()
-                .map(|(index,f)|f.ident.clone().unwrap_or(Ident::new(&format!("field{}",index) , f.span())))
-                .map(|f|quote!{ #f: self.#f });
+                .map(|(index,f)|
+                         match f.ident.clone() {
+                             None => {let ident = format_ident!("field_{}", index); quote!{ #ident } },
+                             Some(ident) => quote!{ #ident: self.#ident },
+                         }).collect();
 
             VariantRecipe {
                 name: variant.ident.to_string(),
                 ident: variant.ident.clone(),
                 struct_declaration: if struct_seed_impl.is_some() {
-                    quote! {
-                        #[allow(non_camel_case_types)] struct #struct_ident #fields;
+                    if is_tuple {
+                        quote! {
+                            #[allow(non_camel_case_types)] struct #struct_ident #fields;
 
-                        impl #struct_ident {
-                            fn into_dst(self) -> #ident {
-                                #ident :: #variant_ident { #(#fields_copy_list),*, }
+                            impl #struct_ident {
+                                fn into_dst(self) -> #ident {
+                                    let Self( #(#fields_copy_list),*, ) = self;
+                                    #ident :: #variant_ident ( #(#fields_copy_list),*, )
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            #[allow(non_camel_case_types)] struct #struct_ident #fields;
+
+                            impl #struct_ident {
+                                fn into_dst(self) -> #ident {
+                                    #ident :: #variant_ident { #(#fields_copy_list),*, }
+                                }
                             }
                         }
                     }
@@ -594,6 +631,7 @@ fn deserialize_seed_tagged_enum(
                     },
                 }
                     .into(),
+                is_tuple,
             }
         })
         .collect();
@@ -603,7 +641,7 @@ fn deserialize_seed_tagged_enum(
     let variant_struct_declarations = variants.iter().map(|v| v.struct_declaration.clone());
     let variant_arms = variants.iter().map(|v| v.arm.clone());
 
-    quote! {
+    let x = quote! {
         impl<'__de, #(#seed_generic_args),*> serde::de::DeserializeSeed<'__de> for #seed_type <#(#seed_generic_args),*> {
             type Value = #ident;
 
@@ -643,5 +681,11 @@ fn deserialize_seed_tagged_enum(
             }
         }
     }
-        .into()
+        .into();
+
+    if !variants.is_empty() && variants.iter().any(|v| v.is_tuple) {
+        println!("aboba: {}", x)
+    }
+
+    x
 }

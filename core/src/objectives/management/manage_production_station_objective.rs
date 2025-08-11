@@ -1,4 +1,4 @@
-use crate::objectives::trading::TradeFromScratchObjective;
+use crate::objectives::crafting::{CraftItemsObjective, CraftModulesObjective};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
@@ -6,16 +6,57 @@ use dudes_in_space_api::person::{
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
 use dudes_in_space_api::vessel::VesselConsole;
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
-use serde::{Deserialize, Serialize};
-use serde_intermediate::Intermediate;
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use serde::de::DeserializeSeed;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 static TYPE_ID: &str = "ManageProductionStationObjective";
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct ManageProductionStationObjective {}
+pub(crate) enum ManageProductionStationObjective {
+    ExecuteProduction {
+        second_attempt: bool,
+        craft_objective: CraftItemsObjective,
+    },
+    CraftFabricator {
+        craft_objective: CraftModulesObjective,
+    },
+}
+
+impl ManageProductionStationObjective {
+    pub(crate) fn new() -> Self {
+        Self::ExecuteProduction {
+            second_attempt: false,
+            craft_objective: CraftItemsObjective::new(
+                
+            )
+        }
+    }
+}
+
+struct ManageProductionStationObjectiveSeed {}
+
+impl ManageProductionStationObjectiveSeed {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for ManageProductionStationObjectiveSeed {
+    type Value = ManageProductionStationObjective;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        ManageProductionStationObjective::deserialize(deserializer)
+    }
+}
 
 impl Objective for ManageProductionStationObjective {
     type Error = ManageProductionStationObjectiveError;
@@ -48,10 +89,20 @@ impl ObjectiveDecider for ManageProductionStationObjectiveDecider {
     ) -> Option<Box<dyn DynObjective>> {
         if passions.contains(&Passion::Management) || passions.contains(&Passion::Ruling) {
             logger.info("Manage production station objective decided.");
-            Some(Box::new(TradeFromScratchObjective::new(*person_id)))
+            Some(Box::new(ManageProductionStationObjective::new()))
         } else {
             None
         }
+    }
+}
+
+impl DynSerialize for ManageProductionStationObjective {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.to_string()
+    }
+
+    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
@@ -67,7 +118,10 @@ impl DynDeserializeSeed<dyn DynObjective> for ManageProductionStationObjectiveDy
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
     ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
-        todo!()
+        let obj: ManageProductionStationObjective =
+            from_intermediate_seed(ManageProductionStationObjectiveSeed::new(), &intermediate)
+                .map_err(Box::new)?;
+        Ok(Box::new(obj))
     }
 }
 

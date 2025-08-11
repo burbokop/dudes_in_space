@@ -1,11 +1,13 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::item::{ ItemStorage};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
     PackageId, TradingConsole,
 };
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -108,9 +110,7 @@ impl Module for Shuttle {
         }
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
-        todo!()
-    }
+
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
@@ -186,6 +186,10 @@ impl Module for Shuttle {
         }
         collector.exit_module();
     }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        todo!()
+    }
 }
 
 pub(crate) struct ShuttleDynSeed {
@@ -249,7 +253,7 @@ impl ModuleFactory for ShuttleFactory {
         todo!()
     }
 
-    fn create(&self, _: &InputRecipe) -> Box<dyn Module> {
+    fn create(&self, _: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Shuttle {
             id: ModuleId::new_v4(),
             docking_connector: DockingConnector::new(DOCKING_CONNECTOR_COMPAT_TYPE),

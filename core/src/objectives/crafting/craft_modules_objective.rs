@@ -98,9 +98,9 @@ impl Objective for CraftModulesObjective {
                 needed_primary_capabilities,
                 deploy,
             } => {
-                if let Some(assembly_console) = this_module.assembly_console() {
+                if let Some(assembly_console) = this_module.crafting_console() {
                     if Self::is_recipe_set_suitable(
-                        assembly_console.recipes(),
+                        assembly_console.assembly_recipes(),
                         needed_capabilities.clone(),
                         needed_primary_capabilities.clone(),
                     ) {
@@ -191,7 +191,7 @@ impl Objective for CraftModulesObjective {
             } => match process_token {
                 None => {
                     if let Some(cap) = needed_capabilities.first() {
-                        let assembly_console = this_module.assembly_console_mut().unwrap();
+                        let assembly_console = this_module.crafting_console_mut().unwrap();
                         let recipe = assembly_console.recipe_by_output_capability(*cap).unwrap();
                         assert!(assembly_console.has_resources_for_recipe(recipe));
                         assert!(process_token.is_none());
@@ -212,7 +212,7 @@ impl Objective for CraftModulesObjective {
                     }
 
                     if let Some(cap) = needed_primary_capabilities.first() {
-                        let assembly_console = this_module.assembly_console_mut().unwrap();
+                        let assembly_console = this_module.crafting_console_mut().unwrap();
                         let recipe = assembly_console
                             .recipe_by_output_primary_capability(*cap)
                             .unwrap();

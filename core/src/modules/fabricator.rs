@@ -4,8 +4,10 @@ use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
     ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
 };
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::person::{
+    Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -55,7 +57,7 @@ impl<'context> FabricatorStateSeed<'context> {
 #[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v, 'sv, 'context>)]
 struct Fabricator {
     id: ModuleId,
-    recipes: Vec<Recipe>,
+    recipes: Vec<ItemRecipe>,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: FabricatorState,
     #[deserialize_seed_xxx(seed = self.seed.item_storage_seed)]
@@ -113,9 +115,10 @@ impl Module for Fabricator {
         todo!()
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
+    fn item_recipes(&self) -> &[ItemRecipe] {
         todo!()
     }
+
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
@@ -218,7 +221,7 @@ impl ModuleFactory for FabricatorFactory {
         todo!()
     }
 
-    fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
+    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         todo!()
     }
 

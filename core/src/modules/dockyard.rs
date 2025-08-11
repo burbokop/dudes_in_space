@@ -1,12 +1,10 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{
-    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
-    ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{
     DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface,
@@ -177,13 +175,14 @@ impl<'a> ModuleConsole for Console<'a> {
         }
     }
 
-    fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
         None
     }
 
-    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
         todo!()
     }
+
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
         todo!()
@@ -338,9 +337,10 @@ impl Module for Dockyard {
         collector.exit_module();
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
+    fn item_recipes(&self) -> &[ItemRecipe] {
         todo!()
     }
+
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
@@ -442,7 +442,7 @@ impl ModuleFactory for DockyardFactory {
         todo!()
     }
 
-    fn create(&self, recipe: &InputRecipe) -> Box<dyn Module> {
+    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Dockyard::new(DOCKING_CLAMP_COMPAT_TYPE))
     }
 

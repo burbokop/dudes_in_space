@@ -3,22 +3,22 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Recipe {
-    input: InputRecipe,
-    output: OutputRecipe,
+pub struct ItemRecipe {
+    pub input: InputItemRecipe,
+    pub output: OutputItemRecipe,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct InputRecipe {
+pub struct InputItemRecipe {
     #[serde(flatten)]
     input: BTreeMap<ItemId, ItemCount>,
 }
 
-pub struct InputRecipeIntoIter {
+pub struct InputItemRecipeIntoIter {
     i: btree_map::IntoIter<ItemId, ItemCount>,
 }
 
-impl Iterator for InputRecipeIntoIter {
+impl Iterator for InputItemRecipeIntoIter {
     type Item = ItemRefStack;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -29,18 +29,18 @@ impl Iterator for InputRecipeIntoIter {
     }
 }
 
-impl IntoIterator for InputRecipe {
+impl IntoIterator for InputItemRecipe {
     type Item = ItemRefStack;
-    type IntoIter = InputRecipeIntoIter;
+    type IntoIter = InputItemRecipeIntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        InputRecipeIntoIter {
+        InputItemRecipeIntoIter {
             i: self.input.into_iter(),
         }
     }
 }
 
-impl TryFrom<Vec<ItemRefStack>> for InputRecipe {
+impl TryFrom<Vec<ItemRefStack>> for InputItemRecipe {
     type Error = DuplicateItemError;
 
     fn try_from(value: Vec<ItemRefStack>) -> Result<Self, Self::Error> {
@@ -58,12 +58,21 @@ impl TryFrom<Vec<ItemRefStack>> for InputRecipe {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct OutputRecipe {
+pub struct OutputItemRecipe {
     #[serde(flatten)]
     output: BTreeMap<ItemId, ItemCount>,
 }
 
-impl TryFrom<Vec<Item>> for OutputRecipe {
+impl IntoIterator for OutputItemRecipe {
+    type Item = (ItemId, ItemCount);
+    type IntoIter = btree_map::IntoIter<ItemId, ItemCount>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.output.into_iter()
+    }
+}
+
+impl TryFrom<Vec<Item>> for OutputItemRecipe {
     type Error = DuplicateItemError;
 
     fn try_from(_value: Vec<Item>) -> Result<Self, Self::Error> {

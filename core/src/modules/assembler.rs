@@ -1,13 +1,11 @@
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault};
-use dudes_in_space_api::module::{
-    AssemblyConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
-    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+use dudes_in_space_api::item::{ItemId, ItemStorage, ItemStorageSeed, ItemVault};
+use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ModuleFactory, Recipe};
+use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, ItemRecipe, ModuleFactory, OutputItemRecipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -172,11 +170,11 @@ impl<'a> ModuleConsole for Console<'a> {
         }
     }
 
-    fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
         Some(self)
     }
 
-    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
         Some(self)
     }
 
@@ -229,7 +227,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 }
 
-impl<'a> AssemblyConsole for Console<'a> {
+impl<'a> CraftingConsole for Console<'a> {
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize> {
         self.recipes
             .iter()
@@ -242,12 +240,20 @@ impl<'a> AssemblyConsole for Console<'a> {
             .position(|recipe| recipe.output_primary_capabilities().contains(&capability))
     }
 
+    fn recipe_by_output_item(&self, item: ItemId) -> Option<usize> {
+        todo!()
+    }
+
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
         self.recipes[index].output_capabilities()
     }
 
     fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability] {
         self.recipes[index].output_primary_capabilities()
+    }
+
+    fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe> {
+        todo!()
     }
 
     fn has_resources_for_recipe(&self, index: usize) -> bool {
@@ -274,8 +280,13 @@ impl<'a> AssemblyConsole for Console<'a> {
         Some(token)
     }
 
-    fn recipes(&self) -> &[AssemblyRecipe] {
-        self.recipes
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        todo!()
+    }
+
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+        todo!()
     }
 }
 
@@ -368,8 +379,8 @@ impl Module for Assembler {
         collector.exit_module();
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
-        vec![]
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {

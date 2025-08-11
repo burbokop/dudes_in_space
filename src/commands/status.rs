@@ -8,17 +8,29 @@ use dudes_in_space_api::vessel::Vessel;
 static TAB: &str = "   ";
 
 #[derive(Parser)]
-pub(crate) struct StatusCommand {}
+pub(crate) struct StatusCommand {
+    #[arg(short = 'p', long)]
+    with_passions: bool,
+}
 
 impl StatusCommand {
     pub(crate) fn exec(self, environment: &Environment) {
-        environment.collect_status(&mut StdOutStatusCollector::default());
+        environment.collect_status(&mut StdOutStatusCollector::new(self.with_passions));
     }
 }
 
-#[derive(Default)]
 struct StdOutStatusCollector {
+    with_passions: bool,
     level: usize,
+}
+
+impl StdOutStatusCollector {
+    fn new(with_passions: bool) -> Self {
+        Self {
+            with_passions,
+            level: 0,
+        }
+    }
 }
 
 impl StatusCollector for StdOutStatusCollector {
@@ -38,13 +50,30 @@ impl StatusCollector for StdOutStatusCollector {
     }
 
     fn enter_person(&mut self, person: &Person) {
-        println!("{}",
-        format!(
-            "{}{} -> {}",
-            TAB.repeat(self.level),
-            person.name(),
-            person.objective_type_id().unwrap_or("None".to_string())
-        ).green());
+        if self.with_passions {
+            println!(
+                "{} (passions: {:?})",
+                format!(
+                    "{}{} -> {}",
+                    TAB.repeat(self.level),
+                    person.name(),
+                    person.objective_type_id().unwrap_or("None".to_string()),
+                )
+                .green(),
+                person.passions(),
+            );
+        } else {
+            println!(
+                "{}",
+                format!(
+                    "{}{} -> {}",
+                    TAB.repeat(self.level),
+                    person.name(),
+                    person.objective_type_id().unwrap_or("None".to_string())
+                )
+                .green()
+            );
+        }
         self.level += 1
     }
 

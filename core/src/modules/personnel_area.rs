@@ -6,8 +6,10 @@ use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
     TradingConsole,
 };
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+};
+use dudes_in_space_api::recipe::{AssemblyRecipe, ItemRecipe};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
@@ -101,8 +103,8 @@ impl Module for PersonnelArea {
         }
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
-        vec![]
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -171,7 +173,7 @@ impl Module for PersonnelArea {
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         for person in &self.personnel {
-            person.collect_status(collector);       
+            person.collect_status(collector);
         }
         collector.exit_module();
     }

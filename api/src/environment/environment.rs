@@ -68,7 +68,7 @@ impl Environment {
 
     pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_environment(self);
-        for v in &self.vessels {   
+        for v in &self.vessels {
             v.collect_status(collector);
         }
         collector.exit_environment();

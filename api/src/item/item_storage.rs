@@ -1,5 +1,5 @@
 use crate::item::{Item, ItemCount, ItemId, ItemRefStack, ItemStack, ItemVault, ItemVolume};
-use crate::recipe::InputRecipe;
+use crate::recipe::InputItemRecipe;
 use crate::utils::physics::M3;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -197,7 +197,7 @@ impl ItemStorage {
         }
     }
 
-    pub fn contains_for_input(&self, input: InputRecipe) -> bool {
+    pub fn contains_for_input(&self, input: InputItemRecipe) -> bool {
         debug_assert_eq!(
             self.total_occupied_volume,
             Self::eval_total_occupied_volume(&self.content)
@@ -208,7 +208,7 @@ impl ItemStorage {
             .all(|ItemRefStack { id, count }| self.contains(id, count))
     }
 
-    pub fn try_consume(&mut self, input: InputRecipe) -> bool {
+    pub fn try_consume(&mut self, input: InputItemRecipe) -> bool {
         debug_assert_eq!(
             self.total_occupied_volume,
             Self::eval_total_occupied_volume(&self.content)

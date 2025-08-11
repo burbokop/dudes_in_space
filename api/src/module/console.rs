@@ -4,7 +4,7 @@ use crate::item::{
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::AssemblyRecipe;
+use crate::recipe::{AssemblyRecipe, ItemRecipe, OutputItemRecipe};
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
@@ -23,8 +23,8 @@ pub trait ModuleConsole {
     fn in_progress(&self) -> bool;
 
     /// consoles
-    fn assembly_console(&self) -> Option<&dyn AssemblyConsole>;
-    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole>;
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole>;
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole>;
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole>;
     fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole>;
@@ -90,11 +90,11 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
         todo!()
     }
 
-    fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
-        None
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
+        todo!()
     }
 
-    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
         todo!()
     }
 
@@ -149,19 +149,24 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
 
 pub trait ModuleInfoConsole {}
 
-pub trait AssemblyConsole {
+pub trait CraftingConsole {
     // returns index in array. TODO replace with uuid
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
+    fn recipe_by_output_item(&self, item: ItemId) -> Option<usize>;
+
     fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
     fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability];
+    fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
+    
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;
     fn active_recipe(&self) -> Option<usize>;
     /// inputs index in array. TODO replace with uuid
     /// deploy - if true will attach the produced module to this vessel, false - will store in a nearest module storage
     fn start(&mut self, index: usize, deploy: bool) -> Option<ProcessToken>;
-    fn recipes(&self) -> &[AssemblyRecipe];
+    fn item_recipes(&self) -> &[ItemRecipe];
+    fn assembly_recipes(&self) -> &[AssemblyRecipe];
 }
 
 pub trait DockyardConsole {

@@ -2,7 +2,7 @@ use crate::environment::EnvironmentContext;
 use crate::item::ItemStorage;
 use crate::module::{ModuleCapability, ModuleStorage, TradingConsole};
 use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
-use crate::recipe::{AssemblyRecipe, Recipe};
+use crate::recipe::{AssemblyRecipe, ItemRecipe};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::DynSerialize;
@@ -31,7 +31,7 @@ pub trait Module: Debug + DynSerialize {
     fn collect_status(&self, collector: &mut dyn StatusCollector);
 
     /// crafting
-    fn recipes(&self) -> Vec<Recipe>;
+    fn item_recipes(&self) -> &[ItemRecipe];
     /// assembly
     fn assembly_recipes(&self) -> &[AssemblyRecipe];
 

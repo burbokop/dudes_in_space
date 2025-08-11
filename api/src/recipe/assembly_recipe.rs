@@ -1,5 +1,5 @@
 use crate::module::{Module, ModuleCapability, ModuleTypeId};
-use crate::recipe::InputRecipe;
+use crate::recipe::{InputItemRecipe, OutputItemRecipe};
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
 use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
 use serde::Serialize;
@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 pub trait ModuleFactory: Debug + DynSerialize {
     fn output_type_id(&self) -> ModuleTypeId;
-    fn create(&self, recipe: &InputRecipe) -> Box<dyn Module>;
+    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module>;
     fn output_capabilities(&self) -> &[ModuleCapability];
     fn output_primary_capabilities(&self) -> &[ModuleCapability];
 }
@@ -18,7 +18,7 @@ dyn_serde_trait!(ModuleFactory, ModuleFactorySeed);
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::recipe::AssemblyRecipeSeed::<'v>)]
 pub struct AssemblyRecipe {
-    input: InputRecipe,
+    input: InputItemRecipe,
     #[deserialize_seed_xxx(seed = self.seed.module_factory_seed)]
     output: Rc<dyn ModuleFactory>,
 }
@@ -37,10 +37,10 @@ impl<'v> AssemblyRecipeSeed<'v> {
 }
 
 impl AssemblyRecipe {
-    pub fn new(input: InputRecipe, output: Rc<dyn ModuleFactory>) -> Self {
+    pub fn new(input: InputItemRecipe, output: Rc<dyn ModuleFactory>) -> Self {
         Self { input, output }
     }
-    pub fn input(&self) -> &InputRecipe {
+    pub fn input(&self) -> &InputItemRecipe {
         &self.input
     }
     pub fn create(&self) -> Box<dyn Module> {
@@ -51,5 +51,48 @@ impl AssemblyRecipe {
     }
     pub fn output_primary_capabilities(&self) -> &[ModuleCapability] {
         self.output.output_primary_capabilities()
+    }
+}
+
+#[derive(Debug, Serialize, DeserializeSeedXXX, Clone)]
+#[deserialize_seed_xxx(seed = crate::recipe::assembly_recipe::OutputRecipeSeed::<'v>)]
+#[serde(tag = "tp")]
+pub enum OutputRecipe {
+    Item(OutputItemRecipe),
+    #[deserialize_seed_xxx(seeds = [(field_0, self.seed.seed.module_factory_seed)])]
+    Module(Rc<dyn ModuleFactory>),
+}
+
+#[derive(Clone)]
+struct OutputRecipeSeed<'v> {
+    module_factory_seed: ModuleFactorySeed<'v>,
+}
+
+impl<'v> OutputRecipeSeed<'v> {
+    pub fn new(vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>) -> Self {
+        Self {
+            module_factory_seed: ModuleFactorySeed::new(vault),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, DeserializeSeedXXX, Clone)]
+#[deserialize_seed_xxx(seed = crate::recipe::assembly_recipe::RecipeSeed::<'v>)]
+pub struct Recipe {
+    input: InputItemRecipe,
+    #[deserialize_seed_xxx(seed = self.seed.output_recipe_seed)]
+    output: OutputRecipe,
+}
+
+#[derive(Clone)]
+struct RecipeSeed<'v> {
+    output_recipe_seed: OutputRecipeSeed<'v>,
+}
+
+impl<'v> RecipeSeed<'v> {
+    pub fn new(vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>) -> Self {
+        Self {
+            output_recipe_seed: OutputRecipeSeed::new(vault),
+        }
     }
 }
