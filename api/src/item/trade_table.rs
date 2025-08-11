@@ -27,7 +27,19 @@ impl ItemRecord {
         }
     }
 
-    pub(crate) fn eval_max_profit(
+    pub(crate) fn cheapest_buy_offer(
+        &self,
+    ) -> Option<&OfferRef<BuyOffer>> {
+        self.buy_offers.iter().min_by(|a,b|a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+    }
+
+    pub(crate) fn the_most_expensive_sell_offer(
+        &self,
+    ) -> Option<&OfferRef<SellOffer>> {
+        self.sell_offers.iter().max_by(|a,b|a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+    }
+
+        pub(crate) fn eval_max_profit(
         &self,
         free_storage_space: ItemVolume,
         item_vault: &ItemVault,
@@ -89,6 +101,10 @@ pub(crate) struct TradeTable {
 impl TradeTable {
     pub(crate) fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemRecord)> {
         self.data.iter()
+    }
+    
+    pub(crate) fn get(&self, id: &ItemId) -> Option<& ItemRecord> {
+        self.data.get(id)
     }
 
     pub(crate) fn build(vessels: &[Vessel]) -> Self {

@@ -26,11 +26,11 @@ pub fn register_objectives(
     req_context: Rc<ReqContext>,
 ) -> DynDeserializeSeedVault<dyn DynObjective> {
     vault
-        .with(TradeFromScratchObjectiveDynSeed::new(req_context))
+        .with(TradeFromScratchObjectiveDynSeed::new(req_context.clone()))
         .with(GatherResearchDataObjectiveDynSeed)
         .with(MineAsteroidsObjectiveDynSeed)
         .with(ScavengeObjectiveDynSeed)
-        .with(ManageProductionStationObjectiveDynSeed)
+        .with(ManageProductionStationObjectiveDynSeed::new(req_context))
 }
 
 pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDeciderVault {

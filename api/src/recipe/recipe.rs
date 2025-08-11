@@ -63,6 +63,16 @@ pub struct OutputItemRecipe {
     output: BTreeMap<ItemId, ItemCount>,
 }
 
+impl OutputItemRecipe {
+    pub fn len(&self) -> usize {
+        self.output.len()
+    }
+    
+    pub fn first(&self) -> Option<(&ItemId, &ItemCount)> {
+        self.output.first_key_value()
+    }
+}
+
 impl IntoIterator for OutputItemRecipe {
     type Item = (ItemId, ItemCount);
     type IntoIter = btree_map::IntoIter<ItemId, ItemCount>;

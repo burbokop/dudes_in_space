@@ -119,7 +119,7 @@ impl Objective for CraftModulesObjective {
                 }
 
                 for crafting_module in
-                    this_vessel.modules_with_capability(ModuleCapability::Crafting)
+                    this_vessel.modules_with_capability(ModuleCapability::ModuleCrafting)
                 {
                     if Self::is_recipe_set_suitable(
                         crafting_module.assembly_recipes(),

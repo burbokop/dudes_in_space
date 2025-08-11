@@ -21,12 +21,12 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Crafting,
+    ModuleCapability::ModuleCrafting,
     ModuleCapability::ItemStorage,
     ModuleCapability::PersonnelRoom,
 ];
 
-static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ModuleCrafting];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]

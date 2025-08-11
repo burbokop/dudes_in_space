@@ -1,4 +1,4 @@
-use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, Nebula, RequestStorage};
+use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemResult, Nebula, RequestStorage};
 use crate::item::{ItemVault, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
@@ -97,6 +97,24 @@ impl Environment {
                             max_estimated_profit,
                             max_profit_buy_offer,
                             max_profit_sell_offer,
+                        },
+                    )
+                    .unwrap()
+            }
+        }
+
+
+
+
+        for req in &mut self.request_storage.find_best_offers_for_item_requests {
+            if let Some(record) = TradeTable::build(&self.vessels).get(&req.input.item) {
+                println!("xxxxxx");
+                req.promise
+                    .make_ready(
+                        req_context,
+                        FindBestOffersForItemResult {
+                            max_profit_buy_offer: record.cheapest_buy_offer().cloned(),
+                            max_profit_sell_offer: record.the_most_expensive_sell_offer().cloned(),
                         },
                     )
                     .unwrap()

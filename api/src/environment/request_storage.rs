@@ -1,4 +1,4 @@
-use crate::item::{BuyOffer, ItemVolume, Money, OfferRef, SellOffer};
+use crate::item::{BuyOffer, ItemId, ItemVolume, Money, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -7,6 +7,35 @@ use std::collections::VecDeque;
 pub struct RequestStorage {
     pub(crate) find_best_buy_offer_requests:
         VecDeque<EnvironmentRequest<FindBestBuyOffer, FindBestBuyOfferResult>>,
+
+    pub(crate) find_best_offers_for_item_requests:
+        VecDeque<EnvironmentRequest<FindBestOffersForItem, FindBestOffersForItemResult>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindBestOffersForItem {
+    pub item: ItemId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindBestOffersForItemResult {
+    #[serde(with = "crate::utils::tagged_option")]
+    pub max_profit_buy_offer: Option<OfferRef<BuyOffer>>,
+    #[serde(with = "crate::utils::tagged_option")]
+    pub max_profit_sell_offer: Option<OfferRef<SellOffer>>,
+}
+
+impl FindBestOffersForItem {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestOffersForItemResult> {
+        let (promise, future) = ReqPromise::new();
+        context
+            .find_best_offers_for_item_requests
+            .push_back(EnvironmentRequest {
+                promise,
+                input: self,
+            });
+        future
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

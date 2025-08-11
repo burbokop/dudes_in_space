@@ -37,7 +37,7 @@ impl CraftItemsObjective {
 
     fn is_recipe_set_suitable(recipes: &[ItemRecipe], mut needed_items: Vec<(ItemId, ItemCount)>) -> bool {
         for r in recipes {
-            for (item_id, _) in r.output {
+            for (item_id, _) in r.output.clone() {
                 if let Some(i) = needed_items.iter().position(|(x, _)| *x == item_id) {
                     needed_items.remove(i);
                 }
@@ -72,7 +72,7 @@ impl Objective for CraftItemsObjective {
                 }
 
                 for crafting_module in
-                    this_vessel.modules_with_capability(ModuleCapability::Crafting)
+                    this_vessel.modules_with_capability(ModuleCapability::ItemCrafting)
                 {
                     if Self::is_recipe_set_suitable(
                         crafting_module.item_recipes(),

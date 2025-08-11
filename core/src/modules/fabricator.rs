@@ -21,11 +21,11 @@ use std::fmt::{Debug, Formatter};
 static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
 static CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Crafting,
+    ModuleCapability::ItemCrafting,
     ModuleCapability::ItemStorage,
     ModuleCapability::PersonnelRoom,
 ];
-static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Crafting];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemCrafting];
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(1000);
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
