@@ -1,11 +1,48 @@
-use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack};
+use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack, ItemStorage};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ItemRecipe {
     pub input: InputItemRecipe,
     pub output: OutputItemRecipe,
+}
+
+#[derive(Debug)]
+pub enum CraftingError {
+    DoesNotContainItemForInput,
+    HasNoSpaceForOutput,
+}
+
+impl Display for CraftingError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for CraftingError {}
+
+impl ItemRecipe {
+    pub fn craft(
+        &self,
+        input_storage: &mut ItemStorage,
+        output_storage: &mut ItemStorage,
+    ) -> Result<(), CraftingError> {
+        input_storage
+            .contains_for_input(self.input.clone())
+            .ok_or(CraftingError::DoesNotContainItemForInput)?;
+        output_storage
+            .has_space_for_output(self.output.clone())
+            .ok_or(CraftingError::HasNoSpaceForOutput)?;
+
+        let ok = input_storage.try_consume(self.input.clone());
+        assert!(ok);
+        let ok = output_storage.try_insert_output(self.output.clone());
+        assert!(ok);
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -16,7 +53,9 @@ pub struct InputItemRecipe {
 
 impl<const N: usize> From<[(ItemId, ItemCount); N]> for InputItemRecipe {
     fn from(arr: [(ItemId, ItemCount); N]) -> Self {
-        Self { input: BTreeMap::from(arr) }
+        Self {
+            input: BTreeMap::from(arr),
+        }
     }
 }
 
@@ -71,7 +110,9 @@ pub struct OutputItemRecipe {
 
 impl<const N: usize> From<[(ItemId, ItemCount); N]> for OutputItemRecipe {
     fn from(arr: [(ItemId, ItemCount); N]) -> Self {
-        Self { output: BTreeMap::from(arr) }
+        Self {
+            output: BTreeMap::from(arr),
+        }
     }
 }
 

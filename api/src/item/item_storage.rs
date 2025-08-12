@@ -1,5 +1,5 @@
 use crate::item::{Item, ItemCount, ItemId, ItemRefStack, ItemStack, ItemVault, ItemVolume};
-use crate::recipe::InputItemRecipe;
+use crate::recipe::{InputItemRecipe, OutputItemRecipe};
 use crate::utils::physics::M3;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -228,6 +228,24 @@ impl ItemStorage {
         }
 
         true
+    }
+
+    pub fn has_space_for_output(&self, output: OutputItemRecipe) -> bool {
+        debug_assert_eq!(
+            self.total_occupied_volume,
+            Self::eval_total_occupied_volume(&self.content)
+        );
+        debug_assert!(self.total_occupied_volume <= self.volume);
+        todo!()
+    }
+
+    pub fn try_insert_output(&mut self, output: OutputItemRecipe) -> bool {
+        debug_assert_eq!(
+            self.total_occupied_volume,
+            Self::eval_total_occupied_volume(&self.content)
+        );
+        debug_assert!(self.total_occupied_volume <= self.volume);
+        todo!()
     }
 
     fn eval_total_occupied_volume(content: &BTreeMap<ItemId, ItemStack>) -> ItemVolume {

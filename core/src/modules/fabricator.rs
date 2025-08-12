@@ -1,23 +1,28 @@
-use std::convert::Into;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemRefStack, ItemStorage, ItemStorageSeed, ItemVolume};
+use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId,
-    ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
+    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, ProcessTokenMut,
+    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
+use std::convert::Into;
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
+use std::rc::Rc;
 
 static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
@@ -28,38 +33,6 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemCrafting];
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
-
-/// basic resources
-biomass;
-silicon_ore;
-iron_ore;
-rare_earth_ore;
-ice;
-
-/// recipes
-ice -> water;
-biomass -> carbon;
-carbon -> plastic;
-silicon_ore -> silicon;
-iron_ore + carbon -> steel;
-rare_earth_ore -> rare_earth_alloys;
-silicon + rare_earth_alloys + plastic -> microelctronics;
-steel -> heat_cell;
-
-/// cooling
-heat_cell -> hot_heat_cell;
-hot_heat_cell -> heat_cell;
-
-static RECIPES: &[ItemRecipe] = &[
-    ItemRecipe {
-        input: [("x".into(),10)].into(),
-        output: [("y".into(),10)].into(),
-    },
-    ItemRecipe {
-        input: [("x".into(),10)].into(),
-        output: [("y".into(),10)].into(),
-    },
-];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorStateSeed::<'context>)]
@@ -107,17 +80,44 @@ struct FabricatorSeed<'v, 'sv, 'context> {
     state_seed: FabricatorStateSeed<'context>,
 }
 
-impl DynSerialize for Fabricator {
-    fn type_id(&self) -> TypeId {
-        todo!()
-    }
-
-    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+impl<'v, 'sv, 'context> FabricatorSeed<'v, 'sv, 'context> {
+    fn new(
+        objective_seed_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        item_vault: &'sv ItemVault,
+        context: &'context ProcessTokenContext,
+    ) -> Self {
+        Self {
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_seed_vault)),
+            item_storage_seed: ItemStorageSeed::new(item_vault),
+            state_seed: FabricatorStateSeed::new(context),
+        }
     }
 }
 
-impl Module for Fabricator {
+impl DynSerialize for Fabricator {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.into()
+    }
+
+    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
+        to_intermediate(self).map_err(|e| e.into())
+    }
+}
+
+enum FabricatorRequest {
+    Interact,
+}
+
+struct Console<'a> {
+    id: ModuleId,
+    recipes: &'a [ItemRecipe],
+    requests: Vec<FabricatorRequest>,
+    state: &'a mut FabricatorState,
+    input_storage: &'a mut ItemStorage,
+    output_storage: &'a mut ItemStorage,
+}
+
+impl ModuleConsole for Console<'_> {
     fn id(&self) -> ModuleId {
         todo!()
     }
@@ -134,6 +134,88 @@ impl Module for Fabricator {
         todo!()
     }
 
+    fn interact(&mut self) -> bool {
+        todo!()
+    }
+
+    fn in_progress(&self) -> bool {
+        todo!()
+    }
+
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
+        todo!()
+    }
+
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
+        todo!()
+    }
+
+    fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
+    }
+
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+}
+
+impl Module for Fabricator {
+    fn id(&self) -> ModuleId {
+        todo!()
+    }
+
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
@@ -141,7 +223,42 @@ impl Module for Fabricator {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        todo!()
+        let mut console = Console {
+            id: self.id,
+            recipes: &self.recipes,
+            requests: vec![],
+            state: &mut self.state,
+            input_storage: &mut self.input_storage,
+            output_storage: &mut self.output_storage,
+        };
+
+        if let Some(operator) = &mut self.operator {
+            operator.proceed(
+                &mut rng(),
+                &mut console,
+                this_vessel.console(),
+                environment_context,
+                decider_vault,
+                logger,
+            )
+        }
+
+        for request in std::mem::take(&mut console.requests) {
+            match request {
+                FabricatorRequest::Interact => match &self.state {
+                    FabricatorState::Idle => todo!(),
+                    FabricatorState::Fabricating {
+                        recipe_index,
+                        process_token,
+                    } => {
+                        self.recipes[*recipe_index]
+                            .craft(&mut self.input_storage, &mut self.output_storage)
+                            .unwrap();
+                        self.state = FabricatorState::Idle;
+                    }
+                },
+            }
+        }
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
@@ -213,7 +330,25 @@ impl Module for Fabricator {
     }
 }
 
-pub(crate) struct FabricatorDynSeed;
+pub(crate) struct FabricatorDynSeed {
+    objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    item_vault: Rc<ItemVault>,
+    context: Rc<ProcessTokenContext>,
+}
+
+impl FabricatorDynSeed {
+    pub(crate) fn new(
+        objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        item_vault: Rc<ItemVault>,
+        context: Rc<ProcessTokenContext>,
+    ) -> Self {
+        Self {
+            objective_seed_vault,
+            item_vault,
+            context,
+        }
+    }
+}
 
 impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
     fn type_id(&self) -> TypeId {
@@ -225,7 +360,13 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        todo!()
+        let obj: Fabricator = from_intermediate_seed(
+            FabricatorSeed::new(&self.objective_seed_vault, &self.item_vault, &self.context),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
+
+        Ok(Box::new(obj))
     }
 }
 
@@ -255,7 +396,7 @@ impl ModuleFactory for FabricatorFactory {
     }
 
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
-        Box::new(Fabricator{
+        Box::new(Fabricator {
             id: ModuleId::new_v4(),
             recipes: vec![],
             state: FabricatorState::Idle,

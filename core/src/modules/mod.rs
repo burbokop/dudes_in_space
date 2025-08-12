@@ -50,11 +50,15 @@ pub fn register_modules(
         ))
         .with(AssemblerDynSeed::new(
             factory_seed_vault,
-            objective_seed_vault,
+            objective_seed_vault.clone(),
             item_vault.clone(),
+            process_token_context.clone(),
+        ))
+        .with(CargoContainerDynSeed::new(item_vault.clone()))
+        .with(UnmannedTradingTerminalDynSeed)
+        .with(FabricatorDynSeed::new(
+            objective_seed_vault,
+            item_vault,
             process_token_context,
         ))
-        .with(CargoContainerDynSeed::new(item_vault))
-        .with(UnmannedTradingTerminalDynSeed)
-        .with(FabricatorDynSeed)
 }

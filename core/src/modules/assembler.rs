@@ -126,7 +126,6 @@ impl DynSerialize for Assembler {
 }
 
 enum AssemblerRequest {
-    SetRecipe(usize),
     Interact,
 }
 
@@ -340,9 +339,6 @@ impl Module for Assembler {
 
         for request in std::mem::take(&mut console.requests) {
             match request {
-                AssemblerRequest::SetRecipe(_) => {
-                    todo!()
-                }
                 AssemblerRequest::Interact => match &self.state {
                     AssemblerState::Idle => todo!(),
                     AssemblerState::Assembling {
