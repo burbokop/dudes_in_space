@@ -7,6 +7,8 @@ pub enum ModuleCapability {
     ItemStorage,
     Dockyard,
     ModuleCrafting,
+    ItemConsumption,
+    ItemProduction,
     ItemCrafting,
     PersonnelRoom,
     DockingClamp,

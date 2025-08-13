@@ -139,6 +139,10 @@ impl<'a> ModuleConsole for Console<'a> {
         self.id
     }
 
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
     fn package_id(&self) -> PackageId {
         todo!()
     }

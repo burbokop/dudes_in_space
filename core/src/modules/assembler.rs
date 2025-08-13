@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemId, ItemStorage, ItemStorageSeed, ItemVault};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
+    ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
     ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
 };
 use dudes_in_space_api::person::{
@@ -28,6 +28,7 @@ use std::rc::Rc;
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::ModuleCrafting,
+    ModuleCapability::ItemConsumption,
     ModuleCapability::ItemStorage,
     ModuleCapability::PersonnelRoom,
 ];
@@ -140,6 +141,10 @@ struct Console<'a> {
 impl<'a> ModuleConsole for Console<'a> {
     fn id(&self) -> ModuleId {
         self.id
+    }
+
+    fn type_id(&self) -> ModuleTypeId {
+        TYPE_ID.into()
     }
 
     fn package_id(&self) -> PackageId {

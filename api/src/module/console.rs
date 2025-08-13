@@ -2,7 +2,7 @@ use crate::item::{
     BuyOffer, ItemCount, ItemId, ItemStorage, Money, SellOffer, WeakBuyOrder, WeakSellOrder,
 };
 use crate::module::module::ModuleId;
-use crate::module::{ModuleCapability, ModuleStorage, PackageId, ProcessToken};
+use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
 use crate::recipe::{AssemblyRecipe, ItemRecipe, OutputItemRecipe};
 use crate::utils::math::Vector;
@@ -14,6 +14,7 @@ use std::collections::BTreeSet;
 pub trait ModuleConsole {
     /// common
     fn id(&self) -> ModuleId;
+    fn type_id(&self) -> ModuleTypeId;
     fn package_id(&self) -> PackageId;
     fn capabilities(&self) -> &[ModuleCapability];
     fn primary_capabilities(&self) -> &[ModuleCapability];
@@ -68,6 +69,10 @@ impl<'c, 'pc, 'd> DefaultModuleConsole<'c, 'pc> {
 impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     fn id(&self) -> ModuleId {
         self.id
+    }
+
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
     }
 
     fn package_id(&self) -> PackageId {

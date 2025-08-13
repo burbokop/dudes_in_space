@@ -78,6 +78,8 @@ impl Environment {
 
     fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault) {
         for req in &mut self.request_storage.find_best_buy_offer_requests {
+            assert!(req.promise.check_pending(req_context));
+
             let trade_table = TradeTable::build(&self.vessels);
             if let Some((
                 (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
@@ -106,18 +108,24 @@ impl Environment {
         }
 
         for req in &mut self.request_storage.find_best_offers_for_item_requests {
-            if let Some(record) = TradeTable::build(&self.vessels).get(&req.input.item) {
-                println!("xxxxxx");
-                req.promise
-                    .make_ready(
-                        req_context,
+            assert!(req.promise.check_pending(req_context));
+
+            req.promise
+                .make_ready(
+                    req_context,
+                    if let Some(record) = TradeTable::build(&self.vessels).get(&req.input.item) {
                         FindBestOffersForItemResult {
                             max_profit_buy_offer: record.cheapest_buy_offer().cloned(),
                             max_profit_sell_offer: record.the_most_expensive_sell_offer().cloned(),
-                        },
-                    )
-                    .unwrap()
-            }
+                        }
+                    } else {
+                        FindBestOffersForItemResult {
+                            max_profit_buy_offer: None,
+                            max_profit_sell_offer: None,
+                        }
+                    },
+                )
+                .unwrap()
         }
     }
 }

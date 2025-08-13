@@ -136,6 +136,25 @@ impl Objective for ManageProductionStationObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
+                logger.info("Considering recipes:");
+                for c in &item_crafter_modules {
+                    logger.info(
+                        format!(
+                            "\t{:?}",
+                            c.item_recipes
+                                .iter()
+                                .map(|r| r
+                                    .output
+                                    .clone()
+                                    .into_iter()
+                                    .map(|x| x.0.clone())
+                                    .collect::<Vec<_>>())
+                                .collect::<Vec<_>>()
+                        )
+                        .as_str(),
+                    );
+                }
+
                 *recipes_to_consider = item_crafter_modules
                     .into_iter()
                     .map(|x| x.item_recipes)
@@ -147,7 +166,12 @@ impl Objective for ManageProductionStationObjective {
                 future,
                 recipes_to_consider,
             } => match future.take() {
-                Ok(x) => todo!(),
+                Ok(x) => {
+                    match x.max_profit_buy_offer {
+                        None => todo!(),
+                        Some(offer) => todo!(),
+                    }
+                },
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
@@ -166,7 +190,7 @@ impl Objective for ManageProductionStationObjective {
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                 Ok(ObjectiveStatus::Done) => {
-                    logger.info("ManageProductionStationObjective::CheckAllPrerequisites");
+                    logger.info("Checking all prerequisites to managing production station...");
                     *self = Self::CheckAllPrerequisites {
                         recipes_to_consider: VecDeque::new(),
                     };

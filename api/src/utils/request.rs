@@ -107,6 +107,28 @@ impl<T> ReqPromise<T> {
         )
     }
 
+    pub fn check_pending(&mut self,context: &ReqContext) -> bool {
+        match &self.data {
+            None => {
+                let data = context.data.borrow();
+                if let Some(weak) = data.get(&self.id) {
+                    self.data = Some(weak.clone());
+                    match weak.upgrade() {
+                        None => {
+                            context.data.borrow_mut().remove(&self.id);
+                            false
+                        }
+                        Some(rc) => rc.borrow_mut().is_pending()
+                    }
+                } else { false }
+            }
+            Some(data) => match data.upgrade() {
+                None => false,
+                Some(rc) => rc.borrow_mut().is_pending()
+            },
+        }
+    }
+
     pub fn make_ready(&mut self, context: &ReqContext, value: T) -> Result<(), ReqMakeReadyError>
     where
         T: 'static,

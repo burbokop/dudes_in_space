@@ -99,6 +99,11 @@ impl Objective for CraftModulesObjective {
                 deploy,
             } => {
                 if let Some(assembly_console) = this_module.crafting_console() {
+                    logger.info(format!(
+                        "Checking if module (id: {}, type: {}) is suitable for crafting modules...",
+                        this_module.id(),
+                        this_module.type_id()
+                    ));
                     if Self::is_recipe_set_suitable(
                         assembly_console.assembly_recipes(),
                         needed_capabilities.clone(),
@@ -121,6 +126,11 @@ impl Objective for CraftModulesObjective {
                 for crafting_module in
                     this_vessel.modules_with_capability(ModuleCapability::ModuleCrafting)
                 {
+                    logger.info(format!(
+                        "Checking if module (id: {}, type: {}) is suitable for crafting modules...",
+                        crafting_module.id(),
+                        crafting_module.type_id()
+                    ));
                     if Self::is_recipe_set_suitable(
                         crafting_module.assembly_recipes(),
                         needed_capabilities.clone(),

@@ -1,3 +1,4 @@
+use crate::RECIPES;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
@@ -18,7 +19,7 @@ use dyn_serde::{
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, to_intermediate};
+use serde_intermediate::{Intermediate, to_intermediate, from_intermediate};
 use std::convert::Into;
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
@@ -28,6 +29,8 @@ static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::ItemCrafting,
+    ModuleCapability::ItemConsumption,
+    ModuleCapability::ItemProduction,
     ModuleCapability::ItemStorage,
     ModuleCapability::PersonnelRoom,
 ];
@@ -122,6 +125,10 @@ impl ModuleConsole for Console<'_> {
         todo!()
     }
 
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
     fn package_id(&self) -> PackageId {
         todo!()
     }
@@ -213,7 +220,7 @@ impl Module for Fabricator {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
@@ -262,11 +269,15 @@ impl Module for Fabricator {
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
-        todo!()
+        collector.enter_module(self);
+        if let Some(operator) = &self.operator {
+            operator.collect_status(collector);
+        }
+        collector.exit_module();
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &self.recipes
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -398,7 +409,7 @@ impl ModuleFactory for FabricatorFactory {
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Fabricator {
             id: ModuleId::new_v4(),
-            recipes: vec![],
+            recipes: RECIPES.as_ref().into(),
             state: FabricatorState::Idle,
             input_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
             output_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
@@ -428,7 +439,7 @@ impl DynDeserializeSeed<dyn ModuleFactory> for FabricatorFactoryDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
         let r: Box<FabricatorFactory> =
-            serde_intermediate::from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+            from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)
     }
 }
