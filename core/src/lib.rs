@@ -53,62 +53,6 @@ pub fn register_items(vault: ItemVault) -> ItemVault {
         ))
 }
 
-/// basic resources:
-///    biomass
-///    silicon_ore
-///    iron_ore
-///    rare_earth_ore
-///    ice
-pub(crate) static RECIPES: LazyLock<[ItemRecipe; 10]> = LazyLock::new(|| {
-    [
-        ItemRecipe {
-            input: [("ice".into(), 10)].into(),
-            output: [("water".into(), 10), ("gangue".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("biomass".into(), 10)].into(),
-            output: [("carbon".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("carbon".into(), 10)].into(),
-            output: [("plastic".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("silicon_ore".into(), 10)].into(),
-            output: [("silicon".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("iron_ore".into(), 10), ("carbon".into(), 10)].into(),
-            output: [("steel".into(), 10), ("gangue".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("rare_earth_ore".into(), 10)].into(),
-            output: [("rare_earth_alloys".into(), 10), ("gangue".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [
-                ("silicon".into(), 10),
-                ("rare_earth_alloys".into(), 10),
-                ("plastic".into(), 10),
-            ]
-            .into(),
-            output: [("microelectronics".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("steel".into(), 10)].into(),
-            output: [("heat_cell".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("steel".into(), 10)].into(),
-            output: [("heat_cell".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("steel".into(), 10)].into(),
-            output: [("heat_cell".into(), 10)].into(),
-        },
-    ]
-});
-
 pub(crate) static HEAT_EXCHANGE_RECIPES: LazyLock<[ItemRecipe; 2]> = LazyLock::new(|| {
     [
         ItemRecipe {

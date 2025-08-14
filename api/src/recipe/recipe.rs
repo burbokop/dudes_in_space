@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::iter;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ItemRecipe {
     pub input: InputItemRecipe,
     pub output: OutputItemRecipe,
@@ -25,6 +26,10 @@ impl Display for CraftingError {
 impl Error for CraftingError {}
 
 impl ItemRecipe {
+    pub fn items(&self) -> impl Iterator<Item = &ItemId> {
+        iter::chain(self.input.iter(), self.output.iter()).map(|(id, _)| id)
+    }
+
     pub fn craft(
         &self,
         input_storage: &mut ItemStorage,
@@ -45,10 +50,20 @@ impl ItemRecipe {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct InputItemRecipe {
     #[serde(flatten)]
     input: BTreeMap<ItemId, ItemCount>,
+}
+
+impl InputItemRecipe {
+    pub fn len(&self) -> usize {
+        self.input.len()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {
+        self.input.iter()
+    }
 }
 
 impl<const N: usize> From<[(ItemId, ItemCount); N]> for InputItemRecipe {
@@ -102,18 +117,10 @@ impl TryFrom<Vec<ItemRefStack>> for InputItemRecipe {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct OutputItemRecipe {
     #[serde(flatten)]
     output: BTreeMap<ItemId, ItemCount>,
-}
-
-impl<const N: usize> From<[(ItemId, ItemCount); N]> for OutputItemRecipe {
-    fn from(arr: [(ItemId, ItemCount); N]) -> Self {
-        Self {
-            output: BTreeMap::from(arr),
-        }
-    }
 }
 
 impl OutputItemRecipe {
@@ -123,6 +130,18 @@ impl OutputItemRecipe {
 
     pub fn first(&self) -> Option<(&ItemId, &ItemCount)> {
         self.output.first_key_value()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {
+        self.output.iter()
+    }
+}
+
+impl<const N: usize> From<[(ItemId, ItemCount); N]> for OutputItemRecipe {
+    fn from(arr: [(ItemId, ItemCount); N]) -> Self {
+        Self {
+            output: BTreeMap::from(arr),
+        }
     }
 }
 

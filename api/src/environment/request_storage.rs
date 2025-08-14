@@ -1,7 +1,7 @@
 use crate::item::{BuyOffer, ItemId, ItemVolume, Money, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {
@@ -14,7 +14,7 @@ pub struct RequestStorage {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestOffersForItems {
-    pub items: Vec<ItemId>,
+    pub items: BTreeSet<ItemId>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

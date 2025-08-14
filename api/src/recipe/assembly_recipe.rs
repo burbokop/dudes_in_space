@@ -11,6 +11,9 @@ pub trait ModuleFactoryOutputDescription {
     fn capabilities(&self) -> &[ModuleCapability];
     fn primary_capabilities(&self) -> &[ModuleCapability];
     fn item_recipes(&self) -> &[ItemRecipe];
+    fn input_item_recipes(&self) -> &[InputItemRecipe];
+    fn output_item_recipes(&self) -> &[OutputItemRecipe];
+    fn assembly_recipes(&self) -> &[AssemblyRecipe];
 }
 
 pub trait ModuleFactory: Debug + DynSerialize {

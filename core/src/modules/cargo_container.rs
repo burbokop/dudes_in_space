@@ -1,14 +1,12 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -192,6 +190,36 @@ impl ModuleFactory for CargoContainerFactory {
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        self
+    }
+}
+
+impl ModuleFactoryOutputDescription for CargoContainerFactory {
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
 }

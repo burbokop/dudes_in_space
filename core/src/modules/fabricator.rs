@@ -1,4 +1,3 @@
-use crate::RECIPES;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
@@ -9,9 +8,7 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -26,6 +23,7 @@ use std::convert::Into;
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use std::sync::LazyLock;
 
 static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
@@ -38,6 +36,56 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemCrafting];
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
+
+pub(crate) static RECIPES: LazyLock<[ItemRecipe; 10]> = LazyLock::new(|| {
+    [
+        ItemRecipe {
+            input: [("ice".into(), 10)].into(),
+            output: [("water".into(), 10), ("gangue".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("biomass".into(), 10)].into(),
+            output: [("carbon".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("carbon".into(), 10)].into(),
+            output: [("plastic".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("silicon_ore".into(), 10)].into(),
+            output: [("silicon".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("iron_ore".into(), 10), ("carbon".into(), 10)].into(),
+            output: [("steel".into(), 10), ("gangue".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("rare_earth_ore".into(), 10)].into(),
+            output: [("rare_earth_alloys".into(), 10), ("gangue".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [
+                ("silicon".into(), 10),
+                ("rare_earth_alloys".into(), 10),
+                ("plastic".into(), 10),
+            ]
+            .into(),
+            output: [("microelectronics".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("steel".into(), 10)].into(),
+            output: [("heat_cell".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("steel".into(), 10)].into(),
+            output: [("heat_cell".into(), 10)].into(),
+        },
+        ItemRecipe {
+            input: [("steel".into(), 10)].into(),
+            output: [("heat_cell".into(), 10)].into(),
+        },
+    ]
+});
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorStateSeed::<'context>)]
@@ -68,7 +116,7 @@ impl<'context> FabricatorStateSeed<'context> {
 #[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v, 'sv, 'context>)]
 struct Fabricator {
     id: ModuleId,
-    recipes: Vec<ItemRecipe>,
+    // recipes: Vec<ItemRecipe>,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: FabricatorState,
     #[deserialize_seed_xxx(seed = self.seed.item_storage_seed)]
@@ -234,7 +282,7 @@ impl Module for Fabricator {
     ) {
         let mut console = Console {
             id: self.id,
-            recipes: &self.recipes,
+            recipes: RECIPES.as_ref(),
             requests: vec![],
             state: &mut self.state,
             input_storage: &mut self.input_storage,
@@ -260,7 +308,7 @@ impl Module for Fabricator {
                         recipe_index,
                         process_token,
                     } => {
-                        self.recipes[*recipe_index]
+                        RECIPES[*recipe_index]
                             .craft(&mut self.input_storage, &mut self.output_storage)
                             .unwrap();
                         self.state = FabricatorState::Idle;
@@ -279,7 +327,7 @@ impl Module for Fabricator {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        &self.recipes
+        RECIPES.as_ref()
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -407,7 +455,6 @@ impl ModuleFactory for FabricatorFactory {
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Fabricator {
             id: ModuleId::new_v4(),
-            recipes: RECIPES.as_ref().into(),
             state: FabricatorState::Idle,
             input_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
             output_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
@@ -416,6 +463,36 @@ impl ModuleFactory for FabricatorFactory {
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        self
+    }
+}
+
+impl ModuleFactoryOutputDescription for FabricatorFactory {
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        RECIPES.as_ref()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
 }

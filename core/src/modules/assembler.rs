@@ -9,10 +9,7 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, AssemblyRecipeSeed, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
-    OutputItemRecipe,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -294,7 +291,7 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -390,6 +387,14 @@ impl Module for Assembler {
 
     fn item_recipes(&self) -> &[ItemRecipe] {
         &[]
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {

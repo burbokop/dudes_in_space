@@ -1,14 +1,12 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemStorage, ItemVolume};
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
@@ -16,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
+use std::sync::LazyLock;
 
 static TYPE_ID: &str = "OreManifold";
 static FACTORY_TYPE_ID: &str = "OreManifoldFactory";
@@ -25,6 +24,14 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemProduction];
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
+pub(crate) static RECIPES: LazyLock<[OutputItemRecipe; 1]> = LazyLock::new(|| {
+    [[
+            ("silicon_ore".into(), 6),
+            ("iron_ore".into(), 10),
+            ("rare_earth_ore".into(), 1),
+            ("ice".into(), 6),
+        ].into()]
+});
 
 #[derive(Debug)]
 struct OreManifold {}
@@ -140,6 +147,36 @@ impl ModuleFactory for OreManifoldFactory {
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        todo!()
+    }
+}
+
+impl ModuleFactoryOutputDescription for OreManifoldFactory {
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        RECIPES.as_ref()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
 }

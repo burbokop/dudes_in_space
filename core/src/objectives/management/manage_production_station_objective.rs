@@ -1,7 +1,9 @@
 use crate::objectives::crafting::{
     CraftItemsObjective, CraftModulesObjective, CraftModulesObjectiveError,
 };
-use dudes_in_space_api::environment::{EnvironmentContext, FindBestOffersForItemsResult};
+use dudes_in_space_api::environment::{
+    EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
+};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
@@ -16,7 +18,7 @@ use dyn_serde::{
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
-use std::collections::VecDeque;
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -43,7 +45,7 @@ pub(crate) enum ManageProductionStationObjective {
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
     FindBestOffersAndDecideBestRecipe {
         future: ReqFuture<FindBestOffersForItemsResult>,
-        recipes_to_consider: Vec<ItemRecipe>,
+        recipes_to_consider: BTreeSet<ItemRecipe>,
     },
     AssembleCrafter {
         craft_objective: CraftModulesObjective,
@@ -56,10 +58,7 @@ pub(crate) enum ManageProductionStationObjective {
 impl ManageProductionStationObjective {
     pub(crate) fn new(logger: &mut PersonLogger) -> Self {
         logger.info("ManageProductionStationObjective::new");
-
-        Self::CheckAllPrerequisites {
-            recipes_to_consider: VecDeque::new(),
-        }
+        Self::CollectAllAvailableRecipes
     }
 }
 
@@ -88,10 +87,10 @@ impl Objective for ManageProductionStationObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CollectAllAvailableRecipes => {
-                let vessel_item_recipes = this_vessel
+                let vessel_item_recipes: Vec<_> = this_vessel
                     .modules_with_capability(ModuleCapability::ItemCrafting)
                     .iter()
-                    .map(|crafter| crafter.item_recipes().iter())
+                    .map(|crafter| crafter.input_item_recipes().iter())
                     .chain(
                         this_module
                             .crafting_console()
@@ -99,121 +98,69 @@ impl Objective for ManageProductionStationObjective {
                             .map(|x| x.item_recipes().iter()),
                     )
                     .flatten()
+                    .cloned()
                     .collect();
-                
-                let potential_vessel_item_recipes = this_vessel
+
+                let potential_vessel_item_recipes: Vec<_> = this_vessel
                     .modules_with_capability(ModuleCapability::ModuleCrafting)
                     .iter()
-                    .map(|crafter| crafter.assembly_recipes().iter().map(|recipe|recipe.output_description().item_recipes().iter()))
+                    .map(|crafter| {
+                        crafter
+                            .assembly_recipes()
+                            .iter()
+                            .map(|recipe| recipe.output_description().item_recipes().iter())
+                    })
+                    .flatten()
+                    .flatten()
                     .chain(
                         this_module
                             .crafting_console()
                             .iter()
-                            .map(|x| x.assembly_recipes().iter().map(|recipe|recipe.output_description().item_recipes().iter())),
-                    )
-                    .flatten()
-                    .collect();
-
-                let all_vessel_item_recipes = vessel_item_recipes + potential_vessel_item_recipes;
-                
-
-                while let Some(recipe) = recipes_to_consider.pop_front() {
-                    if recipe.output.len() == 1 {
-                        let (item, _) = recipe.output.first().unwrap();
-
-                        logger.info("ManageProductionStationObjective::FindBestOffersForItem");
-                        *self = Self::FindBestOffersForItem {
-                            future: FindBestOffersForItem { item: item.clone() }
-                                .push(environment_context.request_storage_mut()),
-                            recipes_to_consider: std::mem::take(recipes_to_consider),
-                        };
-                        return Ok(ObjectiveStatus::InProgress);
-                    }
-                }
-
-                struct ItemCrafter {
-                    item_recipes: Vec<ItemRecipe>,
-                }
-
-                let item_crafter_modules =
-                    this_vessel.modules_with_capability(ModuleCapability::ItemCrafting);
-
-                let item_crafter_modules: Vec<_> = item_crafter_modules
-                    .iter()
-                    .map(|x| ItemCrafter {
-                        item_recipes: x.item_recipes().iter().cloned().collect(),
-                    })
-                    .chain(
-                        this_module
-                            .capabilities()
-                            .contains(&ModuleCapability::ItemCrafting)
-                            .then_some(this_module.crafting_console())
-                            .flatten()
-                            .map(|console| ItemCrafter {
-                                item_recipes: console.item_recipes().iter().cloned().collect(),
+                            .map(|x| {
+                                x.assembly_recipes()
+                                    .iter()
+                                    .map(|recipe| recipe.output_description().item_recipes().iter())
+                                    .flatten()
                             })
-                            .into_iter(),
+                            .flatten(),
                     )
+                    .cloned()
                     .collect();
 
-                if item_crafter_modules.is_empty() {
-                    logger.info("Crafting fabricator...");
-                    *self = Self::CraftFabricator {
-                        craft_objective: CraftModulesObjective::new(
-                            this_person.clone(),
-                            vec![ModuleCapability::ItemCrafting],
-                            vec![],
-                            true,
-                            logger,
-                        ),
-                    };
-                    return Ok(ObjectiveStatus::InProgress);
-                }
-
-                logger.info("Considering recipes:");
-                for c in &item_crafter_modules {
-                    logger.info(
-                        format!(
-                            "\t{:?}",
-                            c.item_recipes
-                                .iter()
-                                .map(|r| r
-                                    .output
-                                    .clone()
-                                    .into_iter()
-                                    .map(|x| x.0.clone())
-                                    .collect::<Vec<_>>())
-                                .collect::<Vec<_>>()
-                        )
-                        .as_str(),
-                    );
-                }
-
-                *recipes_to_consider = item_crafter_modules
+                let all_vessel_item_recipes: BTreeSet<_> = vessel_item_recipes
                     .into_iter()
-                    .map(|x| x.item_recipes)
-                    .flatten()
+                    .chain(potential_vessel_item_recipes.into_iter())
                     .collect();
+
+                let items: BTreeSet<_> = all_vessel_item_recipes
+                    .iter()
+                    .map(|x| x.items())
+                    .flatten()
+                    .cloned()
+                    .collect();
+
+                logger.info("ManageProductionStationObjective::FindBestOffersAndDecideBestRecipe");
+                *self = Self::FindBestOffersAndDecideBestRecipe {
+                    future: FindBestOffersForItems { items }
+                        .push(environment_context.request_storage_mut()),
+                    recipes_to_consider: all_vessel_item_recipes,
+                };
                 Ok(ObjectiveStatus::InProgress)
             }
-            Self::FindBestOffersForItem {
+            Self::FindBestOffersAndDecideBestRecipe {
                 future,
                 recipes_to_consider,
             } => match future.take() {
-                Ok(x) => match x.max_profit_buy_offer {
-                    None => todo!(),
-                    Some(offer) => todo!(),
-                },
+                Ok(x) => {
+                    todo!()
+                }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::ExecuteProduction {
-                second_attempt,
-                craft_objective,
-            } => {
+            Self::ExecuteProduction { craft_objective } => {
                 todo!()
             }
-            Self::CraftFabricator { craft_objective } => match craft_objective.pursue(
+            Self::AssembleCrafter { craft_objective } => match craft_objective.pursue(
                 this_person,
                 this_module,
                 this_vessel,
@@ -223,8 +170,12 @@ impl Objective for ManageProductionStationObjective {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                 Ok(ObjectiveStatus::Done) => {
                     logger.info("Checking all prerequisites to managing production station...");
-                    *self = Self::CheckAllPrerequisites {
-                        recipes_to_consider: VecDeque::new(),
+                    *self = Self::ExecuteProduction {
+                        craft_objective: CraftItemsObjective::new(
+                            todo!(),
+                            #[allow(unreachable_code)]
+                            logger,
+                        ),
                     };
                     Ok(ObjectiveStatus::InProgress)
                 }
