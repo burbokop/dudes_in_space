@@ -9,7 +9,9 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -19,7 +21,7 @@ use dyn_serde::{
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, to_intermediate, from_intermediate};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::convert::Into;
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
@@ -402,10 +404,6 @@ impl DynSerialize for FabricatorFactory {
 }
 
 impl ModuleFactory for FabricatorFactory {
-    fn output_type_id(&self) -> ModuleTypeId {
-        todo!()
-    }
-
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Fabricator {
             id: ModuleId::new_v4(),
@@ -417,12 +415,8 @@ impl ModuleFactory for FabricatorFactory {
         })
     }
 
-    fn output_capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
-    }
-
-    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
-        PRIMARY_CAPABILITIES
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        todo!()
     }
 }
 

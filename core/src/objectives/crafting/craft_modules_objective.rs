@@ -60,7 +60,7 @@ impl CraftModulesObjective {
     ) -> bool {
         (|| {
             for r in recipes {
-                for cap in r.output_capabilities() {
+                for cap in r.output_description().capabilities() {
                     if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
                         needed_capabilities.remove(i);
                     }
@@ -69,7 +69,7 @@ impl CraftModulesObjective {
             needed_capabilities.is_empty()
         })() && (|| {
             for r in recipes {
-                for cap in r.output_primary_capabilities() {
+                for cap in r.output_description().primary_capabilities() {
                     if let Some(i) = needed_primary_capabilities.iter().position(|x| *x == *cap) {
                         needed_primary_capabilities.remove(i);
                     }
@@ -208,12 +208,18 @@ impl Objective for CraftModulesObjective {
                         *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
 
                         logger.info("Picking recipe for:");
-                        for c in assembly_console.recipe_output_capabilities(recipe) {
+                        for c in assembly_console
+                            .recipe_output_description(recipe)
+                            .capabilities()
+                        {
                             if needed_capabilities.remove(c) {
                                 logger.info(format!("    {:?}", c));
                             }
                         }
-                        for c in assembly_console.recipe_output_primary_capabilities(recipe) {
+                        for c in assembly_console
+                            .recipe_output_description(recipe)
+                            .primary_capabilities()
+                        {
                             if needed_primary_capabilities.remove(c) {
                                 logger.info(format!("    {:?} (primary)", c));
                             }
@@ -230,12 +236,18 @@ impl Objective for CraftModulesObjective {
                         assert!(process_token.is_none());
                         *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
                         logger.info("Picking recipe for:");
-                        for c in assembly_console.recipe_output_capabilities(recipe) {
+                        for c in assembly_console
+                            .recipe_output_description(recipe)
+                            .capabilities()
+                        {
                             if needed_capabilities.remove(c) {
                                 logger.info(format!("    {:?}", c));
                             }
                         }
-                        for c in assembly_console.recipe_output_primary_capabilities(recipe) {
+                        for c in assembly_console
+                            .recipe_output_description(recipe)
+                            .primary_capabilities()
+                        {
                             if needed_primary_capabilities.remove(c) {
                                 logger.info(format!("    {:?} (primary)", c));
                             }

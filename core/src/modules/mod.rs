@@ -3,22 +3,22 @@ mod cargo_container;
 mod core_module;
 mod dockyard;
 mod fabricator;
+mod ore_manifold;
 mod personnel_area;
+mod plant_facility;
 mod shuttle;
 mod unmanned_trading_terminal;
-mod plant_facility;
-mod ore_manifold;
 
 pub(crate) use assembler::*;
 pub(crate) use cargo_container::*;
 pub(crate) use core_module::*;
 pub(crate) use dockyard::*;
 pub(crate) use fabricator::*;
+pub(crate) use ore_manifold::*;
 pub(crate) use personnel_area::*;
+pub(crate) use plant_facility::*;
 pub(crate) use shuttle::*;
 pub(crate) use unmanned_trading_terminal::*;
-pub(crate) use plant_facility::*;
-pub(crate) use ore_manifold::*;
 
 use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
@@ -67,6 +67,6 @@ pub fn register_modules(
             item_vault,
             process_token_context,
         ))
-        .with(PlantFacilityDynSeed{})
-        .with(OreManifoldDynSeed{})
+        .with(PlantFacilityDynSeed {})
+        .with(OreManifoldDynSeed {})
 }

@@ -1,9 +1,7 @@
 use crate::objectives::crafting::{
     CraftItemsObjective, CraftModulesObjective, CraftModulesObjectiveError,
 };
-use dudes_in_space_api::environment::{
-    EnvironmentContext, FindBestOffersForItem, FindBestOffersForItemResult,
-};
+use dudes_in_space_api::environment::{EnvironmentContext, FindBestOffersForItemsResult};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
@@ -23,25 +21,34 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
+/*
+    - Find available crafts across all crafters
+        - get list of all recipes of all crafters awailable to assemble
+        - exclude recipes that are impossible to craft due to input resource missing on the market
+        - find best offers for each remaining recipe
+        - choose recipe with max profit
+    - Craft chosen crafter
+    - Place sell offer
+    - Craft item
+    - Place buy offer
+*/
+
 static TYPE_ID: &str = "ManageProductionStationObjective";
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "manage_production_station_objective_stage")]
 #[deserialize_seed_xxx(seed = crate::objectives::management::manage_production_station_objective::ManageProductionStationObjectiveSeed::<'context>)]
 pub(crate) enum ManageProductionStationObjective {
-    CheckAllPrerequisites {
-        recipes_to_consider: VecDeque<ItemRecipe>,
+    CollectAllAvailableRecipes,
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
+    FindBestOffersAndDecideBestRecipe {
+        future: ReqFuture<FindBestOffersForItemsResult>,
+        recipes_to_consider: Vec<ItemRecipe>,
     },
-    CraftFabricator {
+    AssembleCrafter {
         craft_objective: CraftModulesObjective,
     },
-    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
-    FindBestOffersForItem {
-        future: ReqFuture<FindBestOffersForItemResult>,
-        recipes_to_consider: VecDeque<ItemRecipe>,
-    },
     ExecuteProduction {
-        second_attempt: bool,
         craft_objective: CraftItemsObjective,
     },
 }
@@ -57,7 +64,7 @@ impl ManageProductionStationObjective {
 }
 
 struct ManageProductionStationObjectiveSeed<'context> {
-    req_future_seed: ReqFutureSeed<'context, FindBestOffersForItemResult>,
+    req_future_seed: ReqFutureSeed<'context, FindBestOffersForItemsResult>,
 }
 
 impl<'context> ManageProductionStationObjectiveSeed<'context> {
@@ -80,9 +87,36 @@ impl Objective for ManageProductionStationObjective {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            Self::CheckAllPrerequisites {
-                recipes_to_consider,
-            } => {
+            Self::CollectAllAvailableRecipes => {
+                let vessel_item_recipes = this_vessel
+                    .modules_with_capability(ModuleCapability::ItemCrafting)
+                    .iter()
+                    .map(|crafter| crafter.item_recipes().iter())
+                    .chain(
+                        this_module
+                            .crafting_console()
+                            .iter()
+                            .map(|x| x.item_recipes().iter()),
+                    )
+                    .flatten()
+                    .collect();
+                
+                let potential_vessel_item_recipes = this_vessel
+                    .modules_with_capability(ModuleCapability::ModuleCrafting)
+                    .iter()
+                    .map(|crafter| crafter.assembly_recipes().iter().map(|recipe|recipe.output_description().item_recipes().iter()))
+                    .chain(
+                        this_module
+                            .crafting_console()
+                            .iter()
+                            .map(|x| x.assembly_recipes().iter().map(|recipe|recipe.output_description().item_recipes().iter())),
+                    )
+                    .flatten()
+                    .collect();
+
+                let all_vessel_item_recipes = vessel_item_recipes + potential_vessel_item_recipes;
+                
+
                 while let Some(recipe) = recipes_to_consider.pop_front() {
                     if recipe.output.len() == 1 {
                         let (item, _) = recipe.output.first().unwrap();
@@ -166,11 +200,9 @@ impl Objective for ManageProductionStationObjective {
                 future,
                 recipes_to_consider,
             } => match future.take() {
-                Ok(x) => {
-                    match x.max_profit_buy_offer {
-                        None => todo!(),
-                        Some(offer) => todo!(),
-                    }
+                Ok(x) => match x.max_profit_buy_offer {
+                    None => todo!(),
+                    Some(offer) => todo!(),
                 },
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),

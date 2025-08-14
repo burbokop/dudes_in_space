@@ -107,7 +107,7 @@ impl<T> ReqPromise<T> {
         )
     }
 
-    pub fn check_pending(&mut self,context: &ReqContext) -> bool {
+    pub fn check_pending(&mut self, context: &ReqContext) -> bool {
         match &self.data {
             None => {
                 let data = context.data.borrow();
@@ -118,13 +118,15 @@ impl<T> ReqPromise<T> {
                             context.data.borrow_mut().remove(&self.id);
                             false
                         }
-                        Some(rc) => rc.borrow_mut().is_pending()
+                        Some(rc) => rc.borrow_mut().is_pending(),
                     }
-                } else { false }
+                } else {
+                    false
+                }
             }
             Some(data) => match data.upgrade() {
                 None => false,
-                Some(rc) => rc.borrow_mut().is_pending()
+                Some(rc) => rc.borrow_mut().is_pending(),
             },
         }
     }

@@ -1,35 +1,33 @@
 use crate::item::{BuyOffer, ItemId, ItemVolume, Money, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {
     pub(crate) find_best_buy_offer_requests:
         VecDeque<EnvironmentRequest<FindBestBuyOffer, FindBestBuyOfferResult>>,
 
-    pub(crate) find_best_offers_for_item_requests:
-        VecDeque<EnvironmentRequest<FindBestOffersForItem, FindBestOffersForItemResult>>,
+    pub(crate) find_best_offers_for_items_requests:
+        VecDeque<EnvironmentRequest<FindBestOffersForItems, FindBestOffersForItemsResult>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindBestOffersForItem {
-    pub item: ItemId,
+pub struct FindBestOffersForItems {
+    pub items: Vec<ItemId>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindBestOffersForItemResult {
-    #[serde(with = "crate::utils::tagged_option")]
-    pub max_profit_buy_offer: Option<OfferRef<BuyOffer>>,
-    #[serde(with = "crate::utils::tagged_option")]
-    pub max_profit_sell_offer: Option<OfferRef<SellOffer>>,
+pub struct FindBestOffersForItemsResult {
+    pub max_profit_buy_offers: BTreeMap<ItemId, OfferRef<BuyOffer>>,
+    pub max_profit_sell_offers: BTreeMap<ItemId, OfferRef<SellOffer>>,
 }
 
-impl FindBestOffersForItem {
-    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestOffersForItemResult> {
+impl FindBestOffersForItems {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestOffersForItemsResult> {
         let (promise, future) = ReqPromise::new();
         context
-            .find_best_offers_for_item_requests
+            .find_best_offers_for_items_requests
             .push_back(EnvironmentRequest {
                 promise,
                 input: self,

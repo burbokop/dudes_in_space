@@ -1,15 +1,21 @@
-use std::error::Error;
-use std::fmt::{Debug};
-use serde::{Deserialize, Serialize};
-use serde_intermediate::{from_intermediate, Intermediate};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemStorage, ItemVolume};
-use dudes_in_space_api::module::{Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole};
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
+use dudes_in_space_api::module::{
+    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
+};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
+use serde::{Deserialize, Serialize};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use std::error::Error;
+use std::fmt::Debug;
 
 static TYPE_ID: &str = "OreManifold";
 static FACTORY_TYPE_ID: &str = "OreManifoldFactory";
@@ -21,17 +27,11 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemProdu
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
 
 #[derive(Debug)]
-struct OreManifold {
+struct OreManifold {}
 
-}
+struct OreManifoldSeed {}
 
-struct OreManifoldSeed {
-
-}
-
-pub(crate) struct OreManifoldDynSeed {
-
-}
+pub(crate) struct OreManifoldDynSeed {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct OreManifoldFactory {}
@@ -55,7 +55,13 @@ impl Module for OreManifold {
         todo!()
     }
 
-    fn proceed(&mut self, this_vessel: &dyn VesselModuleInterface, environment_context: &mut EnvironmentContext, decider_vault: &ObjectiveDeciderVault, logger: &mut dyn Logger) {
+    fn proceed(
+        &mut self,
+        this_vessel: &dyn VesselModuleInterface,
+        environment_context: &mut EnvironmentContext,
+        decider_vault: &ObjectiveDeciderVault,
+        logger: &mut dyn Logger,
+    ) {
         todo!()
     }
 
@@ -129,19 +135,11 @@ impl Module for OreManifold {
 }
 
 impl ModuleFactory for OreManifoldFactory {
-    fn output_type_id(&self) -> ModuleTypeId {
-        todo!()
-    }
-
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         todo!()
     }
 
-    fn output_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
-    }
-
-    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
         todo!()
     }
 }
@@ -158,11 +156,11 @@ impl DynSerialize for OreManifold {
 
 impl DynSerialize for OreManifoldFactory {
     fn type_id(&self) -> TypeId {
-        todo!()
+        FACTORY_TYPE_ID.into()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
@@ -171,7 +169,11 @@ impl DynDeserializeSeed<dyn Module> for OreManifoldDynSeed {
         TYPE_ID.into()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn Module>) -> Result<Box<dyn Module>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         todo!()
     }
 }
@@ -181,10 +183,13 @@ impl DynDeserializeSeed<dyn ModuleFactory> for OreManifoldFactoryDynSeed {
         FACTORY_TYPE_ID.into()
     }
 
-    fn deserialize(&self, intermediate: Intermediate, this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
+    ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
         let r: Box<OreManifoldFactory> =
             from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)
-
     }
 }

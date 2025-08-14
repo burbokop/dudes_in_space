@@ -3,12 +3,14 @@ use dudes_in_space_api::item::{
     BuyOffer, ItemCount, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder,
 };
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
+    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
 use serde::{Deserialize, Serialize};
@@ -184,10 +186,6 @@ impl DynDeserializeSeed<dyn Module> for UnmannedTradingTerminalDynSeed {
 pub(crate) struct UnmannedTradingTerminalFactory {}
 
 impl ModuleFactory for UnmannedTradingTerminalFactory {
-    fn output_type_id(&self) -> ModuleTypeId {
-        todo!()
-    }
-
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(UnmannedTradingTerminal {
             id: ModuleId::new_v4(),
@@ -196,12 +194,8 @@ impl ModuleFactory for UnmannedTradingTerminalFactory {
         })
     }
 
-    fn output_capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
-    }
-
-    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
-        PRIMARY_CAPABILITIES
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        todo!()
     }
 }
 

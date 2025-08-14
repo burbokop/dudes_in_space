@@ -1,12 +1,14 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
+    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -182,10 +184,6 @@ impl DynDeserializeSeed<dyn Module> for CargoContainerDynSeed {
 pub(crate) struct CargoContainerFactory {}
 
 impl ModuleFactory for CargoContainerFactory {
-    fn output_type_id(&self) -> ModuleTypeId {
-        todo!()
-    }
-
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(CargoContainer {
             id: ModuleId::new_v4(),
@@ -193,12 +191,8 @@ impl ModuleFactory for CargoContainerFactory {
         })
     }
 
-    fn output_capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
-    }
-
-    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
-        PRIMARY_CAPABILITIES
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        todo!()
     }
 }
 

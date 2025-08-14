@@ -10,7 +10,8 @@ use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
-    AssemblyRecipe, AssemblyRecipeSeed, ItemRecipe, ModuleFactory, OutputItemRecipe,
+    AssemblyRecipe, AssemblyRecipeSeed, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
 };
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -239,27 +240,29 @@ impl<'a> ModuleConsole for Console<'a> {
 
 impl<'a> CraftingConsole for Console<'a> {
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize> {
-        self.recipes
-            .iter()
-            .position(|recipe| recipe.output_capabilities().contains(&capability))
+        self.recipes.iter().position(|recipe| {
+            recipe
+                .output_description()
+                .capabilities()
+                .contains(&capability)
+        })
     }
 
     fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize> {
-        self.recipes
-            .iter()
-            .position(|recipe| recipe.output_primary_capabilities().contains(&capability))
+        self.recipes.iter().position(|recipe| {
+            recipe
+                .output_description()
+                .primary_capabilities()
+                .contains(&capability)
+        })
     }
 
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize> {
         todo!()
     }
 
-    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability] {
-        self.recipes[index].output_capabilities()
-    }
-
-    fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability] {
-        self.recipes[index].output_primary_capabilities()
+    fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription {
+        self.recipes[index].output_description()
     }
 
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe> {

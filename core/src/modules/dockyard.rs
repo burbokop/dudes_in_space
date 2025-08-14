@@ -8,7 +8,9 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{
     DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface,
@@ -444,20 +446,12 @@ impl DynSerialize for DockyardFactory {
 }
 
 impl ModuleFactory for DockyardFactory {
-    fn output_type_id(&self) -> ModuleTypeId {
-        todo!()
-    }
-
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Dockyard::new(DOCKING_CLAMP_COMPAT_TYPE))
     }
 
-    fn output_capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
-    }
-
-    fn output_primary_capabilities(&self) -> &[ModuleCapability] {
-        PRIMARY_CAPABILITIES
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        todo!()
     }
 }
 

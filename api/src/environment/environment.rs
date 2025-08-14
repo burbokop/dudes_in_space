@@ -1,7 +1,8 @@
 use crate::environment::{
-    EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemResult, Nebula, RequestStorage,
+    EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemsResult, Nebula,
+    RequestStorage,
 };
-use crate::item::{ItemVault, TradeTable};
+use crate::item::{BuyOffer, ItemId, ItemVault, OfferRef, SellOffer, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
 use crate::utils::request::ReqContext;
@@ -9,6 +10,7 @@ use crate::vessel::{Vessel, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -77,55 +79,72 @@ impl Environment {
     }
 
     fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault) {
-        for req in &mut self.request_storage.find_best_buy_offer_requests {
-            assert!(req.promise.check_pending(req_context));
+        self.request_storage
+            .find_best_buy_offer_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
 
-            let trade_table = TradeTable::build(&self.vessels);
-            if let Some((
-                (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
-                max_profit_record,
-            )) = trade_table
-                .iter()
-                .map(|(item_id, record)| {
-                    (
-                        record.eval_max_profit(req.input.free_storage_space, item_vault),
-                        record,
-                    )
-                })
-                .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b))
-            {
+                let trade_table = TradeTable::build(&self.vessels);
+                if let Some((
+                    (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
+                    max_profit_record,
+                )) = trade_table
+                    .iter()
+                    .map(|(item_id, record)| {
+                        (
+                            record.eval_max_profit(req.input.free_storage_space, item_vault),
+                            record,
+                        )
+                    })
+                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b))
+                {
+                    req.promise
+                        .make_ready(
+                            req_context,
+                            FindBestBuyOfferResult {
+                                max_estimated_profit,
+                                max_profit_buy_offer,
+                                max_profit_sell_offer,
+                            },
+                        )
+                        .unwrap();
+                    false
+                } else {
+                    true
+                }
+            });
+
+        self.request_storage
+            .find_best_offers_for_items_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                let mut max_profit_buy_offers: BTreeMap<ItemId, OfferRef<BuyOffer>> =
+                    Default::default();
+                let mut max_profit_sell_offers: BTreeMap<ItemId, OfferRef<SellOffer>> =
+                    Default::default();
+
+                for item in &req.input.items {
+                    if let Some(record) = TradeTable::build(&self.vessels).get(item) {
+                        if let Some(o) = record.cheapest_buy_offer() {
+                            max_profit_buy_offers.insert(item.clone(), o.clone());
+                        }
+                        if let Some(o) = record.the_most_expensive_sell_offer() {
+                            max_profit_sell_offers.insert(item.clone(), o.clone());
+                        }
+                    }
+                }
+
                 req.promise
                     .make_ready(
                         req_context,
-                        FindBestBuyOfferResult {
-                            max_estimated_profit,
-                            max_profit_buy_offer,
-                            max_profit_sell_offer,
+                        FindBestOffersForItemsResult {
+                            max_profit_buy_offers,
+                            max_profit_sell_offers,
                         },
                     )
-                    .unwrap()
-            }
-        }
-
-        for req in &mut self.request_storage.find_best_offers_for_item_requests {
-            assert!(req.promise.check_pending(req_context));
-
-            req.promise
-                .make_ready(
-                    req_context,
-                    if let Some(record) = TradeTable::build(&self.vessels).get(&req.input.item) {
-                        FindBestOffersForItemResult {
-                            max_profit_buy_offer: record.cheapest_buy_offer().cloned(),
-                            max_profit_sell_offer: record.the_most_expensive_sell_offer().cloned(),
-                        }
-                    } else {
-                        FindBestOffersForItemResult {
-                            max_profit_buy_offer: None,
-                            max_profit_sell_offer: None,
-                        }
-                    },
-                )
-                .unwrap()
-        }
+                    .unwrap();
+                false
+            });
     }
 }

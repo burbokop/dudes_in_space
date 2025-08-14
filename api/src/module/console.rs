@@ -4,7 +4,7 @@ use crate::item::{
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::{AssemblyRecipe, ItemRecipe, OutputItemRecipe};
+use crate::recipe::{AssemblyRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe};
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
@@ -160,8 +160,7 @@ pub trait CraftingConsole {
     fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize>;
 
-    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
-    fn recipe_output_primary_capabilities(&self, index: usize) -> &[ModuleCapability];
+    fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription;
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
 
     // returns index in array. TODO replace with uuid

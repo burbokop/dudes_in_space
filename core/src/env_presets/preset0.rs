@@ -1,4 +1,7 @@
-use crate::modules::{Assembler, CargoContainerFactory, DockyardFactory, FabricatorFactory, OreManifoldFactory, PersonnelArea, PlantFacilityFactory, ShuttleFactory, UnmannedTradingTerminal};
+use crate::modules::{
+    Assembler, CargoContainerFactory, DockyardFactory, FabricatorFactory, OreManifoldFactory,
+    PersonnelArea, PlantFacilityFactory, ShuttleFactory, UnmannedTradingTerminal,
+};
 use dudes_in_space_api::environment::{Environment, Nebula};
 use dudes_in_space_api::item::{ItemRefStack, ItemStack, ItemStorage, ItemVault};
 use dudes_in_space_api::person::Person;
