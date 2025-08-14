@@ -6,7 +6,10 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
+};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -87,6 +90,14 @@ impl Module for CargoContainer {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
+        todo!()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
         todo!()
     }
 

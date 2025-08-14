@@ -4,12 +4,13 @@ use crate::objectives::crafting::{
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
-use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
+use dudes_in_space_api::module::ModuleConsole;
+use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
     ObjectiveStatus, Passion, PersonId, PersonLogger,
 };
-use dudes_in_space_api::recipe::ItemRecipe;
+use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselConsole;
 use dyn_serde::{
@@ -21,8 +22,8 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::iter;
 use std::rc::Rc;
-
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -46,6 +47,8 @@ pub(crate) enum ManageProductionStationObjective {
     FindBestOffersAndDecideBestRecipe {
         future: ReqFuture<FindBestOffersForItemsResult>,
         recipes_to_consider: BTreeSet<ItemRecipe>,
+        input_recipes_to_consider: BTreeSet<InputItemRecipe>,
+        output_recipes_to_consider: BTreeSet<OutputItemRecipe>,
     },
     AssembleCrafter {
         craft_objective: CraftModulesObjective,
@@ -87,69 +90,57 @@ impl Objective for ManageProductionStationObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CollectAllAvailableRecipes => {
-                let vessel_item_recipes: Vec<_> = this_vessel
-                    .modules_with_capability(ModuleCapability::ItemCrafting)
-                    .iter()
-                    .map(|crafter| crafter.input_item_recipes().iter())
-                    .chain(
-                        this_module
-                            .crafting_console()
-                            .iter()
-                            .map(|x| x.item_recipes().iter()),
+                let item_recipes: BTreeSet<_> = iter::chain(
+                    person::utils::this_vessel_item_recipes(this_module, this_vessel).into_iter(),
+                    person::utils::this_vessel_potential_item_recipes(this_module, this_vessel)
+                        .into_iter(),
+                )
+                .collect();
+
+                let input_item_recipes: BTreeSet<_> = iter::chain(
+                    person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
+                        .into_iter(),
+                    person::utils::this_vessel_potential_input_item_recipes(
+                        this_module,
+                        this_vessel,
                     )
-                    .flatten()
-                    .cloned()
-                    .collect();
+                    .into_iter(),
+                )
+                .collect();
 
-                let potential_vessel_item_recipes: Vec<_> = this_vessel
-                    .modules_with_capability(ModuleCapability::ModuleCrafting)
-                    .iter()
-                    .map(|crafter| {
-                        crafter
-                            .assembly_recipes()
-                            .iter()
-                            .map(|recipe| recipe.output_description().item_recipes().iter())
-                    })
-                    .flatten()
-                    .flatten()
-                    .chain(
-                        this_module
-                            .crafting_console()
-                            .iter()
-                            .map(|x| {
-                                x.assembly_recipes()
-                                    .iter()
-                                    .map(|recipe| recipe.output_description().item_recipes().iter())
-                                    .flatten()
-                            })
-                            .flatten(),
+                let output_item_recipes: BTreeSet<_> = iter::chain(
+                    person::utils::this_vessel_output_item_recipes(this_module, this_vessel)
+                        .into_iter(),
+                    person::utils::this_vessel_potential_output_item_recipes(
+                        this_module,
+                        this_vessel,
                     )
-                    .cloned()
-                    .collect();
+                    .into_iter(),
+                )
+                .collect();
 
-                let all_vessel_item_recipes: BTreeSet<_> = vessel_item_recipes
-                    .into_iter()
-                    .chain(potential_vessel_item_recipes.into_iter())
-                    .collect();
-
-                let items: BTreeSet<_> = all_vessel_item_recipes
-                    .iter()
-                    .map(|x| x.items())
-                    .flatten()
-                    .cloned()
-                    .collect();
+                let items: BTreeSet<_> = iter::chain(
+                    input_item_recipes.iter().map(|x| x.items()).flatten(),
+                    output_item_recipes.iter().map(|x| x.items()).flatten(),
+                )
+                .cloned()
+                .collect();
 
                 logger.info("ManageProductionStationObjective::FindBestOffersAndDecideBestRecipe");
                 *self = Self::FindBestOffersAndDecideBestRecipe {
                     future: FindBestOffersForItems { items }
                         .push(environment_context.request_storage_mut()),
-                    recipes_to_consider: all_vessel_item_recipes,
+                    recipes_to_consider: item_recipes,
+                    input_recipes_to_consider: input_item_recipes,
+                    output_recipes_to_consider: output_item_recipes,   
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
             Self::FindBestOffersAndDecideBestRecipe {
                 future,
                 recipes_to_consider,
+                input_recipes_to_consider,
+                output_recipes_to_consider
             } => match future.take() {
                 Ok(x) => {
                     todo!()

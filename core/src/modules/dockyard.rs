@@ -8,7 +8,10 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
+};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{
     DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface,
@@ -348,6 +351,14 @@ impl Module for Dockyard {
         todo!()
     }
 
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
+    }
+
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
@@ -477,7 +488,6 @@ impl ModuleFactoryOutputDescription for DockyardFactory {
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
         todo!()
     }
-
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()

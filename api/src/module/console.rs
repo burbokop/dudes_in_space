@@ -4,7 +4,9 @@ use crate::item::{
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::{AssemblyRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe};
+use crate::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
+};
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
@@ -170,6 +172,8 @@ pub trait CraftingConsole {
     /// deploy - if true will attach the produced module to this vessel, false - will store in a nearest module storage
     fn start(&mut self, index: usize, deploy: bool) -> Option<ProcessToken>;
     fn item_recipes(&self) -> &[ItemRecipe];
+    fn input_item_recipes(&self) -> &[InputItemRecipe];
+    fn output_item_recipes(&self) -> &[OutputItemRecipe];
     fn assembly_recipes(&self) -> &[AssemblyRecipe];
 }
 

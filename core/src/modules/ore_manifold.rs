@@ -6,7 +6,10 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
+};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
@@ -26,11 +29,12 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemProdu
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
 pub(crate) static RECIPES: LazyLock<[OutputItemRecipe; 1]> = LazyLock::new(|| {
     [[
-            ("silicon_ore".into(), 6),
-            ("iron_ore".into(), 10),
-            ("rare_earth_ore".into(), 1),
-            ("ice".into(), 6),
-        ].into()]
+        ("silicon_ore".into(), 6),
+        ("iron_ore".into(), 10),
+        ("rare_earth_ore".into(), 1),
+        ("ice".into(), 6),
+    ]
+    .into()]
 });
 
 #[derive(Debug)]
@@ -77,6 +81,14 @@ impl Module for OreManifold {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
+        todo!()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
         todo!()
     }
 

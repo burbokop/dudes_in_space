@@ -8,7 +8,10 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
+};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -19,6 +22,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use std::clone::Clone;
 use std::convert::Into;
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
@@ -86,6 +90,10 @@ pub(crate) static RECIPES: LazyLock<[ItemRecipe; 10]> = LazyLock::new(|| {
         },
     ]
 });
+static INPUT_RECIPES: LazyLock<[InputItemRecipe; 10]> =
+    LazyLock::new(|| RECIPES.clone().map(|x| x.input));
+static OUTPUT_RECIPES: LazyLock<[OutputItemRecipe; 10]> =
+    LazyLock::new(|| RECIPES.clone().map(|x| x.output));
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorStateSeed::<'context>)]
@@ -330,6 +338,14 @@ impl Module for Fabricator {
         RECIPES.as_ref()
     }
 
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
+    }
+
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         todo!()
     }
@@ -485,7 +501,7 @@ impl ModuleFactoryOutputDescription for FabricatorFactory {
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        OUTPUT_RECIPES.as_ref()
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {

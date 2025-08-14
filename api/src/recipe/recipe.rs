@@ -61,6 +61,10 @@ impl InputItemRecipe {
         self.input.len()
     }
 
+    pub fn items(&self) -> impl Iterator<Item = &ItemId> {
+        self.input.iter().map(|(item, _)| item)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {
         self.input.iter()
     }
@@ -130,6 +134,10 @@ impl OutputItemRecipe {
 
     pub fn first(&self) -> Option<(&ItemId, &ItemCount)> {
         self.output.first_key_value()
+    }
+
+    pub fn items(&self) -> impl Iterator<Item = &ItemId> {
+        self.output.iter().map(|(item, _)| item)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {

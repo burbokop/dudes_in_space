@@ -2,6 +2,7 @@ use crate::item::ItemVolume;
 use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage,
 };
+use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use crate::utils::physics::M3;
 use crate::vessel::{
     DockingClamp, DockingClampConnection, DockingConnectorId, VesselConsole, VesselId,
@@ -241,4 +242,113 @@ pub fn total_primary_free_space(
         } else {
             M3(0)
         }
+}
+
+pub fn this_vessel_item_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<ItemRecipe> {
+    this_vessel
+        .modules_with_capability(ModuleCapability::ItemCrafting)
+        .iter()
+        .map(|crafter| crafter.item_recipes().iter())
+        .chain(
+            this_module
+                .crafting_console()
+                .iter()
+                .map(|x| x.item_recipes().iter()),
+        )
+        .flatten()
+        .cloned()
+        .collect()
+}
+
+pub fn this_vessel_input_item_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<InputItemRecipe> {
+    this_vessel
+        .modules_with_capability(ModuleCapability::ItemConsumption)
+        .iter()
+        .map(|crafter| crafter.input_item_recipes().iter())
+        .chain(
+            this_module
+                .crafting_console()
+                .iter()
+                .map(|x| x.input_item_recipes().iter()),
+        )
+        .flatten()
+        .cloned()
+        .collect()
+}
+
+pub fn this_vessel_output_item_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<OutputItemRecipe> {
+    this_vessel
+        .modules_with_capability(ModuleCapability::ItemProduction)
+        .iter()
+        .map(|crafter| crafter.output_item_recipes().iter())
+        .chain(
+            this_module
+                .crafting_console()
+                .iter()
+                .map(|x| x.output_item_recipes().iter()),
+        )
+        .flatten()
+        .cloned()
+        .collect()
+}
+
+pub fn this_vessel_assembly_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<AssemblyRecipe> {
+    this_vessel
+        .modules_with_capability(ModuleCapability::ModuleCrafting)
+        .iter()
+        .map(|crafter| crafter.assembly_recipes().iter())
+        .chain(
+            this_module
+                .crafting_console()
+                .iter()
+                .map(|x| x.assembly_recipes().iter()),
+        )
+        .flatten()
+        .cloned()
+        .collect()
+}
+
+pub fn this_vessel_potential_item_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<ItemRecipe> {
+    this_vessel_assembly_recipes(this_module, this_vessel)
+        .into_iter()
+        .map(|r| r.output_description().item_recipes().to_vec())
+        .flatten()
+        .collect()
+}
+
+pub fn this_vessel_potential_input_item_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<InputItemRecipe> {
+    this_vessel_assembly_recipes(this_module, this_vessel)
+        .into_iter()
+        .map(|r| r.output_description().input_item_recipes().to_vec())
+        .flatten()
+        .collect()
+}
+
+pub fn this_vessel_potential_output_item_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<OutputItemRecipe> {
+    this_vessel_assembly_recipes(this_module, this_vessel)
+        .into_iter()
+        .map(|r| r.output_description().output_item_recipes().to_vec())
+        .flatten()
+        .collect()
 }

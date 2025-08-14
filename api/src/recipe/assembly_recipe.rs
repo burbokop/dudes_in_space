@@ -23,7 +23,7 @@ pub trait ModuleFactory: Debug + DynSerialize {
 
 dyn_serde_trait!(ModuleFactory, ModuleFactorySeed);
 
-#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[derive(Debug, Serialize, DeserializeSeedXXX, Clone)]
 #[deserialize_seed_xxx(seed = crate::recipe::AssemblyRecipeSeed::<'v>)]
 pub struct AssemblyRecipe {
     input: InputItemRecipe,
