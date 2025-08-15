@@ -1,8 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
-    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
-    ObjectiveStatus, Passion, PersonId, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::vessel::VesselConsole;
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
@@ -21,7 +20,7 @@ impl Objective for GatherResearchDataObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -36,13 +35,7 @@ pub(crate) struct GatherResearchDataObjectiveDecider;
 impl ObjectiveDecider for GatherResearchDataObjectiveDecider {
     fn consider(
         &self,
-        person_id: &PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         None

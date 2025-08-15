@@ -1,7 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::WeakSellOrder;
 use dudes_in_space_api::module::ModuleConsole;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -23,7 +23,7 @@ impl Objective for SellGoodsObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,

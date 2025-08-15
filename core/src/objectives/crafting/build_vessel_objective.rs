@@ -1,7 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -12,12 +12,10 @@ use std::fmt::{Display, Formatter};
 #[serde(tag = "build_vessel_objective_stage")]
 pub(crate) enum BuildVesselObjective {
     SearchingForDockyard {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
     },
     MovingToDockyardModule {
-        this_person: PersonId,
         dst: ModuleId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
@@ -32,12 +30,10 @@ pub(crate) enum BuildVesselObjective {
 
 impl BuildVesselObjective {
     pub(crate) fn new(
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
     ) -> Self {
         Self::SearchingForDockyard {
-            this_person,
             needed_capabilities,
             needed_primary_capabilities,
         }
@@ -49,7 +45,7 @@ impl Objective for BuildVesselObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -57,7 +53,6 @@ impl Objective for BuildVesselObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             BuildVesselObjective::SearchingForDockyard {
-                this_person,
                 needed_capabilities,
                 needed_primary_capabilities,
             } => {
@@ -69,7 +64,6 @@ impl Objective for BuildVesselObjective {
                 ) {
                     logger.info("Moving to dockyard module...");
                     *self = Self::MovingToDockyardModule {
-                        this_person: this_person.clone(),
                         dst: this_module.id(),
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
@@ -89,7 +83,6 @@ impl Objective for BuildVesselObjective {
                     {
                         logger.info("Moving to dockyard module...");
                         *self = Self::MovingToDockyardModule {
-                            this_person: this_person.clone(),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
@@ -102,7 +95,6 @@ impl Objective for BuildVesselObjective {
                 Err(BuildVesselObjectiveError::CanNotFindDockyard)
             }
             BuildVesselObjective::MovingToDockyardModule {
-                this_person,
                 dst,
                 needed_capabilities,
                 needed_primary_capabilities,
@@ -120,14 +112,13 @@ impl Objective for BuildVesselObjective {
                     };
                 } else {
                     logger.info("Entering dockyard module...");
-                    match this_vessel.move_person_to_module(*this_person, *dst) {
+                    match this_vessel.move_person_to_module(*this_person.id, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in dockyard module. Searching another one...",
                             );
                             *self = Self::SearchingForDockyard {
-                                this_person: this_person.clone(),
                                 needed_capabilities: std::mem::take(needed_capabilities),
                                 needed_primary_capabilities: std::mem::take(
                                     needed_primary_capabilities,

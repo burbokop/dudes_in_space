@@ -7,8 +7,7 @@ use dudes_in_space_api::environment::{
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
-    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
-    ObjectiveStatus, Passion, PersonId, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
@@ -24,6 +23,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -82,7 +82,7 @@ impl Objective for ManageProductionStationObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -142,7 +142,17 @@ impl Objective for ManageProductionStationObjective {
                 input_recipes_to_consider,
                 output_recipes_to_consider,
             } => match future.take() {
-                Ok(x) => {
+                Ok(search_result) => {
+                    println!(
+                        "{:#?}",
+                        (
+                            recipes_to_consider,
+                            input_recipes_to_consider,
+                            output_recipes_to_consider,
+                            search_result
+                        )
+                    );
+
                     todo!()
                 }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
@@ -181,16 +191,12 @@ pub(crate) struct ManageProductionStationObjectiveDecider;
 impl ObjectiveDecider for ManageProductionStationObjectiveDecider {
     fn consider(
         &self,
-        person_id: &PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
-        if passions.contains(&Passion::Management) || passions.contains(&Passion::Ruling) {
+        if person.passions.contains(&Passion::Management)
+            || person.passions.contains(&Passion::Ruling)
+        {
             logger.info("Manage production station objective decided.");
             Some(Box::new(ManageProductionStationObjective::new(logger)))
         } else {

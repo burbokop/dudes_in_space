@@ -1,6 +1,6 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
@@ -12,13 +12,11 @@ use std::fmt::{Debug, Display, Formatter};
 #[serde(tag = "craft_modules_objective_stage")]
 pub(crate) enum CraftModulesObjective {
     SearchingForCraftingModule {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
     },
     MovingToCraftingModule {
-        this_person: PersonId,
         dst: ModuleId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
@@ -35,7 +33,6 @@ pub(crate) enum CraftModulesObjective {
 
 impl CraftModulesObjective {
     pub(crate) fn new(
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         deploy: bool,
@@ -46,7 +43,6 @@ impl CraftModulesObjective {
             needed_capabilities, needed_primary_capabilities
         ));
         Self::SearchingForCraftingModule {
-            this_person,
             needed_capabilities,
             needed_primary_capabilities,
             deploy,
@@ -85,7 +81,7 @@ impl Objective for CraftModulesObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -93,7 +89,6 @@ impl Objective for CraftModulesObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {
-                this_person,
                 needed_capabilities,
                 needed_primary_capabilities,
                 deploy,
@@ -111,7 +106,6 @@ impl Objective for CraftModulesObjective {
                     ) {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
-                            this_person: this_person.clone(),
                             dst: this_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
@@ -139,7 +133,6 @@ impl Objective for CraftModulesObjective {
                     {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
-                            this_person: this_person.clone(),
                             dst: crafting_module.id(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
@@ -153,7 +146,6 @@ impl Objective for CraftModulesObjective {
                 Err(CraftModulesObjectiveError::CanNotFindCraftingModule)
             }
             Self::MovingToCraftingModule {
-                this_person,
                 dst,
                 needed_capabilities,
                 needed_primary_capabilities,
@@ -173,14 +165,13 @@ impl Objective for CraftModulesObjective {
                     };
                 } else {
                     logger.info("Entering crafting module...");
-                    match this_vessel.move_person_to_module(*this_person, *dst) {
+                    match this_vessel.move_person_to_module(*this_person.id, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in crafting module. Searching another one...",
                             );
                             *self = Self::SearchingForCraftingModule {
-                                this_person: this_person.clone(),
                                 needed_capabilities: std::mem::take(needed_capabilities),
                                 needed_primary_capabilities: std::mem::take(
                                     needed_primary_capabilities,

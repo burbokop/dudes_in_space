@@ -4,7 +4,7 @@ use crate::objectives::crafting::{
 };
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -14,18 +14,15 @@ use std::fmt::{Debug, Display, Formatter};
 #[serde(tag = "craft_vessel_from_scratch_objective_stage")]
 pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
     },
     CraftingDockyard {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         crafting_objective: CraftModulesObjective,
     },
     CraftingVesselModules {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         crafting_objective: CraftModulesObjective,
@@ -43,12 +40,10 @@ struct DockyardRef<'x> {
 }
 impl CraftVesselFromScratchObjective {
     pub(crate) fn new(
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
     ) -> Self {
         Self::CheckingAllPrerequisites {
-            this_person,
             needed_capabilities,
             needed_primary_capabilities,
         }
@@ -81,7 +76,7 @@ impl Objective for CraftVesselFromScratchObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -89,7 +84,6 @@ impl Objective for CraftVesselFromScratchObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CheckingAllPrerequisites {
-                this_person,
                 needed_capabilities,
                 needed_primary_capabilities,
             } => {
@@ -114,11 +108,9 @@ impl Objective for CraftVesselFromScratchObjective {
                 if dockyards.is_empty() {
                     logger.info("Crafting dockyard...");
                     *self = Self::CraftingDockyard {
-                        this_person: this_person.clone(),
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                         crafting_objective: CraftModulesObjective::new(
-                            this_person.clone(),
                             vec![ModuleCapability::Dockyard],
                             vec![],
                             true,
@@ -137,11 +129,9 @@ impl Objective for CraftVesselFromScratchObjective {
                 if dockyard.is_none() {
                     logger.info("Crafting modules for a new vessel...");
                     *self = Self::CraftingVesselModules {
-                        this_person: this_person.clone(),
                         needed_capabilities: needed_capabilities.clone(),
                         needed_primary_capabilities: needed_primary_capabilities.clone(),
                         crafting_objective: CraftModulesObjective::new(
-                            this_person.clone(),
                             std::mem::take(needed_capabilities),
                             std::mem::take(needed_primary_capabilities),
                             false,
@@ -156,7 +146,6 @@ impl Objective for CraftVesselFromScratchObjective {
                     needed_capabilities: needed_capabilities.clone(),
                     needed_primary_capabilities: needed_primary_capabilities.clone(),
                     building_objective: BuildVesselObjective::new(
-                        this_person.clone(),
                         std::mem::take(needed_capabilities),
                         std::mem::take(needed_primary_capabilities),
                     ),
@@ -164,7 +153,6 @@ impl Objective for CraftVesselFromScratchObjective {
                 Ok(ObjectiveStatus::InProgress)
             }
             Self::CraftingDockyard {
-                this_person,
                 needed_capabilities,
                 needed_primary_capabilities,
                 crafting_objective,
@@ -183,7 +171,6 @@ impl Objective for CraftVesselFromScratchObjective {
                     ObjectiveStatus::Done => {
                         logger.info("CraftVesselFromScratchObjective::CraftingDockyard::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
-                            this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,
@@ -194,7 +181,6 @@ impl Objective for CraftVesselFromScratchObjective {
                 Ok(ObjectiveStatus::InProgress)
             }
             Self::CraftingVesselModules {
-                this_person,
                 needed_capabilities,
                 needed_primary_capabilities,
                 crafting_objective,
@@ -215,7 +201,6 @@ impl Objective for CraftVesselFromScratchObjective {
                             "Checking all prerequisites for crafting a vessel from scratch...",
                         );
                         *self = Self::CheckingAllPrerequisites {
-                            this_person: this_person.clone(),
                             needed_capabilities: std::mem::take(needed_capabilities),
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,

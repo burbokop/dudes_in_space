@@ -9,6 +9,7 @@ use rand::Rng;
 use rand::prelude::SliceRandom;
 use std::error::Error;
 use std::fmt::Debug;
+use crate::item::Money;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -16,11 +17,22 @@ pub enum ObjectiveStatus {
     Done,
 }
 
+pub struct PersonInfo<'a> {
+    pub id: &'a PersonId,
+    pub age: &'a u8,
+    pub gender: &'a Gender,
+    pub passions: &'a [Passion],
+    pub morale: &'a Morale,
+    pub boldness: &'a Boldness,
+    pub awareness: &'a Awareness,
+    pub budget: &'a Money,
+}
+
 pub trait Objective {
     type Error: Error + 'static;
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -31,7 +43,7 @@ pub trait Objective {
 pub trait DynObjective: Debug + DynSerialize {
     fn pursue_dyn(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -44,7 +56,7 @@ dyn_serde_trait!(DynObjective, ObjectiveSeed);
 impl<T: Objective + Debug + DynSerialize> DynObjective for T {
     fn pursue_dyn(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -65,13 +77,7 @@ impl<T: Objective + Debug + DynSerialize> DynObjective for T {
 pub trait ObjectiveDecider {
     fn consider(
         &self,
-        person_id: &PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>>;
 }
@@ -89,22 +95,12 @@ impl ObjectiveDeciderVault {
     pub fn decide<R: Rng>(
         &self,
         rng: &mut R,
-        person_id: &PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         let mut data: Vec<&dyn ObjectiveDecider> = self.data.iter().map(|x| x.as_ref()).collect();
         data.shuffle(rng);
-        data.into_iter().find_map(|x| {
-            x.consider(
-                person_id, age, gender, passions, morale, boldness, awareness, logger,
-            )
-        })
+        data.into_iter().find_map(|x| x.consider(person, logger))
     }
 
     pub fn with<T: ObjectiveDecider + 'static>(mut self, decider: T) -> Self {

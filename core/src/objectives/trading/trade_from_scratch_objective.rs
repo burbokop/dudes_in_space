@@ -5,8 +5,7 @@ use crate::objectives::trading::{TradeObjective, TradeObjectiveError, TradeObjec
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
-    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
-    ObjectiveStatus, Passion, PersonId, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::utils::request::ReqContext;
 use dudes_in_space_api::vessel::VesselConsole;
@@ -38,11 +37,9 @@ pub(crate) enum TradeFromScratchObjective {
     #[deserialize_seed_xxx(seeds = [(trade_objective, self.seed.seed.trade_objective_seed)])]
     ExecuteTrade {
         second_attempt: bool,
-        this_person: PersonId,
         trade_objective: TradeObjective,
     },
     CraftVessel {
-        this_person: PersonId,
         craft_vessel_objective: CraftVesselFromScratchObjective,
     },
 }
@@ -61,10 +58,9 @@ impl<'context> TradeFromScratchObjectiveSeed<'context> {
 }
 
 impl TradeFromScratchObjective {
-    pub fn new(this_person: PersonId) -> Self {
+    pub fn new() -> Self {
         Self::ExecuteTrade {
             second_attempt: false,
-            this_person,
             trade_objective: TradeObjective::new(),
         }
     }
@@ -75,7 +71,7 @@ impl Objective for TradeFromScratchObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -84,7 +80,7 @@ impl Objective for TradeFromScratchObjective {
         match self {
             TradeFromScratchObjective::ExecuteTrade {
                 second_attempt,
-                this_person,
+
                 trade_objective,
             } => match trade_objective.pursue(
                 this_person,
@@ -103,9 +99,7 @@ impl Objective for TradeFromScratchObjective {
 
                     logger.info("No suitable vessel found for trade. Crafting it...");
                     *self = Self::CraftVessel {
-                        this_person: *this_person,
                         craft_vessel_objective: CraftVesselFromScratchObjective::new(
-                            this_person.clone(),
                             vec![
                                 ModuleCapability::Cockpit,
                                 ModuleCapability::Engine,
@@ -119,7 +113,6 @@ impl Objective for TradeFromScratchObjective {
                 }
             },
             TradeFromScratchObjective::CraftVessel {
-                this_person,
                 craft_vessel_objective,
             } => {
                 match craft_vessel_objective
@@ -140,7 +133,7 @@ impl Objective for TradeFromScratchObjective {
                         logger.info("ExecuteTrade");
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
-                            this_person: this_person.clone(),
+
                             trade_objective: TradeObjective::SearchVessel {},
                         };
                         Ok(ObjectiveStatus::InProgress)
@@ -166,18 +159,12 @@ pub(crate) struct TradeFromScratchObjectiveDecider;
 impl ObjectiveDecider for TradeFromScratchObjectiveDecider {
     fn consider(
         &self,
-        person_id: &PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
-        if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
+        if person.passions.contains(&Passion::Trade) || person.passions.contains(&Passion::Money) {
             logger.info("Trade from scratch objective decided.");
-            Some(Box::new(TradeFromScratchObjective::new(*person_id)))
+            Some(Box::new(TradeFromScratchObjective::new()))
         } else {
             None
         }

@@ -5,8 +5,7 @@ use dudes_in_space_api::environment::{
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
-    Awareness, Boldness, DynObjective, Gender, Morale, Objective, ObjectiveDecider,
-    ObjectiveStatus, Passion, PersonId, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::{VesselConsole, VesselId};
@@ -97,7 +96,7 @@ impl Objective for TradeObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -172,7 +171,7 @@ impl Objective for TradeObjective {
                     .connector_id;
 
                     this_vessel
-                        .move_person_to_docked_vessel(this_module, *this_person, connection_id)
+                        .move_person_to_docked_vessel(this_module, *this_person.id, connection_id)
                         .unwrap();
 
                     *self = Self::SearchForCockpit;
@@ -235,16 +234,10 @@ pub(crate) struct TradeObjectiveDecider;
 impl ObjectiveDecider for TradeObjectiveDecider {
     fn consider(
         &self,
-        person_id: &PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
-        if passions.contains(&Passion::Trade) || passions.contains(&Passion::Money) {
+        if person.passions.contains(&Passion::Trade) || person.passions.contains(&Passion::Money) {
             Some(Box::new(TradeObjective::new()))
         } else {
             None

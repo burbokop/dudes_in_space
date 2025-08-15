@@ -2,7 +2,7 @@ use crate::environment::EnvironmentContext;
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault, Severity, StatusCollector};
+use crate::person::{DynObjective, ObjectiveDeciderVault, PersonInfo, StatusCollector};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
@@ -13,6 +13,7 @@ use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+use crate::item::Money;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -213,6 +214,7 @@ pub struct Person {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
+    budget: Money,
 }
 
 #[derive(Clone)]
@@ -258,6 +260,7 @@ impl Person {
             boldness: rng.random(),
             awareness: rng.random(),
             objective: None,
+            budget: 0,
         }
     }
 
@@ -270,37 +273,32 @@ impl Person {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
+        let info = PersonInfo {
+            id: &self.id,
+            age: &self.age,
+            gender: &self.gender,
+            passions: &self.passions,
+            morale: &self.morale,
+            boldness: &self.boldness,
+            awareness: &self.awareness,
+            budget: &self.budget,
+        };
+        let mut logger = PersonLogger::new(&self.id, &self.name, logger);
+
         match &mut self.objective {
-            None => {
-                self.objective = decider_vault.decide(
-                    rng,
-                    &self.id,
-                    self.age,
-                    self.gender,
-                    &self.passions,
-                    self.morale,
-                    self.boldness,
-                    self.awareness,
-                    &mut PersonLogger::new(&self.id, &self.name, logger),
-                )
-            }
+            None => self.objective = decider_vault.decide(rng, &info, &mut logger),
             Some(objective) => {
                 match objective.pursue_dyn(
-                    &self.id,
+                    &info,
                     this_module,
                     this_vessel,
                     environment_context,
-                    &mut PersonLogger::new(&self.id, &self.name, logger),
+                    &mut logger,
                 ) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {
-                        logger.log(
-                            &self.id,
-                            &self.name,
-                            Severity::Error,
-                            format!("{} failed: {}", objective.type_id(), err),
-                        );
+                        logger.err(format!("{} failed: {}", objective.type_id(), err));
                         self.objective = None
                     }
                 }

@@ -1,7 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::recipe::ItemRecipe;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,7 @@ impl Objective for CraftItemsObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonId,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselConsole,
         environment_context: &mut EnvironmentContext,
@@ -101,7 +101,7 @@ impl Objective for CraftItemsObjective {
                     };
                 } else {
                     logger.info("Entering crafting module...");
-                    match this_vessel.move_person_to_module(*this_person, *dst) {
+                    match this_vessel.move_person_to_module(*this_person.id, *dst) {
                         Ok(_) => {}
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
