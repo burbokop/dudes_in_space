@@ -27,14 +27,13 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemProduction];
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
-pub(crate) static RECIPES: LazyLock<[OutputItemRecipe; 1]> = LazyLock::new(|| {
-    [[
-        ("silicon_ore".into(), 6),
-        ("iron_ore".into(), 10),
-        ("rare_earth_ore".into(), 1),
-        ("ice".into(), 6),
+pub(crate) static RECIPES: LazyLock<[OutputItemRecipe; 4]> = LazyLock::new(|| {
+    [
+        [("silicon_ore".into(), 6)].into(),
+        [("iron_ore".into(), 10)].into(),
+        [("rare_earth_ore".into(), 1)].into(),
+        [("ice".into(), 6)].into(),
     ]
-    .into()]
 });
 
 #[derive(Debug)]
@@ -159,7 +158,7 @@ impl ModuleFactory for OreManifoldFactory {
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
-        todo!()
+        self
     }
 }
 
@@ -177,7 +176,7 @@ impl ModuleFactoryOutputDescription for OreManifoldFactory {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
@@ -185,7 +184,7 @@ impl ModuleFactoryOutputDescription for OreManifoldFactory {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {

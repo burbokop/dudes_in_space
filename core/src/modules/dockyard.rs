@@ -482,11 +482,11 @@ impl ModuleFactoryOutputDescription for DockyardFactory {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {

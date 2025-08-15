@@ -302,6 +302,7 @@ dependencies = [
  "dudes_in_space_api",
  "dyn_serde",
  "dyn_serde_macro",
+ "once_cell",
  "rand",
  "serde",
  "serde-intermediate",

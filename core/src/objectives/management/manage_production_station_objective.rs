@@ -132,7 +132,7 @@ impl Objective for ManageProductionStationObjective {
                         .push(environment_context.request_storage_mut()),
                     recipes_to_consider: item_recipes,
                     input_recipes_to_consider: input_item_recipes,
-                    output_recipes_to_consider: output_item_recipes,   
+                    output_recipes_to_consider: output_item_recipes,
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
@@ -140,7 +140,7 @@ impl Objective for ManageProductionStationObjective {
                 future,
                 recipes_to_consider,
                 input_recipes_to_consider,
-                output_recipes_to_consider
+                output_recipes_to_consider,
             } => match future.take() {
                 Ok(x) => {
                     todo!()

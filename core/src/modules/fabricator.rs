@@ -27,7 +27,7 @@ use std::convert::Into;
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
@@ -339,11 +339,11 @@ impl Module for Fabricator {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        INPUT_RECIPES.as_ref()
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        OUTPUT_RECIPES.as_ref()
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -505,7 +505,7 @@ impl ModuleFactoryOutputDescription for FabricatorFactory {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        INPUT_RECIPES.as_ref()
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -527,6 +527,12 @@ impl DynDeserializeSeed<dyn ModuleFactory> for FabricatorFactoryDynSeed {
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
         let r: Box<FabricatorFactory> =
             from_intermediate(&intermediate).map_err(|e| e.to_string())?;
-        Ok(r)
+
+        let xxx: Arc<FabricatorFactory> = r.into();
+
+        let yyy: Arc<dyn ModuleFactory> = xxx;
+
+        todo!()
+        // Ok(r)
     }
 }

@@ -289,11 +289,11 @@ impl ModuleFactoryOutputDescription for ShuttleFactory {
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {

@@ -1,6 +1,9 @@
-use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
+use crate::modules::{
+    CargoContainerFactory, CoreModule, DockyardFactory, FabricatorFactory, ModuleVisitor,
+    ModuleVisitorMut, OreManifoldFactory, PlantFacilityFactory, ShuttleFactory,
+};
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemId, ItemStorage, ItemStorageSeed, ItemVault};
+use dudes_in_space_api::item::{ItemId, ItemRefStack, ItemStorage, ItemStorageSeed, ItemVault};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
@@ -22,9 +25,11 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
+use std::clone::Clone;
 use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
+use std::sync::{Arc, LazyLock};
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
@@ -35,6 +40,51 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ModuleCrafting];
+pub(crate) static RECIPES: LazyLock<[AssemblyRecipe; 6]> = LazyLock::new(|| {
+    [
+        AssemblyRecipe::new(
+            vec![
+                ItemRefStack::new("steel".to_string(), 10),
+                ItemRefStack::new("microelectronics".to_string(), 2),
+            ]
+            .try_into()
+            .unwrap(),
+            Arc::new(ShuttleFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 40)]
+                .try_into()
+                .unwrap(),
+            Arc::new(CargoContainerFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 100)]
+                .try_into()
+                .unwrap(),
+            Arc::new(DockyardFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 50)]
+                .try_into()
+                .unwrap(),
+            Arc::new(FabricatorFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 50)]
+                .try_into()
+                .unwrap(),
+            Arc::new(PlantFacilityFactory {}),
+        ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 50)]
+                .try_into()
+                .unwrap(),
+            Arc::new(OreManifoldFactory {}),
+        ),
+    ]
+});
+static INPUT_RECIPES: LazyLock<[InputItemRecipe; 6]> =
+    LazyLock::new(|| RECIPES.clone().map(|x| x.input().clone()));
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerStateSeed::<'context>)]
@@ -66,8 +116,8 @@ impl<'context> AssemblerStateSeed<'context> {
 #[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'sv, 'context>)]
 pub struct Assembler {
     id: ModuleId,
-    #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
-    recipes: Vec<AssemblyRecipe>,
+    // #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
+    // recipes: Vec<AssemblyRecipe>,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: AssemblerState,
     #[deserialize_seed_xxx(seed = self.seed.item_storage_seed)]
@@ -102,18 +152,13 @@ impl<'v, 'sv, 'context> AssemblerSeed<'v, 'sv, 'context> {
 }
 
 impl Assembler {
-    pub fn new(recipes: Vec<AssemblyRecipe>, storage: ItemStorage) -> Box<Self> {
+    pub fn new(storage: ItemStorage) -> Box<Self> {
         Box::new(Self {
             id: ModuleId::new_v4(),
-            recipes,
             state: AssemblerState::Idle,
             storage,
             operator: None,
         })
-    }
-
-    pub fn add_recipe(&mut self, recipe: AssemblyRecipe) {
-        self.recipes.push(recipe);
     }
 }
 
@@ -134,6 +179,7 @@ enum AssemblerRequest {
 struct Console<'a> {
     id: ModuleId,
     recipes: &'a [AssemblyRecipe],
+    input_recipes: &'a [InputItemRecipe],
     requests: Vec<AssemblerRequest>,
     state: &'a mut AssemblerState,
     storage: &'a mut ItemStorage,
@@ -298,11 +344,11 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        self.input_recipes
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -336,7 +382,8 @@ impl Module for Assembler {
     ) {
         let mut console = Console {
             id: self.id,
-            recipes: &self.recipes,
+            recipes: RECIPES.as_ref(),
+            input_recipes: INPUT_RECIPES.as_ref(),
             requests: vec![],
             state: &mut self.state,
             storage: &mut self.storage,
@@ -362,7 +409,7 @@ impl Module for Assembler {
                         deploy,
                         process_token,
                     } => {
-                        let active_recipe = &self.recipes[*recipe_index];
+                        let active_recipe = &RECIPES[*recipe_index];
 
                         let ok = self.storage.try_consume(active_recipe.input().clone());
                         assert!(ok);
@@ -409,7 +456,8 @@ impl Module for Assembler {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        &self.recipes
+        RECIPES.as_ref()
+        // &self.recipes
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {

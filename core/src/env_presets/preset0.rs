@@ -1,59 +1,10 @@
-use crate::modules::{
-    Assembler, CargoContainerFactory, DockyardFactory, FabricatorFactory, OreManifoldFactory,
-    PersonnelArea, PlantFacilityFactory, ShuttleFactory, UnmannedTradingTerminal,
-};
+use crate::modules::{Assembler, PersonnelArea, UnmannedTradingTerminal};
 use dudes_in_space_api::environment::{Environment, Nebula};
-use dudes_in_space_api::item::{ItemRefStack, ItemStack, ItemStorage, ItemVault};
+use dudes_in_space_api::item::{ItemStack, ItemStorage, ItemVault};
 use dudes_in_space_api::person::Person;
-use dudes_in_space_api::recipe::AssemblyRecipe;
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::Vessel;
 use rand::Rng;
-use std::rc::Rc;
-
-fn recipes() -> Vec<AssemblyRecipe> {
-    vec![
-        AssemblyRecipe::new(
-            vec![
-                ItemRefStack::new("steel".to_string(), 10),
-                ItemRefStack::new("microelectronics".to_string(), 2),
-            ]
-            .try_into()
-            .unwrap(),
-            Rc::new(ShuttleFactory {}),
-        ),
-        AssemblyRecipe::new(
-            vec![ItemRefStack::new("steel".to_string(), 40)]
-                .try_into()
-                .unwrap(),
-            Rc::new(CargoContainerFactory {}),
-        ),
-        AssemblyRecipe::new(
-            vec![ItemRefStack::new("steel".to_string(), 100)]
-                .try_into()
-                .unwrap(),
-            Rc::new(DockyardFactory {}),
-        ),
-        AssemblyRecipe::new(
-            vec![ItemRefStack::new("steel".to_string(), 50)]
-                .try_into()
-                .unwrap(),
-            Rc::new(FabricatorFactory {}),
-        ),
-        AssemblyRecipe::new(
-            vec![ItemRefStack::new("steel".to_string(), 50)]
-                .try_into()
-                .unwrap(),
-            Rc::new(PlantFacilityFactory {}),
-        ),
-        AssemblyRecipe::new(
-            vec![ItemRefStack::new("steel".to_string(), 50)]
-                .try_into()
-                .unwrap(),
-            Rc::new(OreManifoldFactory {}),
-        ),
-    ]
-}
 
 fn storage(item_vault: &ItemVault) -> ItemStorage {
     ItemStorage::from_vec(
@@ -73,7 +24,7 @@ fn station0<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
 
     let person0_id = person0.id();
     let personnel_area = PersonnelArea::new(vec![person0, person1]);
-    let assembler = Assembler::new(recipes(), storage(item_vault));
+    let assembler = Assembler::new(storage(item_vault));
     let trading_terminal = UnmannedTradingTerminal::new();
 
     Vessel::new(
@@ -91,7 +42,7 @@ fn station1<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
 
     let person0_id = person0.id();
     let personnel_area = PersonnelArea::new(vec![person0, person1, person2]);
-    let assembler = Assembler::new(recipes(), storage(item_vault));
+    let assembler = Assembler::new(storage(item_vault));
     let trading_terminal = UnmannedTradingTerminal::new();
 
     Vessel::new(

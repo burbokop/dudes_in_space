@@ -5,6 +5,7 @@ use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
 use serde::Serialize;
 use std::fmt::Debug;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub trait ModuleFactoryOutputDescription {
     fn type_id(&self) -> ModuleTypeId;
@@ -16,7 +17,7 @@ pub trait ModuleFactoryOutputDescription {
     fn assembly_recipes(&self) -> &[AssemblyRecipe];
 }
 
-pub trait ModuleFactory: Debug + DynSerialize {
+pub trait ModuleFactory: Debug + DynSerialize + Send + Sync {
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module>;
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription;
 }
@@ -28,7 +29,7 @@ dyn_serde_trait!(ModuleFactory, ModuleFactorySeed);
 pub struct AssemblyRecipe {
     input: InputItemRecipe,
     #[deserialize_seed_xxx(seed = self.seed.module_factory_seed)]
-    output: Rc<dyn ModuleFactory>,
+    output: Arc<dyn ModuleFactory>,
 }
 
 #[derive(Clone)]
@@ -45,7 +46,7 @@ impl<'v> AssemblyRecipeSeed<'v> {
 }
 
 impl AssemblyRecipe {
-    pub fn new(input: InputItemRecipe, output: Rc<dyn ModuleFactory>) -> Self {
+    pub fn new(input: InputItemRecipe, output: Arc<dyn ModuleFactory + Sync + Send>) -> Self {
         Self { input, output }
     }
 

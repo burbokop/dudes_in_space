@@ -171,7 +171,7 @@ impl ModuleFactoryOutputDescription for PlantFacilityFactory {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
@@ -179,7 +179,7 @@ impl ModuleFactoryOutputDescription for PlantFacilityFactory {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
