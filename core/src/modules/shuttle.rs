@@ -1,28 +1,68 @@
-use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole};
-use dudes_in_space_api::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputRecipe, ModuleFactory, Recipe};
-use dudes_in_space_api::vessel::{DockingClamp, VesselModuleInterface};
+use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::item::{ItemSafe, ItemStorage};
+use dudes_in_space_api::module::{
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
+    PackageId, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+};
+use dudes_in_space_api::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
+};
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
+use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
+static DOCKING_CONNECTOR_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::Cockpit,
+    ModuleCapability::Engine,
+    ModuleCapability::Reactor,
+    ModuleCapability::FuelTank,
+    ModuleCapability::PersonnelRoom,
+    ModuleCapability::DockingConnector,
+];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::Cockpit,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
 ];
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::shuttle::ShuttleSeed::<'v>)]
 struct Shuttle {
     id: ModuleId,
+    docking_connector: DockingConnector,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
+    pilot: Option<Person>,
+}
+
+#[derive(Clone)]
+struct ShuttleSeed<'v> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+}
+
+impl<'v> ShuttleSeed<'v> {
+    fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+        ShuttleSeed {
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(vault)),
+        }
+    }
 }
 
 impl DynSerialize for Shuttle {
@@ -54,16 +94,23 @@ impl Module for Shuttle {
 
     fn proceed(
         &mut self,
-        v: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        this_vessel: &dyn VesselModuleInterface,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        todo!()
-    }
+        let mut console = DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES);
 
-    fn recipes(&self) -> Vec<Recipe> {
-        todo!()
+        if let Some(pilot) = &mut self.pilot {
+            pilot.proceed(
+                &mut rng(),
+                &mut console,
+                this_vessel.console(),
+                environment_context,
+                decider_vault,
+                logger,
+            )
+        }
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -75,15 +122,17 @@ impl Module for Shuttle {
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
-    }
-
-    fn can_insert_person(&self) -> bool {
-        todo!()
+        match &self.pilot {
+            None => {
+                self.pilot = Some(person);
+                true
+            }
+            Some(_) => false,
+        }
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
-        todo!()
+        self.pilot.as_ref().map(|p| p.id() == id).unwrap_or(false)
     }
 
     fn id(&self) -> ModuleId {
@@ -103,7 +152,7 @@ impl Module for Shuttle {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
@@ -113,9 +162,62 @@ impl Module for Shuttle {
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
         todo!()
     }
+
+    fn free_person_slots_count(&self) -> usize {
+        const CAPACITY: usize = 1;
+        CAPACITY - self.pilot.iter().len()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
+        std::slice::from_ref(&self.docking_connector)
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
+        todo!()
+    }
+
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        if let Some(pilot) = &self.pilot {
+            pilot.collect_status(collector);
+        }
+        collector.exit_module();
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        todo!()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        todo!()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
 }
 
-pub(crate) struct ShuttleDynSeed;
+pub(crate) struct ShuttleDynSeed {
+    vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+}
+
+impl ShuttleDynSeed {
+    pub(crate) fn new(vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+        Self { vault }
+    }
+}
 
 impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
     fn type_id(&self) -> TypeId {
@@ -127,14 +229,14 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
         intermediate: Intermediate,
         _: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Shuttle = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
-
+        let obj: Shuttle = from_intermediate_seed(ShuttleSeed::new(&self.vault), &intermediate)
+            .map_err(|e| e.to_string())?;
         Ok(Box::new(obj))
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ShuttleFactory {}
+pub(crate) struct ShuttleFactory {}
 
 impl DynSerialize for ShuttleFactory {
     fn type_id(&self) -> TypeId {
@@ -158,24 +260,51 @@ impl DynDeserializeSeed<dyn ModuleFactory> for ShuttleFactoryDynSeed {
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
-        let r: Box<ShuttleFactory> =
-            serde_intermediate::from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+        let r: Box<ShuttleFactory> = from_intermediate(&intermediate).map_err(|e| e.to_string())?;
         Ok(r)
     }
 }
 
 impl ModuleFactory for ShuttleFactory {
-    fn output_type_id(&self) -> ModuleTypeId {
-        todo!()
-    }
-
-    fn create(&self, _: &InputRecipe) -> Box<dyn Module> {
+    fn create(&self, _: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Shuttle {
             id: ModuleId::new_v4(),
+            docking_connector: DockingConnector::new(DOCKING_CONNECTOR_COMPAT_TYPE),
+            pilot: None,
         })
     }
 
-    fn output_capabilities(&self) -> &[ModuleCapability] {
-        CAPABILITIES
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        self
+    }
+}
+
+impl ModuleFactoryOutputDescription for ShuttleFactory {
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        &[]
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        &[]
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+        todo!()
     }
 }

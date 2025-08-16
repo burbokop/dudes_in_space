@@ -9,7 +9,7 @@ use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 
 /// Can not store negative numbers
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Ord)]
 pub struct NoNeg<T> {
     value: T,
 }

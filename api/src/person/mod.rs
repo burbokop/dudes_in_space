@@ -1,10 +1,13 @@
+pub mod utils;
+
 mod person;
-pub use person::*;
-
 mod objective;
-pub use objective::*;
-
 mod logger;
-pub use logger::*;
+mod bank;
+mod status_collector;
 
-mod utils;
+pub use person::*;
+pub use objective::*;
+pub use logger::*;
+pub use status_collector::*;
+pub use bank::*;
