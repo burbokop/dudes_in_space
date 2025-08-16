@@ -159,6 +159,36 @@ impl<'de, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for VecSeed<T> {
     }
 }
 
+
+
+
+#[derive(Clone)]
+pub struct MapSeed<K, T> {
+    _k: std::marker::PhantomData<K>,
+    element_seed: T,
+}
+
+impl<K, T> MapSeed<K, T> {
+    pub fn new(element_seed: T) -> Self {
+        Self { _k: Default::default(), element_seed }
+    }
+}
+
+impl<'de, K: Deserialize<'de>, T: DeserializeSeed<'de> + Clone> DeserializeSeed<'de> for MapSeed<K, T> {
+    type Value = BTreeMap<K, T::Value>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[allow(unused_must_use)]self.element_seed.deserialize(deserializer);
+        todo!()
+    }
+}
+
+
+
+
 #[derive(Clone)]
 pub struct OptionSeed<T> {
     element_seed: T,

@@ -1,9 +1,7 @@
-use crate::item::{
-    BuyOffer, ItemCount, ItemId, ItemStorage, Money, SellOffer, WeakBuyOrder, WeakSellOrder,
-};
+use crate::item::{BuyOffer, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
-use crate::person::Role;
+use crate::person::{Money, Role};
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
 };
@@ -40,6 +38,9 @@ pub trait ModuleConsole {
 
     fn storages(&self) -> &[ItemStorage];
     fn storages_mut(&mut self) -> &mut [ItemStorage];
+
+    fn safes(&self) -> &[ItemSafe];
+    fn safes_mut(&mut self) -> &mut [ItemSafe];
 
     fn module_storages(&self) -> &[ModuleStorage];
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
@@ -134,6 +135,14 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
         todo!()
     }
 

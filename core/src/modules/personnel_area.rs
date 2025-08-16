@@ -1,7 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::ItemStorage;
+use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
     TradingConsole,
@@ -183,6 +183,14 @@ impl Module for PersonnelArea {
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
         todo!()
     }
 }

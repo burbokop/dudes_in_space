@@ -2,7 +2,7 @@ use crate::environment::EnvironmentContext;
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault, PersonInfo, StatusCollector};
+use crate::person::{DynObjective, Money, ObjectiveDeciderVault, PersonInfo, StatusCollector};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselConsole;
@@ -13,7 +13,7 @@ use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use crate::item::Money;
+
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -260,7 +260,7 @@ impl Person {
             boldness: rng.random(),
             awareness: rng.random(),
             objective: None,
-            budget: 0,
+            budget: Money::zero(),
         }
     }
 

@@ -3,7 +3,7 @@ use crate::modules::{
     ModuleVisitorMut, OreManifoldFactory, PlantFacilityFactory, ShuttleFactory,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemId, ItemRefStack, ItemStorage, ItemStorageSeed, ItemVault};
+use dudes_in_space_api::item::{ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
@@ -267,6 +267,14 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
+
     fn module_storages(&self) -> &[ModuleStorage] {
         &[]
     }
@@ -506,6 +514,14 @@ impl Module for Assembler {
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
         todo!()
     }
 

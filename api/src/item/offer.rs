@@ -1,6 +1,7 @@
-use crate::item::{ItemCount, ItemId, Money};
+use crate::item::{ItemCount, ItemId};
 use crate::utils::range::Range;
 use serde::{Deserialize, Serialize};
+use crate::person::{ MoneyRef};
 
 type OfferId = u64;
 
@@ -9,7 +10,7 @@ pub struct BuyOffer {
     pub id: OfferId,
     pub item: ItemId,
     pub count_range: Range<ItemCount>,
-    pub price_per_unit: Money,
+    pub price_per_unit: MoneyRef,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -17,5 +18,5 @@ pub struct SellOffer {
     pub id: OfferId,
     pub item: ItemId,
     pub count_range: Range<ItemCount>,
-    pub price_per_unit: Money,
+    pub price_per_unit: MoneyRef,
 }

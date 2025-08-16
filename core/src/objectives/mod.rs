@@ -3,6 +3,8 @@ mod crafting;
 mod gathering;
 mod management;
 mod trading;
+mod initiatives;
+mod personal;
 
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dudes_in_space_api::utils::request::ReqContext;
@@ -17,6 +19,7 @@ use crate::objectives::gathering::{
 use crate::objectives::management::{
     ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed,
 };
+use crate::objectives::personal::{AdventuringObjectiveDecider, AdventuringObjectiveDynSeed};
 use crate::objectives::trading::{
     TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed,
 };
@@ -31,6 +34,7 @@ pub fn register_objectives(
         .with(MineAsteroidsObjectiveDynSeed)
         .with(ScavengeObjectiveDynSeed)
         .with(ManageProductionStationObjectiveDynSeed::new(req_context))
+        .with(AdventuringObjectiveDynSeed)
 }
 
 pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDeciderVault {
@@ -40,4 +44,5 @@ pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDec
         .with(MineAsteroidsObjectiveDecider)
         .with(ScavengeObjectiveDecider)
         .with(ManageProductionStationObjectiveDecider)
+        .with(AdventuringObjectiveDecider)
 }

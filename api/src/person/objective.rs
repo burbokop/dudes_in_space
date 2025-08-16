@@ -1,7 +1,7 @@
 use crate::environment::EnvironmentContext;
 use crate::module::ModuleConsole;
 use crate::person::logger::PersonLogger;
-use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
+use crate::person::{Awareness, Boldness, Gender, Money, Morale, Passion, PersonId};
 use crate::vessel::VesselConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
@@ -9,7 +9,7 @@ use rand::Rng;
 use rand::prelude::SliceRandom;
 use std::error::Error;
 use std::fmt::Debug;
-use crate::item::Money;
+
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {

@@ -96,7 +96,7 @@ impl Environment {
                             record,
                         )
                     })
-                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b))
+                    .max_by(|((a, _, _), _), ((b, _, _), _)| a .cmp(b))
                 {
                     req.promise
                         .make_ready(

@@ -1,7 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{
-    BuyOffer, ItemCount, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder,
-};
+use dudes_in_space_api::item::{BuyOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
 };
@@ -123,6 +121,14 @@ impl Module for UnmannedTradingTerminal {
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
         todo!()
     }
 

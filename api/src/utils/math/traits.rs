@@ -318,6 +318,12 @@ impl IsNeg for f64 {
     }
 }
 
+impl IsNeg for i64 {
+    fn is_neg(&self) -> bool {
+        *self < 0
+    }
+}
+
 pub(crate) trait RadToDeg {
     type Output;
     fn rad_to_deg(self) -> Self::Output;

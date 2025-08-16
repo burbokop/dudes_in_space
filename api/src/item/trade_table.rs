@@ -1,9 +1,12 @@
-use crate::item::{BuyOffer, ItemCount, ItemId, ItemVault, ItemVolume, Money, SellOffer};
+use crate::item::{BuyOffer, ItemCount, ItemId, ItemVault, ItemVolume, SellOffer};
 use crate::module::{ModuleCapability, ModuleId};
 use crate::utils::range::Range;
 use crate::vessel::{Vessel, VesselId};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use crate::person::{MoneyAmount, MoneyRef};
+use crate::utils::math::{ NoNeg};
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OfferRef<Offer> {
@@ -30,20 +33,20 @@ impl ItemRecord {
     pub(crate) fn cheapest_buy_offer(&self) -> Option<&OfferRef<BuyOffer>> {
         self.buy_offers
             .iter()
-            .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+            .min_by(|a, b| a.offer.price_per_unit.amount .cmp(&b.offer.price_per_unit.amount))
     }
 
     pub(crate) fn the_most_expensive_sell_offer(&self) -> Option<&OfferRef<SellOffer>> {
         self.sell_offers
             .iter()
-            .max_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+            .max_by(|a, b| a.offer.price_per_unit.amount.cmp(&b.offer.price_per_unit.amount))
     }
 
     pub(crate) fn eval_max_profit(
         &self,
         free_storage_space: ItemVolume,
         item_vault: &ItemVault,
-    ) -> (Money, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
+    ) -> (MoneyAmount, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
@@ -56,13 +59,13 @@ impl ItemRecord {
                     total_price(
                         &offer.offer.item,
                         free_storage_space,
-                        offer.offer.price_per_unit,
+                        offer.offer.price_per_unit.clone(),
                         item_vault,
                     ),
                     offer,
                 )
             })
-            .min_by(|(a, _), (b, _)| a.cmp(b))
+            .min_by(|(a, _), (b, _)| a.amount.cmp(&b.amount))
             .unwrap();
 
         let (max_sell_price, max_price_sell_offer) = self
@@ -77,17 +80,17 @@ impl ItemRecord {
                     total_price(
                         &offer.offer.item,
                         free_storage_space,
-                        offer.offer.price_per_unit,
+                        offer.offer.price_per_unit.clone(),
                         item_vault,
                     ),
                     offer,
                 )
             })
-            .max_by(|(a, _), (b, _)| a.cmp(b))
+            .max_by(|(a, _), (b, _)| a.amount.cmp(&b.amount))
             .unwrap();
 
         (
-            max_sell_price - min_buy_price,
+            max_sell_price.amount - min_buy_price.amount,
             min_price_buy_offer.clone(),
             max_price_sell_offer.clone(),
         )
@@ -189,11 +192,14 @@ fn volume_range(
 fn total_price(
     item_id: &ItemId,
     free_storage_space: ItemVolume,
-    price_per_unit: Money,
+    price_per_unit: MoneyRef,
     item_vault: &ItemVault,
-) -> Money {
+) -> MoneyRef {
     let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
     let count: ItemCount = free_storage_space / item.volume;
 
-    count * price_per_unit
+    MoneyRef {
+        currency: price_per_unit.currency,
+        amount: NoNeg::wrap(count as MoneyAmount).unwrap() * price_per_unit.amount,
+    } 
 }
