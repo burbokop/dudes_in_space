@@ -1,22 +1,14 @@
-
-
-
-
-use crate::item::{ItemCount, ItemId, 
-                  ItemStack, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
-use crate::recipe::{InputItemRecipe, OutputItemRecipe};
-use serde::{ 
-    Serialize, 
+use crate::item::{
+    ItemCount, ItemId, ItemStack, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume,
 };
+use crate::recipe::{InputItemRecipe, OutputItemRecipe};
+use serde::Serialize;
 
 use std::collections::BTreeMap;
 
-
-
-use dyn_serde::{MapSeed, 
-};
-use dyn_serde_macro::DeserializeSeedXXX;
 use crate::person::PersonId;
+use dyn_serde::MapSeed;
+use dyn_serde_macro::DeserializeSeedXXX;
 
 #[derive(Debug, Clone, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::item::item_safe::ItemSafeSeed::<'v>)]
@@ -33,7 +25,9 @@ pub struct ItemSafeSeed<'v> {
 
 impl<'v> ItemSafeSeed<'v> {
     pub fn new(vault: &'v ItemVault) -> Self {
-        Self { item_storage_seed: MapSeed::new(ItemStorageSeed::new(vault)) }
+        Self {
+            item_storage_seed: MapSeed::new(ItemStorageSeed::new(vault)),
+        }
     }
 }
 
@@ -44,7 +38,7 @@ impl ItemSafe {
             persons_capacity,
         }
     }
-    
+
     pub fn capacity(&self, person_id: PersonId) -> ItemCount {
         todo!()
     }
@@ -54,7 +48,7 @@ impl ItemSafe {
     }
 
     /// returns the rest that did not fit inside storage space
-    pub fn add(&mut self,person_id: PersonId, _stack: ItemStack) -> ItemStack {
+    pub fn add(&mut self, person_id: PersonId, _stack: ItemStack) -> ItemStack {
         todo!()
     }
 
@@ -64,36 +58,46 @@ impl ItemSafe {
     }
 
     /// remove as many items as possible
-    pub fn remove_item(&mut self,person_id: PersonId, _item_id: ItemId, _count: ItemCount) -> ItemStack {
+    pub fn remove_item(
+        &mut self,
+        person_id: PersonId,
+        _item_id: ItemId,
+        _count: ItemCount,
+    ) -> ItemStack {
         todo!()
     }
 
     /// returns true if an item was removed, false if not due to not enough item count in storage
-    pub fn try_remove_item(&mut self,person_id: PersonId, _item_id: ItemId, _count: ItemCount) -> bool {
+    pub fn try_remove_item(
+        &mut self,
+        person_id: PersonId,
+        _item_id: ItemId,
+        _count: ItemCount,
+    ) -> bool {
         todo!()
     }
 
-    pub fn count(&self,person_id: PersonId, _item_id: ItemId) -> ItemCount {
+    pub fn count(&self, person_id: PersonId, _item_id: ItemId) -> ItemCount {
         todo!()
     }
 
-    pub fn contains(&self,person_id: PersonId, id: ItemId, count: ItemCount) -> bool {
+    pub fn contains(&self, person_id: PersonId, id: ItemId, count: ItemCount) -> bool {
         todo!()
     }
 
-    pub fn contains_for_input(&self,person_id: PersonId, input: InputItemRecipe) -> bool {
+    pub fn contains_for_input(&self, person_id: PersonId, input: InputItemRecipe) -> bool {
         todo!()
     }
 
-    pub fn try_consume(&mut self,person_id: PersonId, input: InputItemRecipe) -> bool {
+    pub fn try_consume(&mut self, person_id: PersonId, input: InputItemRecipe) -> bool {
         todo!()
     }
 
-    pub fn has_space_for_output(&self,person_id: PersonId, output: OutputItemRecipe) -> bool {
+    pub fn has_space_for_output(&self, person_id: PersonId, output: OutputItemRecipe) -> bool {
         todo!()
     }
 
-    pub fn try_insert_output(&mut self,person_id: PersonId, output: OutputItemRecipe) -> bool {
+    pub fn try_insert_output(&mut self, person_id: PersonId, output: OutputItemRecipe) -> bool {
         todo!()
     }
 }

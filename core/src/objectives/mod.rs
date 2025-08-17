@@ -1,10 +1,10 @@
 mod common;
 mod crafting;
 mod gathering;
-mod management;
-mod trading;
 mod initiatives;
+mod management;
 mod personal;
+mod trading;
 
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dudes_in_space_api::utils::request::ReqContext;
@@ -17,6 +17,7 @@ use crate::objectives::gathering::{
     ScavengeObjectiveDynSeed,
 };
 use crate::objectives::management::{
+    ManageDockyardStationObjectiveDecider, ManageDockyardStationObjectiveDynSeed,
     ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed,
 };
 use crate::objectives::personal::{AdventuringObjectiveDecider, AdventuringObjectiveDynSeed};
@@ -33,7 +34,10 @@ pub fn register_objectives(
         .with(GatherResearchDataObjectiveDynSeed)
         .with(MineAsteroidsObjectiveDynSeed)
         .with(ScavengeObjectiveDynSeed)
-        .with(ManageProductionStationObjectiveDynSeed::new(req_context))
+        .with(ManageProductionStationObjectiveDynSeed::new(
+            req_context.clone(),
+        ))
+        .with(ManageDockyardStationObjectiveDynSeed::new(req_context))
         .with(AdventuringObjectiveDynSeed)
 }
 
@@ -44,5 +48,6 @@ pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDec
         .with(MineAsteroidsObjectiveDecider)
         .with(ScavengeObjectiveDecider)
         .with(ManageProductionStationObjectiveDecider)
+        .with(ManageDockyardStationObjectiveDecider)
         .with(AdventuringObjectiveDecider)
 }

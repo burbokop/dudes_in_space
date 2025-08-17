@@ -1,11 +1,12 @@
 use crate::item::{Item, ItemRefStack};
+use crate::module::ModuleCapability;
+use crate::person::Money;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Weak;
 use uuid::NonNilUuid;
-use crate::person::Money;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
@@ -57,6 +58,20 @@ impl BuyOrder {
         todo!()
     }
     pub fn price(&self) -> Money {
+        todo!()
+    }
+}
+
+pub struct WeakBuyVesselOrder {}
+
+impl WeakBuyVesselOrder {
+    pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
+        todo!()
+    }
+    pub fn primary_caps(&self) -> Option<Vec<ModuleCapability>> {
+        todo!()
+    }
+    pub fn price(&self) -> Option<Money> {
         todo!()
     }
 }

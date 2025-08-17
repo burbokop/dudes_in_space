@@ -14,6 +14,7 @@ pub enum ModuleCapability {
     DockingClamp,
     DockingConnector,
     TradingTerminal,
+    VesselSellingTerminal,
 
     Cockpit,
     FuelTank,

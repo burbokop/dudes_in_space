@@ -1,10 +1,10 @@
-// 
+//
 // enum Initiative {
 //     InterstellarGenerationalVessel,
 //     StrayedExplorationFleet,
-// 
+//
 // }
-// 
+//
 // struct Corp {
 //     leader: PersonId,
 //     members: Vec<PersonId>,

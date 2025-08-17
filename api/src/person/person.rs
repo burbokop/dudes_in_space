@@ -14,7 +14,6 @@ use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
         "Tyler",
@@ -214,6 +213,7 @@ pub struct Person {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
+    #[serde(skip_deserializing)]
     budget: Money,
 }
 
@@ -260,7 +260,7 @@ impl Person {
             boldness: rng.random(),
             awareness: rng.random(),
             objective: None,
-            budget: Money::zero(),
+            budget: Money::default(),
         }
     }
 

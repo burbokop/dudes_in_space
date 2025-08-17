@@ -1,12 +1,11 @@
 use crate::item::{BuyOffer, ItemCount, ItemId, ItemVault, ItemVolume, SellOffer};
 use crate::module::{ModuleCapability, ModuleId};
+use crate::person::{MoneyAmount, MoneyRef};
+use crate::utils::math::NoNeg;
 use crate::utils::range::Range;
 use crate::vessel::{Vessel, VesselId};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use crate::person::{MoneyAmount, MoneyRef};
-use crate::utils::math::{ NoNeg};
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OfferRef<Offer> {
@@ -31,15 +30,21 @@ impl ItemRecord {
     }
 
     pub(crate) fn cheapest_buy_offer(&self) -> Option<&OfferRef<BuyOffer>> {
-        self.buy_offers
-            .iter()
-            .min_by(|a, b| a.offer.price_per_unit.amount .cmp(&b.offer.price_per_unit.amount))
+        self.buy_offers.iter().min_by(|a, b| {
+            a.offer
+                .price_per_unit
+                .amount
+                .cmp(&b.offer.price_per_unit.amount)
+        })
     }
 
     pub(crate) fn the_most_expensive_sell_offer(&self) -> Option<&OfferRef<SellOffer>> {
-        self.sell_offers
-            .iter()
-            .max_by(|a, b| a.offer.price_per_unit.amount.cmp(&b.offer.price_per_unit.amount))
+        self.sell_offers.iter().max_by(|a, b| {
+            a.offer
+                .price_per_unit
+                .amount
+                .cmp(&b.offer.price_per_unit.amount)
+        })
     }
 
     pub(crate) fn eval_max_profit(
@@ -201,5 +206,5 @@ fn total_price(
     MoneyRef {
         currency: price_per_unit.currency,
         amount: NoNeg::wrap(count as MoneyAmount).unwrap() * price_per_unit.amount,
-    } 
+    }
 }

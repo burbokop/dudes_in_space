@@ -143,15 +143,15 @@ impl Objective for ManageProductionStationObjective {
                 output_recipes_to_consider,
             } => match future.take() {
                 Ok(search_result) => {
-                    println!(
-                        "{:#?}",
+                    logger.info(format!(
+                        "Trade scan summary: {:#?}",
                         (
                             recipes_to_consider,
                             input_recipes_to_consider,
                             output_recipes_to_consider,
                             search_result
                         )
-                    );
+                    ));
 
                     todo!()
                 }

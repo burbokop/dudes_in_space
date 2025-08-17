@@ -1,9 +1,8 @@
-use std::collections::BTreeMap;
-use serde::{Deserialize, Serialize};
-use crate::person::{PersonId};
-use crate::utils::math::{noneg_float, NoNeg};
+use crate::person::PersonId;
+use crate::utils::math::{NoNeg, noneg_float};
 use crate::utils::utils::Float;
-
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 pub type Currency = String;
 pub type MoneyAmount = i64;
@@ -15,9 +14,12 @@ pub struct Money {
     amount: NoNeg<MoneyAmount>,
 }
 
-impl Money {
-pub    fn zero() -> Self {
-        Self { amount: NoNeg::wrap(0).unwrap(), currency: "".to_string() }
+impl Default for Money {
+    fn default() -> Self {
+        Self {
+            amount: NoNeg::wrap(0).unwrap(),
+            currency: "".to_string(),
+        }
     }
 }
 
@@ -31,7 +33,7 @@ impl Money {
     pub fn currency(&self) -> &Currency {
         &self.currency
     }
-    
+
     pub fn amount(&self) -> NoNeg<MoneyAmount> {
         self.amount
     }
@@ -73,47 +75,53 @@ impl Bank {
             current_cycle: 0,
         }
     }
-    
+
     pub fn account(&self, customer: PersonId) -> Option<&BankAccount> {
         self.customers.get(&customer)
     }
-    
+
     pub fn withdraw(&mut self, customer: PersonId, amount: NoNeg<MoneyAmount>) -> Money {
         assert_ne!(amount.unwrap(), 0);
-        
+
         self.customers.entry(customer).or_insert(BankAccount::new());
         let customers_count = self.customers.len();
 
         let account = self.customers.get_mut(&customer).unwrap();
         assert!(account.deadline.is_none());
-        
 
         if customer == self.owner {
             account.money -= amount.unwrap();
             self.money_created += amount.unwrap();
-            Money { currency: self.currency.clone(), amount }
+            Money {
+                currency: self.currency.clone(),
+                amount,
+            }
         } else {
             account.money -= amount.unwrap();
-            
+
             let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
 
             assert!(self.money_stored - amount.unwrap() >= stored_money_lower_limit);
-            
+
             self.money_stored -= amount.unwrap();
 
             if account.money < 0 {
-                account.deadline = Some(self.current_cycle + 2_f64.log(1. + account.growth_rate.unwrap()) as Cycle);
+                account.deadline = Some(
+                    self.current_cycle + 2_f64.log(1. + account.growth_rate.unwrap()) as Cycle,
+                );
             }
 
-            Money { currency: self.currency.clone(), amount }
+            Money {
+                currency: self.currency.clone(),
+                amount,
+            }
         }
     }
 
-
     pub fn deposit(&mut self, customer: PersonId, money: Money) {
-    assert_eq!(self.currency, money.currency);
+        assert_eq!(self.currency, money.currency);
         assert_ne!(money.amount.unwrap(), 0);
-        
+
         let account = self.customers.entry(customer).or_insert(BankAccount::new());
         account.money += money.amount.unwrap();
         self.money_stored += money.amount.unwrap();
@@ -130,10 +138,10 @@ impl Bank {
             if let Some(deadline) = account.deadline {
                 assert!(deadline < self.current_cycle);
             }
-            
+
             account.money += delta;
             self.money_stored -= delta;
-            self.current_cycle += 1;            
+            self.current_cycle += 1;
         }
     }
 }

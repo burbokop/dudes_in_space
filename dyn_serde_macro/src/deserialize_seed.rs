@@ -532,7 +532,7 @@ fn deserialize_seed_tagged_enum(
         ident: Ident,
         struct_declaration: proc_macro2::TokenStream,
         arm: proc_macro2::TokenStream,
-        is_tuple: bool,
+        _is_tuple: bool,
     }
 
     let variants: Vec<_> = variants
@@ -631,7 +631,7 @@ fn deserialize_seed_tagged_enum(
                     },
                 }
                     .into(),
-                is_tuple,
+                _is_tuple: is_tuple,
             }
         })
         .collect();
@@ -641,7 +641,7 @@ fn deserialize_seed_tagged_enum(
     let variant_struct_declarations = variants.iter().map(|v| v.struct_declaration.clone());
     let variant_arms = variants.iter().map(|v| v.arm.clone());
 
-    let x = quote! {
+    quote! {
         impl<'__de, #(#seed_generic_args),*> serde::de::DeserializeSeed<'__de> for #seed_type <#(#seed_generic_args),*> {
             type Value = #ident;
 
@@ -681,11 +681,5 @@ fn deserialize_seed_tagged_enum(
             }
         }
     }
-        .into();
-
-    if !variants.is_empty() && variants.iter().any(|v| v.is_tuple) {
-        println!("aboba: {}", x)
-    }
-
-    x
+        .into()
 }

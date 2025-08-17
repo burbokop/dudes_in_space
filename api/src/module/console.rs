@@ -1,4 +1,7 @@
-use crate::item::{BuyOffer, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakSellOrder};
+use crate::item::{
+    BuyOffer, BuyVesselOffer, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
+};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::{Money, Role};
@@ -192,8 +195,14 @@ pub trait DockyardConsole {
 
 pub trait TradingConsole {
     fn buy_offers(&self) -> &[BuyOffer];
+    fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
     fn sell_offers(&self) -> &[SellOffer];
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder>;
+    fn place_buy_vessel_order(
+        &mut self,
+        offer: &BuyVesselOffer,
+        count: ItemCount,
+    ) -> Option<WeakBuyVesselOrder>;
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
 }
 
@@ -202,6 +211,11 @@ pub trait TradingAdminConsole {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer>;
+    fn place_buy_vessel_offer(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer>;
     fn place_sell_offer(

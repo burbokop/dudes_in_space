@@ -10,7 +10,6 @@ use rand::prelude::SliceRandom;
 use std::error::Error;
 use std::fmt::Debug;
 
-
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
     InProgress,

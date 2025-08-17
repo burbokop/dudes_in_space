@@ -8,6 +8,7 @@ mod personnel_area;
 mod plant_facility;
 mod shuttle;
 mod unmanned_trading_terminal;
+mod unmanned_vessel_selling_terminal;
 
 pub(crate) use assembler::*;
 pub(crate) use cargo_container::*;
@@ -20,6 +21,9 @@ pub(crate) use plant_facility::*;
 pub(crate) use shuttle::*;
 pub(crate) use unmanned_trading_terminal::*;
 
+use crate::modules::unmanned_vessel_selling_terminal::{
+    UnmannedVesselSellingTerminalDynSeed, UnmannedVesselSellingTerminalFactoryDynSeed,
+};
 use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
@@ -35,6 +39,7 @@ pub fn register_module_factories(
         .with(DockyardFactoryDynSeed)
         .with(CargoContainerFactoryDynSeed)
         .with(UnmannedTradingTerminalFactoryDynSeed)
+        .with(UnmannedVesselSellingTerminalFactoryDynSeed)
         .with(FabricatorFactoryDynSeed)
         .with(PlantFacilityFactoryDynSeed)
         .with(OreManifoldFactoryDynSeed)
@@ -62,6 +67,7 @@ pub fn register_modules(
         ))
         .with(CargoContainerDynSeed::new(item_vault.clone()))
         .with(UnmannedTradingTerminalDynSeed)
+        .with(UnmannedVesselSellingTerminalDynSeed)
         .with(FabricatorDynSeed::new(
             objective_seed_vault,
             item_vault,

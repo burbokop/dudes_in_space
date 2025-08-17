@@ -1,8 +1,8 @@
 use crate::item::{BuyOffer, ItemId, ItemVolume, OfferRef, SellOffer};
+use crate::person::MoneyAmount;
 use crate::utils::request::{ReqFuture, ReqPromise};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use crate::person::{ MoneyAmount};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {

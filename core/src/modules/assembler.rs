@@ -1,9 +1,12 @@
+use crate::modules::unmanned_vessel_selling_terminal::UnmannedVesselSellingTerminalFactory;
 use crate::modules::{
     CargoContainerFactory, CoreModule, DockyardFactory, FabricatorFactory, ModuleVisitor,
     ModuleVisitorMut, OreManifoldFactory, PlantFacilityFactory, ShuttleFactory,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault};
+use dudes_in_space_api::item::{
+    ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault,
+};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
@@ -40,7 +43,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
 ];
 
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ModuleCrafting];
-pub(crate) static RECIPES: LazyLock<[AssemblyRecipe; 6]> = LazyLock::new(|| {
+pub(crate) static RECIPES: LazyLock<[AssemblyRecipe; 7]> = LazyLock::new(|| {
     [
         AssemblyRecipe::new(
             vec![
@@ -81,9 +84,15 @@ pub(crate) static RECIPES: LazyLock<[AssemblyRecipe; 6]> = LazyLock::new(|| {
                 .unwrap(),
             Arc::new(OreManifoldFactory {}),
         ),
+        AssemblyRecipe::new(
+            vec![ItemRefStack::new("steel".to_string(), 50)]
+                .try_into()
+                .unwrap(),
+            Arc::new(UnmannedVesselSellingTerminalFactory {}),
+        ),
     ]
 });
-static INPUT_RECIPES: LazyLock<[InputItemRecipe; 6]> =
+static INPUT_RECIPES: LazyLock<[InputItemRecipe; 7]> =
     LazyLock::new(|| RECIPES.clone().map(|x| x.input().clone()));
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
