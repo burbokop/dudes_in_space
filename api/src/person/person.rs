@@ -213,7 +213,6 @@ pub struct Person {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
-    #[serde(skip_deserializing)]
     budget: Money,
 }
 

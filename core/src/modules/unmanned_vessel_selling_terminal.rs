@@ -1,7 +1,10 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder};
+use dudes_in_space_api::item::{
+    BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
+};
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
@@ -168,7 +171,11 @@ impl TradingConsole for UnmannedVesselSellingTerminal {
         todo!()
     }
 
-    fn place_buy_vessel_order(&mut self, offer: &BuyVesselOffer, count: ItemCount) -> Option<WeakBuyVesselOrder> {
+    fn place_buy_vessel_order(
+        &mut self,
+        offer: &BuyVesselOffer,
+        count: ItemCount,
+    ) -> Option<WeakBuyVesselOrder> {
         todo!()
     }
 }
@@ -192,7 +199,37 @@ impl ModuleFactory for UnmannedVesselSellingTerminalFactory {
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        self
+    }
+}
+
+impl ModuleFactoryOutputDescription for UnmannedVesselSellingTerminalFactory {
+    fn type_id(&self) -> ModuleTypeId {
         todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        &[]
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        &[]
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+        &[]
     }
 }
 

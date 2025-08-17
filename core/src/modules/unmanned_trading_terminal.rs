@@ -1,5 +1,8 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder};
+use dudes_in_space_api::item::{
+    BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
+};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
 };
@@ -182,7 +185,11 @@ impl TradingConsole for UnmannedTradingTerminal {
         todo!()
     }
 
-    fn place_buy_vessel_order(&mut self, offer: &BuyVesselOffer, count: ItemCount) -> Option<WeakBuyVesselOrder> {
+    fn place_buy_vessel_order(
+        &mut self,
+        offer: &BuyVesselOffer,
+        count: ItemCount,
+    ) -> Option<WeakBuyVesselOrder> {
         todo!()
     }
 }

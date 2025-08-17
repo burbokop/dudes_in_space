@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::mem::MaybeUninit;
 use std::rc::{Rc, Weak};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,23 +42,6 @@ impl<T: 'static> ReqData<T> {
     }
 }
 
-impl<T> ReqData<&mut T> {
-    fn take(&mut self) -> Result<T, ReqTakeError> {
-        match self {
-            ReqData::Ready(v) => {}
-            ReqData::Pending => Err(ReqTakeError::Pending)?,
-            ReqData::Taken => Err(ReqTakeError::AlreadyTaken)?,
-        }
-
-        unsafe {
-            match std::mem::replace(self, ReqData::Taken) {
-                ReqData::Ready(v) => Ok(std::mem::replace(v, MaybeUninit::uninit().assume_init())),
-                _ => unreachable!(),
-            }
-        }
-    }
-}
-
 type AnyReqData = ReqData<Box<dyn Any>>;
 
 impl AnyReqData {
@@ -76,6 +58,19 @@ impl AnyReqData {
             ReqData::Ready(data) => data.downcast_mut().map(ReqData::Ready),
             ReqData::Pending => Some(ReqData::Pending),
             ReqData::Taken => Some(ReqData::Taken),
+        }
+    }
+
+    fn take<T: 'static>(&mut self) -> Result<T, ReqTakeError> {
+        match self {
+            ReqData::Ready(v) => {}
+            ReqData::Pending => Err(ReqTakeError::Pending)?,
+            ReqData::Taken => Err(ReqTakeError::AlreadyTaken)?,
+        }
+
+        match std::mem::replace(self, ReqData::Taken) {
+            ReqData::Ready(v) => Ok(Box::into_inner(v.downcast().unwrap())),
+            _ => unreachable!(),
         }
     }
 }
@@ -242,16 +237,11 @@ impl<'de, 'context, T: Deserialize<'de> + 'static> DeserializeSeed<'de>
 }
 
 impl<T> ReqFuture<T> {
-    // pub fn value(&mut self) -> Option<&T> {
-    //     self.data.borrow().downcast_ref().unwrap().to_option()
-    // }
-
     pub fn take(&mut self) -> Result<T, ReqTakeError>
     where
         T: 'static,
     {
-        let mut data = self.data.borrow_mut();
-        data.downcast_mut().unwrap().take()
+        self.data.borrow_mut().take()
     }
 }
 

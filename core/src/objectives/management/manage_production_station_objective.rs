@@ -143,17 +143,21 @@ impl Objective for ManageProductionStationObjective {
                 output_recipes_to_consider,
             } => match future.take() {
                 Ok(search_result) => {
-                    logger.info(format!(
-                        "Trade scan summary: {:#?}",
-                        (
-                            recipes_to_consider,
-                            input_recipes_to_consider,
-                            output_recipes_to_consider,
-                            search_result
-                        )
-                    ));
+                    if search_result.max_profit_sell_offers.is_empty() {
+                        Err(Self::Error::NoSellOffersFound)
+                    } else {
+                        logger.info(format!(
+                            "Trade scan summary: {:#?}",
+                            (
+                                recipes_to_consider,
+                                input_recipes_to_consider,
+                                output_recipes_to_consider,
+                                &search_result
+                            )
+                        ));
 
-                    todo!()
+                        todo!()
+                    }
                 }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
@@ -247,6 +251,7 @@ impl DynDeserializeSeed<dyn DynObjective> for ManageProductionStationObjectiveDy
 #[derive(Debug)]
 pub(crate) enum ManageProductionStationObjectiveError {
     CraftingFabricatorError(CraftModulesObjectiveError),
+    NoSellOffersFound,
 }
 
 impl Display for ManageProductionStationObjectiveError {

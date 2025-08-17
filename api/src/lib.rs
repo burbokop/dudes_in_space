@@ -2,6 +2,7 @@
 #![feature(try_trait_v2)]
 #![feature(bool_to_result)]
 #![feature(iter_chain)]
+#![feature(box_into_inner)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]

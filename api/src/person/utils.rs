@@ -352,3 +352,14 @@ pub fn this_vessel_potential_output_item_recipes(
         .flatten()
         .collect()
 }
+
+pub fn this_vessel_potential_assembly_recipes(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselConsole,
+) -> Vec<AssemblyRecipe> {
+    this_vessel_assembly_recipes(this_module, this_vessel)
+        .into_iter()
+        .map(|r| r.output_description().assembly_recipes().to_vec())
+        .flatten()
+        .collect()
+}

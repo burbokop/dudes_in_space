@@ -1,16 +1,24 @@
-use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::environment::{EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult};
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
-use dudes_in_space_api::utils::request::ReqContext;
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, 
+                                  OutputItemRecipe};
+use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed};
 use dudes_in_space_api::vessel::VesselConsole;
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
-use serde_intermediate::Intermediate;
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
+use serde::Serialize;
+use serde_intermediate::{Intermediate, to_intermediate};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::iter;
 use std::rc::Rc;
-
+use dudes_in_space_api::person;
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -25,14 +33,35 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "ManageDockyardStationObjective";
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[serde(tag = "manage_dockyard_station_objective_stage")]
+#[deserialize_seed_xxx(seed = crate::objectives::management::manage_dockyard_station_objective::ManageDockyardStationObjectiveSeed::<'context>)]
 enum ManageDockyardStationObjective {
-    DecideWhatToDo,
+    CollectAllAvailableRecipes,
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
+    FindBestOffersAndDecideBestRecipe {
+        future: ReqFuture<FindBestOffersForItemsResult>,
+        recipes_to_consider: BTreeSet<AssemblyRecipe>,
+        input_recipes_to_consider: BTreeSet<InputItemRecipe>,
+        output_recipes_to_consider: BTreeSet<OutputItemRecipe>,
+    },
+}
+
+struct ManageDockyardStationObjectiveSeed<'context> {
+    req_future_seed: ReqFutureSeed<'context, FindBestOffersForItemsResult>,
+}
+
+impl<'context> ManageDockyardStationObjectiveSeed<'context> {
+    pub fn new(context: &'context ReqContext) -> Self {
+        Self {
+            req_future_seed: ReqFutureSeed::new(context),
+        }
+    }
 }
 
 impl ManageDockyardStationObjective {
     pub(crate) fn new(logger: &mut PersonLogger) -> Self {
-        Self::DecideWhatToDo
+        Self::CollectAllAvailableRecipes
     }
 }
 
@@ -47,7 +76,65 @@ impl Objective for ManageDockyardStationObjective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
-        todo!()
+        match self {
+            ManageDockyardStationObjective::CollectAllAvailableRecipes =>
+
+
+                {
+
+                    let item_recipes: BTreeSet<_> = iter::chain(
+                        person::utils::this_vessel_assembly_recipes(this_module, this_vessel).into_iter(),
+                        person::utils::this_vessel_potential_assembly_recipes(this_module, this_vessel)
+                            .into_iter(),
+                    )
+                        .collect();
+
+                    let input_item_recipes: BTreeSet<_> = iter::chain(
+                        person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
+                            .into_iter(),
+                        person::utils::this_vessel_potential_input_item_recipes(
+                            this_module,
+                            this_vessel,
+                        )
+                            .into_iter(),
+                    )
+                        .collect();
+
+                    let output_item_recipes: BTreeSet<_> = iter::chain(
+                        person::utils::this_vessel_output_item_recipes(this_module, this_vessel)
+                            .into_iter(),
+                        person::utils::this_vessel_potential_output_item_recipes(
+                            this_module,
+                            this_vessel,
+                        )
+                            .into_iter(),
+                    )
+                        .collect();
+
+                    let items: BTreeSet<_> = iter::chain(
+                        input_item_recipes.iter().map(|x| x.items()).flatten(),
+                        output_item_recipes.iter().map(|x| x.items()).flatten(),
+                    )
+                        .cloned()
+                        .collect();
+
+                    logger.info("ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe");
+                    *self = Self::FindBestOffersAndDecideBestRecipe {
+                        future: FindBestOffersForItems { items }
+                            .push(environment_context.request_storage_mut()),
+                        recipes_to_consider: item_recipes,
+                        input_recipes_to_consider: input_item_recipes,
+                        output_recipes_to_consider: output_item_recipes,
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                    
+                    
+                }
+
+            
+            ,
+            ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe { .. } => todo!(),
+        }
     }
 }
 
@@ -101,16 +188,21 @@ impl DynDeserializeSeed<dyn DynObjective> for ManageDockyardStationObjectiveDynS
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn DynObjective>,
     ) -> Result<Box<dyn DynObjective>, Box<dyn Error>> {
-        todo!()
+        let r: ManageDockyardStationObjective = from_intermediate_seed(
+            ManageDockyardStationObjectiveSeed::new(&self.req_context),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(Box::new(r))
     }
 }
 
 impl DynSerialize for ManageDockyardStationObjective {
     fn type_id(&self) -> TypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
