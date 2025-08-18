@@ -525,7 +525,8 @@ impl ModuleFactoryOutputDescription for FabricatorFactory {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
+
     }
 }
 

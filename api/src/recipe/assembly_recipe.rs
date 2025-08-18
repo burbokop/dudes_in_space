@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use crate::module::{Module, ModuleCapability, ModuleTypeId};
 use crate::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
@@ -30,6 +31,28 @@ pub struct AssemblyRecipe {
     input: InputItemRecipe,
     #[deserialize_seed_xxx(seed = self.seed.module_factory_seed)]
     output: Arc<dyn ModuleFactory>,
+}
+
+impl PartialEq for AssemblyRecipe {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl PartialOrd for AssemblyRecipe {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for AssemblyRecipe {}
+
+impl Ord for AssemblyRecipe {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.input.cmp(&other.input).then(
+            self.output.type_id().cmp(&other.output.type_id())
+        )
+    }
 }
 
 #[derive(Clone)]

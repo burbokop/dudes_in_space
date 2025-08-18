@@ -185,7 +185,7 @@ pub(crate) struct UnmannedVesselSellingTerminalFactory {}
 
 impl DynSerialize for UnmannedVesselSellingTerminalFactory {
     fn type_id(&self) -> TypeId {
-        todo!()
+        FACTORY_TYPE_ID.into()   
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {

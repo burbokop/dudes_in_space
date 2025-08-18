@@ -239,7 +239,7 @@ impl ModuleFactoryOutputDescription for CargoContainerFactory {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 }
 

@@ -196,7 +196,7 @@ impl ModuleFactoryOutputDescription for OreManifoldFactory {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 }
 

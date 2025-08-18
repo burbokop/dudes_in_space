@@ -506,7 +506,7 @@ impl ModuleFactoryOutputDescription for DockyardFactory {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 }
 

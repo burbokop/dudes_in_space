@@ -191,7 +191,7 @@ impl ModuleFactoryOutputDescription for PlantFacilityFactory {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 }
 

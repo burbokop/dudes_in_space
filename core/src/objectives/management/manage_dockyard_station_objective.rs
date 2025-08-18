@@ -3,7 +3,8 @@ use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
-use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, 
+use dudes_in_space_api::recipe::{
+    InputItemRecipe, 
                                   OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed};
 use dudes_in_space_api::vessel::VesselConsole;
@@ -41,7 +42,6 @@ enum ManageDockyardStationObjective {
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
     FindBestOffersAndDecideBestRecipe {
         future: ReqFuture<FindBestOffersForItemsResult>,
-        recipes_to_consider: BTreeSet<AssemblyRecipe>,
         input_recipes_to_consider: BTreeSet<InputItemRecipe>,
         output_recipes_to_consider: BTreeSet<OutputItemRecipe>,
     },
@@ -81,14 +81,6 @@ impl Objective for ManageDockyardStationObjective {
 
 
                 {
-
-                    let item_recipes: BTreeSet<_> = iter::chain(
-                        person::utils::this_vessel_assembly_recipes(this_module, this_vessel).into_iter(),
-                        person::utils::this_vessel_potential_assembly_recipes(this_module, this_vessel)
-                            .into_iter(),
-                    )
-                        .collect();
-
                     let input_item_recipes: BTreeSet<_> = iter::chain(
                         person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
                             .into_iter(),
@@ -122,7 +114,6 @@ impl Objective for ManageDockyardStationObjective {
                     *self = Self::FindBestOffersAndDecideBestRecipe {
                         future: FindBestOffersForItems { items }
                             .push(environment_context.request_storage_mut()),
-                        recipes_to_consider: item_recipes,
                         input_recipes_to_consider: input_item_recipes,
                         output_recipes_to_consider: output_item_recipes,
                     };
@@ -133,7 +124,21 @@ impl Objective for ManageDockyardStationObjective {
 
             
             ,
-            ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe { .. } => todo!(),
+            ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe {
+                future,
+                input_recipes_to_consider,
+                output_recipes_to_consider,
+            } => {
+
+                let item_recipes: BTreeSet<_> = iter::chain(
+                    person::utils::this_vessel_assembly_recipes(this_module, this_vessel).into_iter(),
+                    person::utils::this_vessel_potential_assembly_recipes(this_module, this_vessel)
+                        .into_iter(),
+                )
+                    .collect();
+                
+                todo!()
+            },
         }
     }
 }

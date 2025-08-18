@@ -305,6 +305,6 @@ impl ModuleFactoryOutputDescription for ShuttleFactory {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 }
