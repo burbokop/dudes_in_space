@@ -15,6 +15,7 @@ pub trait VesselModuleInterface {
 
 /// interface through which a person can interact with a vessel
 pub trait VesselConsole {
+    fn owner(&self) -> PersonId;
     fn modules_with_capability<'a>(
         &'a self,
         cap: ModuleCapability,

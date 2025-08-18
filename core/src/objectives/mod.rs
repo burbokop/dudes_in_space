@@ -37,8 +37,10 @@ pub fn register_objectives(
         .with(ManageProductionStationObjectiveDynSeed::new(
             req_context.clone(),
         ))
-        .with(ManageDockyardStationObjectiveDynSeed::new(req_context))
-        .with(AdventuringObjectiveDynSeed)
+        .with(ManageDockyardStationObjectiveDynSeed::new(
+            req_context.clone(),
+        ))
+        .with(AdventuringObjectiveDynSeed::new(req_context))
 }
 
 pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDeciderVault {

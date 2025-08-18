@@ -146,5 +146,11 @@ impl Environment {
                     .unwrap();
                 false
             });
+
+        self.request_storage.find_owned_ships.retain_mut(|req| {
+            assert!(req.promise.check_pending(req_context));
+
+            todo!()
+        });
     }
 }

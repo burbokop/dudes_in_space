@@ -1,7 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{
     BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
-    WeakBuyVesselOrder, WeakSellOrder,
+    WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
@@ -174,7 +174,23 @@ impl TradingConsole for UnmannedVesselSellingTerminal {
     fn place_buy_vessel_order(
         &mut self,
         offer: &BuyVesselOffer,
-        count: ItemCount,
+        count: usize,
+    ) -> Option<WeakBuyVesselOrder> {
+        todo!()
+    }
+
+    fn estimate_buy_vessel_manual_order(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyVesselManualOrderEstimate> {
+        todo!()
+    }
+
+    fn place_buy_vessel_manual_order(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        count: usize,
     ) -> Option<WeakBuyVesselOrder> {
         todo!()
     }
@@ -185,7 +201,7 @@ pub(crate) struct UnmannedVesselSellingTerminalFactory {}
 
 impl DynSerialize for UnmannedVesselSellingTerminalFactory {
     fn type_id(&self) -> TypeId {
-        FACTORY_TYPE_ID.into()   
+        FACTORY_TYPE_ID.into()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {

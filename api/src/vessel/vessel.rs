@@ -350,6 +350,10 @@ impl VesselModuleInterface for Vessel {
 }
 
 impl VesselConsole for Vessel {
+    fn owner(&self) -> PersonId {
+        self.owner
+    }
+
     fn modules_with_capability<'a>(
         &'a self,
         cap: ModuleCapability,

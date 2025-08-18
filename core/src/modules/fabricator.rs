@@ -25,7 +25,7 @@ use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::clone::Clone;
 use std::convert::Into;
 use std::error::Error;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
@@ -463,15 +463,9 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct FabricatorFactory {}
 struct FabricatorFactorySeed {}
-
-impl Debug for FabricatorFactory {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
-}
 
 impl DynSerialize for FabricatorFactory {
     fn type_id(&self) -> TypeId {
@@ -526,7 +520,6 @@ impl ModuleFactoryOutputDescription for FabricatorFactory {
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
         &[]
-
     }
 }
 

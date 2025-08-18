@@ -1,12 +1,13 @@
-use dudes_in_space_api::environment::{EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult};
+use dudes_in_space_api::environment::{
+    EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
+};
 use dudes_in_space_api::module::ModuleConsole;
+use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
-use dudes_in_space_api::recipe::{
-    InputItemRecipe, 
-                                  OutputItemRecipe};
-use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed};
+use dudes_in_space_api::recipe::{InputItemRecipe, OutputItemRecipe};
+use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
@@ -19,17 +20,21 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
-use dudes_in_space_api::person;
 /*
-    - Find available crafts across all crafters
-        - get list of all recipes of all crafters awailable to assemble
-        - exclude recipes that are impossible to craft due to input resource missing on the market
-        - find best offers for each remaining recipe
-        - choose recipe with max profit
-    - Craft chosen crafter
-    - Place sell offer
-    - Craft item
-    - Place buy offer
+    - Find list of modules you can craft
+    - Place available capabilities in vessel selling terminal
+    - Check orders || Craft your own designs
+
+        Check orders
+            - Sit at terminal and check orders
+            - When order found: produce
+            - Give vessel to a customer
+            - Save design if u like it
+
+        Craft your own designs
+            - Load designs
+            - Craft design
+            - Place offer in terminal
 */
 
 static TYPE_ID: &str = "ManageDockyardStationObjective";
@@ -77,67 +82,72 @@ impl Objective for ManageDockyardStationObjective {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            ManageDockyardStationObjective::CollectAllAvailableRecipes =>
-
-
-                {
-                    let input_item_recipes: BTreeSet<_> = iter::chain(
-                        person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
-                            .into_iter(),
-                        person::utils::this_vessel_potential_input_item_recipes(
-                            this_module,
-                            this_vessel,
-                        )
-                            .into_iter(),
+            ManageDockyardStationObjective::CollectAllAvailableRecipes => {
+                let input_item_recipes: BTreeSet<_> = iter::chain(
+                    person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
+                        .into_iter(),
+                    person::utils::this_vessel_potential_input_item_recipes(
+                        this_module,
+                        this_vessel,
                     )
-                        .collect();
+                    .into_iter(),
+                )
+                .collect();
 
-                    let output_item_recipes: BTreeSet<_> = iter::chain(
-                        person::utils::this_vessel_output_item_recipes(this_module, this_vessel)
-                            .into_iter(),
-                        person::utils::this_vessel_potential_output_item_recipes(
-                            this_module,
-                            this_vessel,
-                        )
-                            .into_iter(),
+                let output_item_recipes: BTreeSet<_> = iter::chain(
+                    person::utils::this_vessel_output_item_recipes(this_module, this_vessel)
+                        .into_iter(),
+                    person::utils::this_vessel_potential_output_item_recipes(
+                        this_module,
+                        this_vessel,
                     )
-                        .collect();
+                    .into_iter(),
+                )
+                .collect();
 
-                    let items: BTreeSet<_> = iter::chain(
-                        input_item_recipes.iter().map(|x| x.items()).flatten(),
-                        output_item_recipes.iter().map(|x| x.items()).flatten(),
-                    )
-                        .cloned()
-                        .collect();
+                let items: BTreeSet<_> = iter::chain(
+                    input_item_recipes.iter().map(|x| x.items()).flatten(),
+                    output_item_recipes.iter().map(|x| x.items()).flatten(),
+                )
+                .cloned()
+                .collect();
 
-                    logger.info("ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe");
-                    *self = Self::FindBestOffersAndDecideBestRecipe {
-                        future: FindBestOffersForItems { items }
-                            .push(environment_context.request_storage_mut()),
-                        input_recipes_to_consider: input_item_recipes,
-                        output_recipes_to_consider: output_item_recipes,
-                    };
-                    Ok(ObjectiveStatus::InProgress)
-                    
-                    
-                }
+                logger.info("ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe");
+                *self = Self::FindBestOffersAndDecideBestRecipe {
+                    future: FindBestOffersForItems { items }
+                        .push(environment_context.request_storage_mut()),
+                    input_recipes_to_consider: input_item_recipes,
+                    output_recipes_to_consider: output_item_recipes,
+                };
+                Ok(ObjectiveStatus::InProgress)
+            }
 
-            
-            ,
             ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe {
                 future,
                 input_recipes_to_consider,
                 output_recipes_to_consider,
-            } => {
-
-                let item_recipes: BTreeSet<_> = iter::chain(
-                    person::utils::this_vessel_assembly_recipes(this_module, this_vessel).into_iter(),
-                    person::utils::this_vessel_potential_assembly_recipes(this_module, this_vessel)
+            } => match future.take() {
+                Ok(search_result) => {
+                    let item_recipes: BTreeSet<_> = iter::chain(
+                        person::utils::this_vessel_assembly_recipes(this_module, this_vessel)
+                            .into_iter(),
+                        person::utils::this_vessel_potential_assembly_recipes(
+                            this_module,
+                            this_vessel,
+                        )
                         .into_iter(),
-                )
+                    )
                     .collect();
-                
-                todo!()
+
+                    println!(
+                        "ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe: {:#?}",
+                        (search_result, item_recipes)
+                    );
+
+                    todo!()
+                }
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
+                Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
         }
     }

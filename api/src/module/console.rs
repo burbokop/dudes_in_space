@@ -1,6 +1,6 @@
 use crate::item::{
     BuyOffer, BuyVesselOffer, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
-    WeakBuyVesselOrder, WeakSellOrder,
+    WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
@@ -201,9 +201,25 @@ pub trait TradingConsole {
     fn place_buy_vessel_order(
         &mut self,
         offer: &BuyVesselOffer,
-        count: ItemCount,
+        count: usize,
     ) -> Option<WeakBuyVesselOrder>;
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
+    
+    fn caps_available_for_manual_order(&self) -> Vec<ModuleCapability>;
+
+    fn primary_caps_available_for_manual_order(&self) -> Vec<ModuleCapability>;
+
+    fn estimate_buy_vessel_manual_order(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyVesselManualOrderEstimate>;
+
+    fn place_buy_vessel_manual_order(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyVesselOrder>;
 }
 
 pub trait TradingAdminConsole {

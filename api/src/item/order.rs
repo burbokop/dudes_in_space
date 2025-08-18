@@ -62,6 +62,8 @@ impl BuyOrder {
     }
 }
 
+pub struct WeakBuyVesselManualOrderEstimate {}
+
 pub struct WeakBuyVesselOrder {}
 
 impl WeakBuyVesselOrder {

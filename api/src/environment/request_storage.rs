@@ -1,6 +1,8 @@
 use crate::item::{BuyOffer, ItemId, ItemVolume, OfferRef, SellOffer};
-use crate::person::MoneyAmount;
+use crate::module::ModuleCapability;
+use crate::person::{MoneyAmount, PersonId};
 use crate::utils::request::{ReqFuture, ReqPromise};
+use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -11,6 +13,8 @@ pub struct RequestStorage {
 
     pub(crate) find_best_offers_for_items_requests:
         VecDeque<EnvironmentRequest<FindBestOffersForItems, FindBestOffersForItemsResult>>,
+
+    pub(crate) find_owned_ships: VecDeque<EnvironmentRequest<FindOwnedShips, FindOwnedShipsResult>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,15 +66,37 @@ impl FindBestBuyOffer {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestSellOffer {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestSellOfferResult {}
 
 impl FindBestSellOffer {
     pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestSellOfferResult> {
         todo!()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindOwnedShips {
+    pub owner: PersonId,
+    pub required_capabilities: Vec<ModuleCapability>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindOwnedShipsResult {
+    pub vessels: Vec<VesselId>,
+}
+
+impl FindOwnedShips {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindOwnedShipsResult> {
+        let (promise, future) = ReqPromise::new();
+        context.find_owned_ships.push_back(EnvironmentRequest {
+            promise,
+            input: self,
+        });
+        future
     }
 }
 

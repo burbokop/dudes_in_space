@@ -1,9 +1,9 @@
-use std::cmp::Ordering;
 use crate::module::{Module, ModuleCapability, ModuleTypeId};
 use crate::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
 use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
 use serde::Serialize;
+use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -49,9 +49,9 @@ impl Eq for AssemblyRecipe {}
 
 impl Ord for AssemblyRecipe {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.input.cmp(&other.input).then(
-            self.output.type_id().cmp(&other.output.type_id())
-        )
+        self.input
+            .cmp(&other.input)
+            .then(self.output.type_id().cmp(&other.output.type_id()))
     }
 }
 

@@ -250,7 +250,7 @@ pub(crate) struct TradeObjectiveDynSeed {
 }
 
 impl TradeObjectiveDynSeed {
-    pub fn new(req_context: Rc<ReqContext>) -> Self {
+    pub(crate) fn new(req_context: Rc<ReqContext>) -> Self {
         Self { req_context }
     }
 }
