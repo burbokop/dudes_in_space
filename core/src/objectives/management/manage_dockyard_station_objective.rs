@@ -1,14 +1,16 @@
+use crate::objectives::crafting::{
+    RequireModulesObjective};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
-use dudes_in_space_api::module::ModuleConsole;
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -50,6 +52,13 @@ enum ManageDockyardStationObjective {
         input_recipes_to_consider: BTreeSet<InputItemRecipe>,
         output_recipes_to_consider: BTreeSet<OutputItemRecipe>,
     },
+    RequireModules {
+        objective: RequireModulesObjective,
+    },
+    MoveToTerminal {
+        dst: ModuleId,
+    },
+    PlaceOffers,
 }
 
 struct ManageDockyardStationObjectiveSeed<'context> {
@@ -82,7 +91,7 @@ impl Objective for ManageDockyardStationObjective {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
-            ManageDockyardStationObjective::CollectAllAvailableRecipes => {
+            Self::CollectAllAvailableRecipes => {
                 let input_item_recipes: BTreeSet<_> = iter::chain(
                     person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
                         .into_iter(),
@@ -121,14 +130,61 @@ impl Objective for ManageDockyardStationObjective {
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
+            Self::MoveToTerminal { dst } => {
+                if *dst == this_module.id() {
+                    logger.info("Placing capabilities in vessel selling terminal...");
+                    *self = Self::PlaceOffers;
+                } else {
+                    logger.info("Entering crafting module...");
+                    match this_vessel.move_person_to_module(*this_person.id, *dst) {
+                        Ok(_) => {}
+                        Err(MoveToModuleError::NotEnoughSpace) => {
+                            logger.info(
+                                "Not enough space in crafting module. Searching another one...",
+                            );
+                            todo!()
+                        }
+                    }
+                }
+                Ok(ObjectiveStatus::InProgress)
+            }
+            Self::PlaceOffers => {
+                let assembly_recipes: Vec<_> = iter::chain(
+                    person::utils::this_vessel_assembly_recipes(this_module, this_vessel)
+                        .into_iter(),
+                    person::utils::this_vessel_potential_assembly_recipes(this_module, this_vessel)
+                        .into_iter(),
+                )
+                .collect();
 
-            ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe {
+                let console = this_module.trading_admin_console_mut().unwrap();
+
+                console.set_caps_available_for_manual_order(
+                    assembly_recipes
+                        .iter()
+                        .map(|x| x.output_description().capabilities().iter())
+                        .flatten()
+                        .cloned()
+                        .collect(),
+                );
+                console.set_primary_caps_available_for_manual_order(
+                    assembly_recipes
+                        .iter()
+                        .map(|x| x.output_description().primary_capabilities().iter())
+                        .flatten()
+                        .cloned()
+                        .collect(),
+                );
+
+                todo!()
+            }
+            Self::FindBestOffersAndDecideBestRecipe {
                 future,
                 input_recipes_to_consider,
                 output_recipes_to_consider,
             } => match future.take() {
                 Ok(search_result) => {
-                    let item_recipes: BTreeSet<_> = iter::chain(
+                    let assembly_recipes: BTreeSet<_> = iter::chain(
                         person::utils::this_vessel_assembly_recipes(this_module, this_vessel)
                             .into_iter(),
                         person::utils::this_vessel_potential_assembly_recipes(
@@ -141,14 +197,61 @@ impl Objective for ManageDockyardStationObjective {
 
                     println!(
                         "ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe: {:#?}",
-                        (search_result, item_recipes)
+                        (search_result, assembly_recipes)
                     );
 
-                    todo!()
+                    *self = Self::RequireModules {
+                        objective: RequireModulesObjective::new(
+                            BTreeSet::from([
+                                ModuleCapability::VesselSellingTerminal,
+                                ModuleCapability::TradingTerminal,
+                                ModuleCapability::Dockyard,
+                                ModuleCapability::ModuleCrafting,
+                                ModuleCapability::ModuleStorage,
+                            ]),
+                            BTreeSet::new(),
+                            logger,
+                        ),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
                 }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
+            ManageDockyardStationObjective::RequireModules { objective } => {
+                match objective.pursue(
+                    this_person,
+                    this_module,
+                    this_vessel,
+                    environment_context,
+                    logger,
+                ) {
+                    Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                    Ok(ObjectiveStatus::Done) => {
+                        if this_module
+                            .capabilities()
+                            .contains(&ModuleCapability::VesselSellingTerminal)
+                        {
+                            *self = Self::PlaceOffers;
+                            return Ok(ObjectiveStatus::InProgress);
+                        }
+
+                        let terminals =
+                            this_vessel.modules_with_capability(ModuleCapability::VesselSellingTerminal);
+
+                        if terminals.len() == 0 {
+                            todo!("Return error")
+                        }
+
+                        *self = Self::MoveToTerminal {
+                            dst: terminals.first().unwrap().id(),
+                        };
+
+                        Ok(ObjectiveStatus::InProgress)
+                    }
+                    Err(err) => {todo!()}
+                }
+            }
         }
     }
 }

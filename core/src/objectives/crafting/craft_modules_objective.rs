@@ -33,8 +33,8 @@ pub(crate) enum CraftModulesObjective {
 
 impl CraftModulesObjective {
     pub(crate) fn new(
-        needed_capabilities: Vec<ModuleCapability>,
-        needed_primary_capabilities: Vec<ModuleCapability>,
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
         deploy: bool,
         logger: &mut PersonLogger,
     ) -> Self {
@@ -43,8 +43,8 @@ impl CraftModulesObjective {
             needed_capabilities, needed_primary_capabilities
         ));
         Self::SearchingForCraftingModule {
-            needed_capabilities,
-            needed_primary_capabilities,
+            needed_capabilities: needed_capabilities.into_iter().collect(),
+            needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
             deploy,
         }
     }

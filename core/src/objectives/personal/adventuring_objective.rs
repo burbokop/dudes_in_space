@@ -1,4 +1,6 @@
-use dudes_in_space_api::environment::{EnvironmentContext, FindOwnedShips};
+use dudes_in_space_api::environment::{
+    EnvironmentContext, FindOwnedVessels, FindOwnedVesselsResult,
+};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
@@ -14,6 +16,7 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
+
 /*
     - build a ship
     - search for anomalies
@@ -37,14 +40,14 @@ pub(crate) enum AdventuringObjective {
     },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
     SearchForOwnedShips {
-        future: ReqFuture<FindOwnedShips>,
+        future: ReqFuture<FindOwnedVesselsResult>,
     },
     SearchShipToBuy,
     Fly,
 }
 
 struct AdventuringObjectiveSeed<'context> {
-    req_future_seed: ReqFutureSeed<'context, FindOwnedShips>,
+    req_future_seed: ReqFutureSeed<'context, FindOwnedVesselsResult>,
 }
 
 impl<'context> AdventuringObjectiveSeed<'context> {
@@ -86,17 +89,18 @@ impl Objective for AdventuringObjective {
                     todo!("No cockpit module found.")
                 }
 
-                FindOwnedShips {
-                    owner: *this_person.id,
-                    required_capabilities: NEEDED_CAPABILITIES.to_vec(),
-                }
-                .push(environment_context.request_storage_mut());
-
-                todo!("Search for other owned vessels.")
+                *self = Self::SearchForOwnedShips {
+                    future: FindOwnedVessels {
+                        owner: *this_person.id,
+                        required_capabilities: NEEDED_CAPABILITIES.iter().cloned().collect(),
+                    }
+                    .push(environment_context.request_storage_mut()),
+                };
+                Ok(ObjectiveStatus::InProgress)
             }
             AdventuringObjective::MoveToCockpit { .. } => todo!(),
             AdventuringObjective::SearchForOwnedShips { future } => match future.take() {
-                Ok(search_result) => todo!(),
+                Ok(search_result) => todo!("Search for other owned vessels."),
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },

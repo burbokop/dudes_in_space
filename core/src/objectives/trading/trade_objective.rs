@@ -104,11 +104,11 @@ impl Objective for TradeObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchVessel => {
-                if person::utils::this_vessel_has_primary_caps(
+                if person::utils::this_vessel_has_primary_capabilities(
                     this_module,
                     this_vessel,
                     NEEDED_PRIMARY_CAPABILITIES.iter().cloned(),
-                ) && person::utils::this_vessel_has_caps(
+                ) && person::utils::this_vessel_has_capabilities(
                     this_module,
                     this_vessel,
                     NEEDED_CAPABILITIES.iter().cloned(),

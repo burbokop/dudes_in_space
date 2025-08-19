@@ -14,7 +14,8 @@ pub struct RequestStorage {
     pub(crate) find_best_offers_for_items_requests:
         VecDeque<EnvironmentRequest<FindBestOffersForItems, FindBestOffersForItemsResult>>,
 
-    pub(crate) find_owned_ships: VecDeque<EnvironmentRequest<FindOwnedShips, FindOwnedShipsResult>>,
+    pub(crate) find_owned_vessels:
+        VecDeque<EnvironmentRequest<FindOwnedVessels, FindOwnedVesselsResult>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -79,20 +80,20 @@ impl FindBestSellOffer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindOwnedShips {
+pub struct FindOwnedVessels {
     pub owner: PersonId,
-    pub required_capabilities: Vec<ModuleCapability>,
+    pub required_capabilities: BTreeSet<ModuleCapability>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindOwnedShipsResult {
+pub struct FindOwnedVesselsResult {
     pub vessels: Vec<VesselId>,
 }
 
-impl FindOwnedShips {
-    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindOwnedShipsResult> {
+impl FindOwnedVessels {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindOwnedVesselsResult> {
         let (promise, future) = ReqPromise::new();
-        context.find_owned_ships.push_back(EnvironmentRequest {
+        context.find_owned_vessels.push_back(EnvironmentRequest {
             promise,
             input: self,
         });

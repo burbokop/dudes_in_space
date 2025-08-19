@@ -10,7 +10,7 @@ use crate::vessel::{
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
 
-pub fn this_vessel_caps(
+pub fn this_vessel_capabilities(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
 ) -> BTreeSet<ModuleCapability> {
@@ -19,7 +19,7 @@ pub fn this_vessel_caps(
         .concat(this_module.capabilities())
 }
 
-pub fn this_vessel_primary_caps(
+pub fn this_vessel_primary_capabilities(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
 ) -> BTreeSet<ModuleCapability> {
@@ -28,23 +28,23 @@ pub fn this_vessel_primary_caps(
         .concat(this_module.primary_capabilities())
 }
 
-pub fn this_vessel_has_caps(
+pub fn this_vessel_has_capabilities(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
     needed_caps: impl IntoIterator<Item = ModuleCapability>,
 ) -> bool {
-    let this_vessel_caps = this_vessel_caps(this_module, this_vessel);
+    let this_vessel_caps = this_vessel_capabilities(this_module, this_vessel);
     needed_caps
         .into_iter()
         .all(|cap| this_vessel_caps.contains(&cap))
 }
 
-pub fn this_vessel_has_primary_caps(
+pub fn this_vessel_has_primary_capabilities(
     this_module: &dyn ModuleConsole,
     this_vessel: &dyn VesselConsole,
     needed_caps: impl IntoIterator<Item = ModuleCapability>,
 ) -> bool {
-    let this_vessel_caps = this_vessel_primary_caps(this_module, this_vessel);
+    let this_vessel_caps = this_vessel_primary_capabilities(this_module, this_vessel);
     needed_caps
         .into_iter()
         .all(|cap| this_vessel_caps.contains(&cap))

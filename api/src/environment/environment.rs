@@ -1,12 +1,12 @@
 use crate::environment::{
-    EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemsResult, Nebula,
-    RequestStorage,
+    EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemsResult,
+    FindOwnedVesselsResult, Nebula, RequestStorage,
 };
 use crate::item::{BuyOffer, ItemId, ItemVault, OfferRef, SellOffer, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
 use crate::utils::request::ReqContext;
-use crate::vessel::{Vessel, VesselId, VesselSeed};
+use crate::vessel::{Vessel, VesselConsole, VesselId, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
@@ -147,10 +147,31 @@ impl Environment {
                 false
             });
 
-        self.request_storage.find_owned_ships.retain_mut(|req| {
+        self.request_storage.find_owned_vessels.retain_mut(|req| {
             assert!(req.promise.check_pending(req_context));
 
-            todo!()
+            let mut vessels: Vec<VesselId> = Default::default();
+
+            for vessel in self.vessels.iter() {
+                if vessel.owner() == req.input.owner
+                    && req
+                        .input
+                        .required_capabilities
+                        .iter()
+                        .all(|x| vessel.capabilities().contains(x))
+                {
+                    vessels.push(vessel.id());
+                }
+            }
+
+            if !vessels.is_empty() {
+                req.promise
+                    .make_ready(req_context, FindOwnedVesselsResult { vessels })
+                    .unwrap();
+                return false;
+            }
+
+            true
         });
     }
 }

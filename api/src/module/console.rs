@@ -204,7 +204,7 @@ pub trait TradingConsole {
         count: usize,
     ) -> Option<WeakBuyVesselOrder>;
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
-    
+
     fn caps_available_for_manual_order(&self) -> Vec<ModuleCapability>;
 
     fn primary_caps_available_for_manual_order(&self) -> Vec<ModuleCapability>;
@@ -240,6 +240,8 @@ pub trait TradingAdminConsole {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer>;
+    fn set_caps_available_for_manual_order(&self, caps: BTreeSet<ModuleCapability>);
+    fn set_primary_caps_available_for_manual_order(&self, caps: BTreeSet<ModuleCapability>);
 }
 
 pub(crate) trait CaptainControlPanel {

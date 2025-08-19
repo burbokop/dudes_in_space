@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
     CraftModulesObjectiveError,
@@ -111,8 +112,8 @@ impl Objective for CraftVesselFromScratchObjective {
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                         crafting_objective: CraftModulesObjective::new(
-                            vec![ModuleCapability::Dockyard],
-                            vec![],
+                             BTreeSet::from([ModuleCapability::Dockyard]),
+                             BTreeSet::from([]),
                             true,
                             logger,
                         ),
@@ -132,8 +133,8 @@ impl Objective for CraftVesselFromScratchObjective {
                         needed_capabilities: needed_capabilities.clone(),
                         needed_primary_capabilities: needed_primary_capabilities.clone(),
                         crafting_objective: CraftModulesObjective::new(
-                            std::mem::take(needed_capabilities),
-                            std::mem::take(needed_primary_capabilities),
+                            std::mem::take(needed_capabilities).into_iter().collect(),
+                            std::mem::take(needed_primary_capabilities).into_iter().collect(),
                             false,
                             logger,
                         ),

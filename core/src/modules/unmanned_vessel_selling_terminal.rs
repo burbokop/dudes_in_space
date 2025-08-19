@@ -194,6 +194,14 @@ impl TradingConsole for UnmannedVesselSellingTerminal {
     ) -> Option<WeakBuyVesselOrder> {
         todo!()
     }
+
+    fn caps_available_for_manual_order(&self) -> Vec<ModuleCapability> {
+        todo!()
+    }
+
+    fn primary_caps_available_for_manual_order(&self) -> Vec<ModuleCapability> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]
