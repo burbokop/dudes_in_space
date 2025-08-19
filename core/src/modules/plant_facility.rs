@@ -171,11 +171,11 @@ impl ModuleFactoryOutputDescription for PlantFacilityFactory {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {

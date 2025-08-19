@@ -7,40 +7,76 @@ use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
-use serde_intermediate::Intermediate;
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
+use serde::{Deserialize, Serialize};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
+use std::fmt::Debug;
+use std::rc::Rc;
 
-static TYPE_ID: &str = "UnmannedVesselSellingTerminal";
-static FACTORY_TYPE_ID: &str = "UnmannedVesselSellingTerminalFactory";
-static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
-static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
+static TYPE_ID: &str = "TradingTerminal";
+static FACTORY_TYPE_ID: &str = "TradingTerminalFactory";
+static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 
-#[derive(Debug)]
-struct UnmannedVesselSellingTerminal {
-    offers: Vec<BuyVesselOffer>,
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'v>)]
+pub(crate) struct TradingTerminal {
+    id: ModuleId,
+    buy_offers: Vec<BuyOffer>,
+    sell_offers: Vec<SellOffer>,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
+    operator: Option<Person>,
 }
 
-impl DynSerialize for UnmannedVesselSellingTerminal {
+struct TradingTerminalSeed<'v> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+}
+
+impl<'v> TradingTerminalSeed<'v> {
+    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+        Self {
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+        }
+    }
+}
+
+impl TradingTerminal {
+    pub(crate) fn new() -> Box<Self> {
+        Box::new(Self {
+            id: ModuleId::new_v4(),
+            buy_offers: vec![],
+            sell_offers: vec![],
+            operator: None,
+        })
+    }
+}
+
+impl DynSerialize for TradingTerminal {
     fn type_id(&self) -> TypeId {
-        todo!()
+        TYPE_ID.to_string()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+        to_intermediate(self).map_err(|e| e.into())
     }
 }
 
-impl Module for UnmannedVesselSellingTerminal {
+impl Module for TradingTerminal {
     fn id(&self) -> ModuleId {
-        todo!()
+        self.id
     }
 
     fn package_id(&self) -> PackageId {
@@ -48,11 +84,11 @@ impl Module for UnmannedVesselSellingTerminal {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
@@ -62,11 +98,11 @@ impl Module for UnmannedVesselSellingTerminal {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        todo!()
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
-        todo!()
+        collector.enter_module(self);
+        collector.exit_module();
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
@@ -102,7 +138,7 @@ impl Module for UnmannedVesselSellingTerminal {
     }
 
     fn persons(&self) -> &[Person] {
-        todo!()
+        &[]
     }
 
     fn storages(&self) -> &[ItemStorage] {
@@ -138,11 +174,11 @@ impl Module for UnmannedVesselSellingTerminal {
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
-        todo!()
+        &[]
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        Some(self)
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
@@ -150,17 +186,17 @@ impl Module for UnmannedVesselSellingTerminal {
     }
 }
 
-impl TradingConsole for UnmannedVesselSellingTerminal {
+impl TradingConsole for TradingTerminal {
     fn buy_offers(&self) -> &[BuyOffer] {
-        &[]
+        &self.buy_offers
     }
 
     fn sell_offers(&self) -> &[SellOffer] {
-        &[]
+        &self.sell_offers
     }
 
     fn buy_vessel_offers(&self) -> &[BuyVesselOffer] {
-        &self.offers
+        todo!()
     }
 
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {
@@ -204,22 +240,46 @@ impl TradingConsole for UnmannedVesselSellingTerminal {
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct UnmannedVesselSellingTerminalFactory {}
+pub(crate) struct TradingTerminalDynSeed {
+    objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+}
 
-impl DynSerialize for UnmannedVesselSellingTerminalFactory {
-    fn type_id(&self) -> TypeId {
-        FACTORY_TYPE_ID.into()
-    }
-
-    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        todo!()
+impl TradingTerminalDynSeed {
+    pub(crate) fn new(objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+        Self { objective_vault }
     }
 }
 
-impl ModuleFactory for UnmannedVesselSellingTerminalFactory {
+impl DynDeserializeSeed<dyn Module> for TradingTerminalDynSeed {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.to_string()
+    }
+
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let obj: TradingTerminal = from_intermediate_seed(
+            TradingTerminalSeed::new(&self.objective_vault),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(Box::new(obj))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct TradingTerminalFactory {}
+
+impl ModuleFactory for TradingTerminalFactory {
     fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
-        todo!()
+        Box::new(TradingTerminal {
+            id: ModuleId::new_v4(),
+            buy_offers: vec![],
+            sell_offers: vec![],
+            operator: None,
+        })
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
@@ -227,21 +287,21 @@ impl ModuleFactory for UnmannedVesselSellingTerminalFactory {
     }
 }
 
-impl ModuleFactoryOutputDescription for UnmannedVesselSellingTerminalFactory {
+impl ModuleFactoryOutputDescription for TradingTerminalFactory {
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        &[]
+        todo!()
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
@@ -257,11 +317,21 @@ impl ModuleFactoryOutputDescription for UnmannedVesselSellingTerminalFactory {
     }
 }
 
-pub(crate) struct UnmannedVesselSellingTerminalFactoryDynSeed;
-
-impl DynDeserializeSeed<dyn ModuleFactory> for UnmannedVesselSellingTerminalFactoryDynSeed {
+impl DynSerialize for TradingTerminalFactory {
     fn type_id(&self) -> TypeId {
-        FACTORY_TYPE_ID.into()
+        FACTORY_TYPE_ID.to_string()
+    }
+
+    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
+        to_intermediate(self).map_err(|e| e.into())
+    }
+}
+
+pub(crate) struct TradingTerminalFactoryDynSeed;
+
+impl DynDeserializeSeed<dyn ModuleFactory> for TradingTerminalFactoryDynSeed {
+    fn type_id(&self) -> TypeId {
+        FACTORY_TYPE_ID.to_string()
     }
 
     fn deserialize(
@@ -269,22 +339,8 @@ impl DynDeserializeSeed<dyn ModuleFactory> for UnmannedVesselSellingTerminalFact
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
-        todo!()
-    }
-}
-
-pub(crate) struct UnmannedVesselSellingTerminalDynSeed;
-
-impl DynDeserializeSeed<dyn Module> for UnmannedVesselSellingTerminalDynSeed {
-    fn type_id(&self) -> TypeId {
-        TYPE_ID.into()
-    }
-
-    fn deserialize(
-        &self,
-        intermediate: Intermediate,
-        this_vault: &DynDeserializeSeedVault<dyn Module>,
-    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        todo!()
+        let r: Box<TradingTerminalFactory> =
+            from_intermediate(&intermediate).map_err(|e| e.to_string())?;
+        Ok(r)
     }
 }

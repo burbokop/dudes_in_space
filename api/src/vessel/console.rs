@@ -51,6 +51,7 @@ pub trait VesselConsole {
 
 #[derive(Debug)]
 pub enum MoveToModuleError {
+    ModuleNotFound,
     NotEnoughSpace,
 }
 

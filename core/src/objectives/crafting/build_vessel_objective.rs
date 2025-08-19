@@ -114,6 +114,7 @@ impl Objective for BuildVesselObjective {
                     logger.info("Entering dockyard module...");
                     match this_vessel.move_person_to_module(*this_person.id, *dst) {
                         Ok(_) => {}
+                        Err(MoveToModuleError::ModuleNotFound) => todo!(),
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in dockyard module. Searching another one...",

@@ -1,5 +1,4 @@
-use crate::objectives::crafting::{
-    RequireModulesObjective};
+use crate::objectives::crafting::RequireModulesObjective;
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
@@ -134,10 +133,14 @@ impl Objective for ManageDockyardStationObjective {
                 if *dst == this_module.id() {
                     logger.info("Placing capabilities in vessel selling terminal...");
                     *self = Self::PlaceOffers;
+                    Ok(ObjectiveStatus::InProgress)
                 } else {
                     logger.info("Entering crafting module...");
                     match this_vessel.move_person_to_module(*this_person.id, *dst) {
-                        Ok(_) => {}
+                        Ok(_) => Ok(ObjectiveStatus::InProgress),
+                        Err(MoveToModuleError::ModuleNotFound) => {
+                            Err(ManageDockyardStationObjectiveError::VesselSellingTerminalMissing)
+                        }
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in crafting module. Searching another one...",
@@ -146,7 +149,6 @@ impl Objective for ManageDockyardStationObjective {
                         }
                     }
                 }
-                Ok(ObjectiveStatus::InProgress)
             }
             Self::PlaceOffers => {
                 let assembly_recipes: Vec<_> = iter::chain(
@@ -236,11 +238,13 @@ impl Objective for ManageDockyardStationObjective {
                             return Ok(ObjectiveStatus::InProgress);
                         }
 
-                        let terminals =
-                            this_vessel.modules_with_capability(ModuleCapability::VesselSellingTerminal);
+                        let terminals = this_vessel
+                            .modules_with_capability(ModuleCapability::VesselSellingTerminal);
 
                         if terminals.len() == 0 {
-                            todo!("Return error")
+                            return Err(
+                                ManageDockyardStationObjectiveError::VesselSellingTerminalMissing,
+                            );
                         }
 
                         *self = Self::MoveToTerminal {
@@ -249,7 +253,9 @@ impl Objective for ManageDockyardStationObjective {
 
                         Ok(ObjectiveStatus::InProgress)
                     }
-                    Err(err) => {todo!()}
+                    Err(err) => {
+                        todo!()
+                    }
                 }
             }
         }
@@ -257,11 +263,13 @@ impl Objective for ManageDockyardStationObjective {
 }
 
 #[derive(Debug)]
-enum ManageDockyardStationObjectiveError {}
+enum ManageDockyardStationObjectiveError {
+    VesselSellingTerminalMissing,
+}
 
 impl Display for ManageDockyardStationObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{:?}", self)
     }
 }
 

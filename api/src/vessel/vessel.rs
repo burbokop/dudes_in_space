@@ -403,7 +403,9 @@ impl VesselConsole for Vessel {
             })
             .count();
 
-        let module = self.module_by_id(module_id).unwrap();
+        let module = self
+            .module_by_id(module_id)
+            .ok_or(MoveToModuleError::ModuleNotFound)?;
         if module.free_person_slots_count() < pending_requests + 1 {
             return Err(MoveToModuleError::NotEnoughSpace);
         }

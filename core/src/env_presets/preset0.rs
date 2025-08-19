@@ -1,4 +1,4 @@
-use crate::modules::{Assembler, PersonnelArea, UnmannedTradingTerminal};
+use crate::modules::{Assembler, PersonnelArea};
 use dudes_in_space_api::environment::{Environment, Nebula};
 use dudes_in_space_api::item::{ItemStack, ItemStorage, ItemVault};
 use dudes_in_space_api::person::Person;
@@ -25,13 +25,12 @@ fn station0<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     let person0_id = person0.id();
     let personnel_area = PersonnelArea::new(vec![person0, person1]);
     let assembler = Assembler::new(storage(item_vault));
-    let trading_terminal = UnmannedTradingTerminal::new();
 
     Vessel::new(
         "station0".to_string(),
         person0_id,
         (600., -300.).into(),
-        vec![personnel_area, assembler, trading_terminal],
+        vec![personnel_area, assembler],
     )
 }
 
@@ -43,13 +42,12 @@ fn station1<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     let person0_id = person0.id();
     let personnel_area = PersonnelArea::new(vec![person0, person1, person2]);
     let assembler = Assembler::new(storage(item_vault));
-    let trading_terminal = UnmannedTradingTerminal::new();
 
     Vessel::new(
         "station1".to_string(),
         person0_id,
         (-500., -500.).into(),
-        vec![personnel_area, assembler, trading_terminal],
+        vec![personnel_area, assembler],
     )
 }
 

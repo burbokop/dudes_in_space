@@ -4,47 +4,56 @@ use dudes_in_space_api::item::{
     WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, PackageId, TradingConsole,
+    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
+use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
-use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId};
-use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use dyn_serde::{
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+};
+use dyn_serde_macro::DeserializeSeedXXX;
+use serde::Serialize;
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
-use std::fmt::Debug;
+use std::rc::Rc;
 
-static TYPE_ID: &str = "UnmannedTradingTerminal";
-static FACTORY_TYPE_ID: &str = "UnmannedTradingTerminalFactory";
-static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
-static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
+static TYPE_ID: &str = "VesselSellingTerminal";
+static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
+static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct UnmannedTradingTerminal {
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'v>)]
+struct VesselSellingTerminal {
     id: ModuleId,
-    buy_offers: Vec<BuyOffer>,
-    sell_offers: Vec<SellOffer>,
+    offers: Vec<BuyVesselOffer>,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    #[deserialize_seed_xxx(seed = self.seed.person_seed)]
+    operator: Option<Person>,
 }
 
-impl UnmannedTradingTerminal {
-    pub(crate) fn new() -> Box<Self> {
-        Box::new(Self {
-            id: ModuleId::new_v4(),
-            buy_offers: vec![],
-            sell_offers: vec![],
-        })
+struct VesselSellingTerminalSeed<'v> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+}
+
+impl<'v> VesselSellingTerminalSeed<'v> {
+    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+        Self {
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+        }
     }
 }
 
-impl DynSerialize for UnmannedTradingTerminal {
+impl DynSerialize for VesselSellingTerminal {
     fn type_id(&self) -> TypeId {
-        TYPE_ID.to_string()
+        TYPE_ID.into()
     }
 
     fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
@@ -52,7 +61,7 @@ impl DynSerialize for UnmannedTradingTerminal {
     }
 }
 
-impl Module for UnmannedTradingTerminal {
+impl Module for VesselSellingTerminal {
     fn id(&self) -> ModuleId {
         self.id
     }
@@ -66,7 +75,7 @@ impl Module for UnmannedTradingTerminal {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        PRIMARY_CAPABILITIES
+        todo!()
     }
 
     fn proceed(
@@ -80,6 +89,9 @@ impl Module for UnmannedTradingTerminal {
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
+        if let Some(operator) = &self.operator {
+            operator.collect_status(collector);
+        }
         collector.exit_module();
     }
 
@@ -104,19 +116,31 @@ impl Module for UnmannedTradingTerminal {
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
+        if self.operator.is_none() {
+            self.operator = Some(person);
+            true
+        } else {
+            false
+        }
     }
 
     fn free_person_slots_count(&self) -> usize {
-        todo!()
+        const CAPACITY: usize = 1;
+        CAPACITY - self.operator.iter().len()
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
-        todo!()
+        self.operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
     }
 
     fn persons(&self) -> &[Person] {
-        &[]
+        match self.operator.as_ref() {
+            None => &[],
+            Some(person) => std::slice::from_ref(person),
+        }
     }
 
     fn storages(&self) -> &[ItemStorage] {
@@ -152,11 +176,11 @@ impl Module for UnmannedTradingTerminal {
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
-        &[]
+        todo!()
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        Some(self)
+        todo!()
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
@@ -164,17 +188,17 @@ impl Module for UnmannedTradingTerminal {
     }
 }
 
-impl TradingConsole for UnmannedTradingTerminal {
+impl TradingConsole for VesselSellingTerminal {
     fn buy_offers(&self) -> &[BuyOffer] {
-        &self.buy_offers
+        &[]
     }
 
     fn sell_offers(&self) -> &[SellOffer] {
-        &self.sell_offers
+        &[]
     }
 
     fn buy_vessel_offers(&self) -> &[BuyVesselOffer] {
-        todo!()
+        &self.offers
     }
 
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {
@@ -218,56 +242,68 @@ impl TradingConsole for UnmannedTradingTerminal {
     }
 }
 
-pub(crate) struct UnmannedTradingTerminalDynSeed;
+#[derive(Debug)]
+pub(crate) struct VesselSellingTerminalFactory {}
 
-impl DynDeserializeSeed<dyn Module> for UnmannedTradingTerminalDynSeed {
+impl DynSerialize for VesselSellingTerminalFactory {
     fn type_id(&self) -> TypeId {
-        TYPE_ID.to_string()
+        FACTORY_TYPE_ID.into()
     }
 
-    fn deserialize(
-        &self,
-        intermediate: Intermediate,
-        this_vault: &DynDeserializeSeedVault<dyn Module>,
-    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: UnmannedTradingTerminal =
-            from_intermediate(&intermediate).map_err(|e| e.to_string())?;
-        Ok(Box::new(obj))
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct UnmannedTradingTerminalFactory {}
-
-impl ModuleFactory for UnmannedTradingTerminalFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
-        Box::new(UnmannedTradingTerminal {
-            id: ModuleId::new_v4(),
-            buy_offers: vec![],
-            sell_offers: vec![],
-        })
-    }
-
-    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
         todo!()
     }
 }
 
-impl DynSerialize for UnmannedTradingTerminalFactory {
-    fn type_id(&self) -> TypeId {
-        FACTORY_TYPE_ID.to_string()
+impl ModuleFactory for VesselSellingTerminalFactory {
+    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
+        Box::new(VesselSellingTerminal {
+            id: ModuleId::new_v4(),
+            offers: vec![],
+            operator: None,
+        })
     }
 
-    fn serialize(&self) -> Result<Intermediate, Box<dyn Error>> {
-        to_intermediate(self).map_err(|e| e.into())
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        self
     }
 }
 
-pub(crate) struct UnmannedTradingTerminalFactoryDynSeed;
+impl ModuleFactoryOutputDescription for VesselSellingTerminalFactory {
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
 
-impl DynDeserializeSeed<dyn ModuleFactory> for UnmannedTradingTerminalFactoryDynSeed {
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        PRIMARY_CAPABILITIES
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        &[]
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        &[]
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+        &[]
+    }
+}
+
+pub(crate) struct VesselSellingTerminalFactoryDynSeed;
+
+impl DynDeserializeSeed<dyn ModuleFactory> for VesselSellingTerminalFactoryDynSeed {
     fn type_id(&self) -> TypeId {
-        FACTORY_TYPE_ID.to_string()
+        FACTORY_TYPE_ID.into()
     }
 
     fn deserialize(
@@ -275,8 +311,35 @@ impl DynDeserializeSeed<dyn ModuleFactory> for UnmannedTradingTerminalFactoryDyn
         intermediate: Intermediate,
         this_vault: &DynDeserializeSeedVault<dyn ModuleFactory>,
     ) -> Result<Box<dyn ModuleFactory>, Box<dyn Error>> {
-        let r: Box<UnmannedTradingTerminalFactory> =
-            from_intermediate(&intermediate).map_err(|e| e.to_string())?;
-        Ok(r)
+        todo!()
+    }
+}
+
+pub(crate) struct VesselSellingTerminalDynSeed {
+    objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+}
+
+impl VesselSellingTerminalDynSeed {
+    pub(crate) fn new(objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+        Self { objective_vault }
+    }
+}
+
+impl DynDeserializeSeed<dyn Module> for VesselSellingTerminalDynSeed {
+    fn type_id(&self) -> TypeId {
+        TYPE_ID.into()
+    }
+
+    fn deserialize(
+        &self,
+        intermediate: Intermediate,
+        this_vault: &DynDeserializeSeedVault<dyn Module>,
+    ) -> Result<Box<dyn Module>, Box<dyn Error>> {
+        let r: VesselSellingTerminal = from_intermediate_seed(
+            VesselSellingTerminalSeed::new(&self.objective_vault),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(Box::new(r))
     }
 }

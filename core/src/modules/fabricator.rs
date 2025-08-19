@@ -274,7 +274,7 @@ impl ModuleConsole for Console<'_> {
 
 impl Module for Fabricator {
     fn id(&self) -> ModuleId {
-        todo!()
+        self.id
     }
 
     fn package_id(&self) -> PackageId {
@@ -499,11 +499,11 @@ impl ModuleFactoryOutputDescription for FabricatorFactory {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {

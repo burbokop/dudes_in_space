@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
     CraftModulesObjectiveError,
@@ -8,6 +7,7 @@ use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage}
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::vessel::VesselConsole;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -112,8 +112,8 @@ impl Objective for CraftVesselFromScratchObjective {
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                         crafting_objective: CraftModulesObjective::new(
-                             BTreeSet::from([ModuleCapability::Dockyard]),
-                             BTreeSet::from([]),
+                            BTreeSet::from([ModuleCapability::Dockyard]),
+                            BTreeSet::from([]),
                             true,
                             logger,
                         ),
@@ -134,7 +134,9 @@ impl Objective for CraftVesselFromScratchObjective {
                         needed_primary_capabilities: needed_primary_capabilities.clone(),
                         crafting_objective: CraftModulesObjective::new(
                             std::mem::take(needed_capabilities).into_iter().collect(),
-                            std::mem::take(needed_primary_capabilities).into_iter().collect(),
+                            std::mem::take(needed_primary_capabilities)
+                                .into_iter()
+                                .collect(),
                             false,
                             logger,
                         ),

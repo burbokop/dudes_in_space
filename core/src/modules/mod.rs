@@ -7,8 +7,8 @@ mod ore_manifold;
 mod personnel_area;
 mod plant_facility;
 mod shuttle;
-mod unmanned_trading_terminal;
-mod unmanned_vessel_selling_terminal;
+mod trading_terminal;
+mod vessel_selling_terminal;
 
 pub(crate) use assembler::*;
 pub(crate) use cargo_container::*;
@@ -19,11 +19,9 @@ pub(crate) use ore_manifold::*;
 pub(crate) use personnel_area::*;
 pub(crate) use plant_facility::*;
 pub(crate) use shuttle::*;
-pub(crate) use unmanned_trading_terminal::*;
+pub(crate) use trading_terminal::*;
+pub(crate) use vessel_selling_terminal::*;
 
-use crate::modules::unmanned_vessel_selling_terminal::{
-    UnmannedVesselSellingTerminalDynSeed, UnmannedVesselSellingTerminalFactoryDynSeed,
-};
 use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
@@ -38,8 +36,8 @@ pub fn register_module_factories(
         .with(ShuttleFactoryDynSeed)
         .with(DockyardFactoryDynSeed)
         .with(CargoContainerFactoryDynSeed)
-        .with(UnmannedTradingTerminalFactoryDynSeed)
-        .with(UnmannedVesselSellingTerminalFactoryDynSeed)
+        .with(TradingTerminalFactoryDynSeed)
+        .with(VesselSellingTerminalFactoryDynSeed)
         .with(FabricatorFactoryDynSeed)
         .with(PlantFacilityFactoryDynSeed)
         .with(OreManifoldFactoryDynSeed)
@@ -66,8 +64,10 @@ pub fn register_modules(
             process_token_context.clone(),
         ))
         .with(CargoContainerDynSeed::new(item_vault.clone()))
-        .with(UnmannedTradingTerminalDynSeed)
-        .with(UnmannedVesselSellingTerminalDynSeed)
+        .with(TradingTerminalDynSeed::new(objective_seed_vault.clone()))
+        .with(VesselSellingTerminalDynSeed::new(
+            objective_seed_vault.clone(),
+        ))
         .with(FabricatorDynSeed::new(
             objective_seed_vault,
             item_vault,
