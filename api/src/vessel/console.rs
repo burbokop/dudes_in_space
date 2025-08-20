@@ -1,6 +1,6 @@
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId};
 use crate::person::PersonId;
-use crate::vessel::DockingConnectorId;
+use crate::vessel::{DockingConnectorId, VesselId};
 use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -15,6 +15,7 @@ pub trait VesselModuleInterface {
 
 /// interface through which a person can interact with a vessel
 pub trait VesselConsole {
+    fn id(&self) -> VesselId;
     fn owner(&self) -> PersonId;
     fn modules_with_capability<'a>(
         &'a self,

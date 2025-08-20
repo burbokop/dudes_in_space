@@ -12,13 +12,66 @@ use crate::vessel::{
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};
-use serde::{Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
 use std::iter;
+use std::ops::{ControlFlow, Try};
 
 pub type VesselId = NonNilUuid;
+
+pub struct VesselIdPathRef<'a>(&'a [VesselId]);
+
+impl<'a> VesselIdPathRef<'a> {
+    pub fn leaf(&self) -> &'a VesselId {
+        self.0.last().unwrap()
+    }
+
+    pub fn to_owned(&self) -> VesselIdPath {
+        VesselIdPath(self.0.to_vec())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VesselIdPath(Vec<VesselId>);
+
+impl VesselIdPath {
+    pub fn leaf(&self) -> &VesselId {
+        self.0.last().unwrap()
+    }
+
+    pub fn as_ref<'a>(&'a self) -> VesselIdPathRef<'a> {
+        VesselIdPathRef(&self.0)
+    }
+
+    pub fn is_ancestor(&self, id: &VesselId) -> bool {
+        self.0.contains(id)
+    }
+
+    pub fn is_parent(&self, id: &VesselId) -> bool {
+        let l = self.0.len();
+        if l > 1 { (&self.0[l - 2]) == id } else { false }
+    }
+}
+
+pub struct EmptyVesselIdPathError;
+
+impl<'a> TryFrom<&'a [VesselId]> for VesselIdPathRef<'a> {
+    type Error = EmptyVesselIdPathError;
+
+    fn try_from(value: &'a [VesselId]) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+impl TryFrom<Vec<VesselId>> for VesselIdPath {
+    type Error = EmptyVesselIdPathError;
+
+    fn try_from(value: Vec<VesselId>) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
 
 #[derive(Debug)]
 enum VesselRequest {
@@ -107,12 +160,52 @@ impl Vessel {
     pub fn id(&self) -> VesselId {
         self.id
     }
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
     pub(crate) fn owner(&self) -> PersonId {
         self.owner
+    }
+
+    pub(crate) fn traverse<R>(&self, mut f: impl FnMut(VesselIdPathRef, &Vessel) -> R) -> R
+    where
+        R: Try<Output = ()>,
+    {
+        self.traverse_impl(vec![], &mut f)
+    }
+
+    fn traverse_impl<R>(
+        &self,
+        mut path: Vec<VesselId>,
+        f: &mut impl FnMut(VesselIdPathRef, &Vessel) -> R,
+    ) -> R
+    where
+        R: Try<Output = ()>,
+    {
+        path.push(self.id);
+        f(VesselIdPathRef(&path), self);
+        for module in &self.modules {
+            let module = module.borrow();
+            for clamp in module.docking_clamps() {
+                if let Some(connection) = clamp.connection() {
+                    match connection
+                        .vessel
+                        .traverse_impl::<R>(path.clone(), f)
+                        .branch()
+                    {
+                        ControlFlow::Continue(c) => {}
+                        ControlFlow::Break(b) => return R::from_residual(b),
+                    }
+                }
+            }
+        }
+        R::from_output(())
+    }
+
+    pub(crate) fn has_empty_pilot_seat(&self) -> bool {
+        todo!()
     }
 
     pub fn new(
@@ -350,6 +443,10 @@ impl VesselModuleInterface for Vessel {
 }
 
 impl VesselConsole for Vessel {
+    fn id(&self) -> VesselId {
+        self.id
+    }
+
     fn owner(&self) -> PersonId {
         self.owner
     }
@@ -457,6 +554,10 @@ impl VesselConsole for Vessel {
                 })
             })
             .unwrap();
+
+        if person_id != target_vessel.owner && person_id.boss() != target_vessel.owner && person_id.boss().boss() != target_vessel.owner {
+            todo!()
+        }
 
         let target_module = target_module.borrow();
         let target_module_id = target_module.id();

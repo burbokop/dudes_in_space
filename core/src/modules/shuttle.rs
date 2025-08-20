@@ -148,7 +148,7 @@ impl Module for Shuttle {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {

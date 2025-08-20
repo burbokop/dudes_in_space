@@ -139,7 +139,7 @@ impl Module for PersonnelArea {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {

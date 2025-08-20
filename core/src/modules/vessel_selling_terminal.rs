@@ -349,7 +349,7 @@ impl Module for VesselSellingTerminal {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {

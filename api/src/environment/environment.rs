@@ -6,11 +6,12 @@ use crate::item::{BuyOffer, ItemId, ItemVault, OfferRef, SellOffer, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
 use crate::utils::request::ReqContext;
-use crate::vessel::{Vessel, VesselConsole, VesselId, VesselSeed};
+use crate::vessel::{Vessel, VesselConsole, VesselId, VesselIdPath, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::ops::ControlFlow;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -150,28 +151,33 @@ impl Environment {
         self.request_storage.find_owned_vessels.retain_mut(|req| {
             assert!(req.promise.check_pending(req_context));
 
-            let mut vessels: Vec<VesselId> = Default::default();
+            let mut vessels: Vec<VesselIdPath> = Default::default();
 
-            for vessel in self.vessels.iter() {
-                if vessel.owner() == req.input.owner
-                    && req
-                        .input
-                        .required_capabilities
-                        .iter()
-                        .all(|x| vessel.capabilities().contains(x))
-                {
-                    vessels.push(vessel.id());
-                }
+            for vessel in &self.vessels {
+                let _: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                    if vessel.owner() == req.input.owner
+                        && (!req.input.required_empty_pilot_seat || vessel.has_empty_pilot_seat())
+                        && req
+                            .input
+                            .required_capabilities
+                            .iter()
+                            .all(|x| vessel.capabilities().contains(x))
+                    {
+                        vessels.push(path.to_owned());
+                    }
+
+                    ControlFlow::Continue(())
+                });
             }
 
-            if !vessels.is_empty() {
-                req.promise
-                    .make_ready(req_context, FindOwnedVesselsResult { vessels })
-                    .unwrap();
-                return false;
-            }
-
-            true
+            // if !vessels.is_empty() {
+            req.promise
+                .make_ready(req_context, FindOwnedVesselsResult { vessels })
+                .unwrap();
+            return false;
+            // }
+            //
+            // true
         });
     }
 }

@@ -213,6 +213,7 @@ pub struct Person {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
+    boss: Option<PersonId>,
     budget: Money,
 }
 
@@ -236,6 +237,11 @@ impl Person {
     pub fn name(&self) -> &str {
         &self.name
     }
+
+    pub fn boss(&self) -> &Option<PersonId> {
+        &self.boss
+    }
+
     pub fn objective_type_id(&self) -> Option<TypeId> {
         self.objective.as_ref().map(|x| x.type_id().clone())
     }

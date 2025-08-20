@@ -77,22 +77,11 @@ impl Objective for AdventuringObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             AdventuringObjective::CheckThisVessel => {
-                if &this_vessel.owner() == this_person.id {
-                    for module in this_vessel.modules_with_capability(ModuleCapability::Cockpit) {
-                        if module.free_person_slots_count() > 0 {
-                            logger.info("Moving to dockyard module...");
-                            *self = Self::MoveToCockpit { dst: module.id() };
-                            return Ok(ObjectiveStatus::InProgress);
-                        }
-                    }
-
-                    todo!("No cockpit module found.")
-                }
-
                 *self = Self::SearchForOwnedShips {
                     future: FindOwnedVessels {
                         owner: *this_person.id,
                         required_capabilities: NEEDED_CAPABILITIES.iter().cloned().collect(),
+                        required_empty_pilot_seat: true,
                     }
                     .push(environment_context.request_storage_mut()),
                 };
@@ -100,7 +89,51 @@ impl Objective for AdventuringObjective {
             }
             AdventuringObjective::MoveToCockpit { .. } => todo!(),
             AdventuringObjective::SearchForOwnedShips { future } => match future.take() {
-                Ok(search_result) => todo!("Search for other owned vessels."),
+                Ok(search_result) => {
+                    if search_result.vessels.is_empty() {
+                        todo!("Obtain vessel")
+                    }
+
+                    if search_result
+                        .vessels
+                        .iter()
+                        .find(|path| path.leaf() == &this_vessel.id())
+                        .is_some()
+                    {
+                        if this_module
+                            .capabilities()
+                            .contains(&ModuleCapability::Cockpit)
+                        {
+                            todo!()
+                        }
+
+                        for module in this_vessel.modules_with_capability(ModuleCapability::Cockpit)
+                        {
+                            if module.free_person_slots_count() > 0 {
+                                logger.info("Moving to cockpit module...");
+                                *self = Self::MoveToCockpit { dst: module.id() };
+                                return Ok(ObjectiveStatus::InProgress);
+                            }
+                        }
+                    }
+
+                    if let Some(ancestor) = search_result
+                        .vessels
+                        .iter()
+                        .find(|x| x.is_ancestor(&this_vessel.id()))
+                    {
+                        if let Some(parent) = search_result
+                            .vessels
+                            .iter()
+                            .find(|x| x.is_parent(&this_vessel.id()))
+                        {
+                            todo!()
+                        }
+                        todo!()
+                    }
+
+                    todo!("Goto vessel: {:#?}", search_result)
+                }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },

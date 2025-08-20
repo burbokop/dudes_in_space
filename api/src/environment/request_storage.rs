@@ -2,7 +2,7 @@ use crate::item::{BuyOffer, ItemId, ItemVolume, OfferRef, SellOffer};
 use crate::module::ModuleCapability;
 use crate::person::{MoneyAmount, PersonId};
 use crate::utils::request::{ReqFuture, ReqPromise};
-use crate::vessel::VesselId;
+use crate::vessel::VesselIdPath;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -83,11 +83,12 @@ impl FindBestSellOffer {
 pub struct FindOwnedVessels {
     pub owner: PersonId,
     pub required_capabilities: BTreeSet<ModuleCapability>,
+    pub required_empty_pilot_seat: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindOwnedVesselsResult {
-    pub vessels: Vec<VesselId>,
+    pub vessels: Vec<VesselIdPath>,
 }
 
 impl FindOwnedVessels {
