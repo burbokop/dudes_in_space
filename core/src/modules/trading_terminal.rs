@@ -1,9 +1,13 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{
-    BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
-    WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
+    BuyOffer, BuyOrder, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, OrderHolder, OrderSeed,
+    SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder,
+    WeakSellOrder,
 };
-use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::module::{
+    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
+};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
@@ -14,15 +18,16 @@ use dudes_in_space_api::recipe::{
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, VecSeed,
+    from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use rand::rng;
 
 static TYPE_ID: &str = "TradingTerminal";
 static FACTORY_TYPE_ID: &str = "TradingTerminalFactory";
@@ -30,23 +35,34 @@ static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'h,'v>)]
 pub(crate) struct TradingTerminal {
     id: ModuleId,
     buy_offers: Vec<BuyOffer>,
     sell_offers: Vec<SellOffer>,
+    #[deserialize_seed_xxx(seed = self.seed.buy_order_seed)]
+    buy_orders: Vec<BuyOrder>,
+    #[deserialize_seed_xxx(seed = self.seed.sell_order_seed)]
+    sell_orders: Vec<SellOrder>,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
 
-struct TradingTerminalSeed<'v> {
+struct TradingTerminalSeed<'h, 'v> {
+    buy_order_seed: VecSeed<OrderSeed<'h, BuyOrder>>,
+    sell_order_seed: VecSeed<OrderSeed<'h, SellOrder>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v>>,
 }
 
-impl<'v> TradingTerminalSeed<'v> {
-    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+impl<'h, 'v> TradingTerminalSeed<'h, 'v> {
+    fn new(
+        order_holder: &'h OrderHolder,
+        objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+    ) -> Self {
         Self {
+            buy_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
+            sell_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
             person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
         }
     }
@@ -58,6 +74,8 @@ impl TradingTerminal {
             id: ModuleId::new_v4(),
             buy_offers: vec![],
             sell_offers: vec![],
+            buy_orders: vec![],
+            sell_orders: vec![],
             operator: None,
         })
     }
@@ -200,7 +218,7 @@ impl Module for TradingTerminal {
         let mut console = Console {
             id: self.id,
             buy_offers: &self.buy_offers,
-            sell_offers: &self.sell_offers,       
+            sell_offers: &self.sell_offers,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -356,12 +374,19 @@ impl TradingConsole for TradingTerminal {
 }
 
 pub(crate) struct TradingTerminalDynSeed {
+    order_holder: Rc<OrderHolder>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
 }
 
 impl TradingTerminalDynSeed {
-    pub(crate) fn new(objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
-        Self { objective_vault }
+    pub(crate) fn new(
+        order_holder: Rc<OrderHolder>,
+        objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    ) -> Self {
+        Self {
+            order_holder,
+            objective_vault,
+        }
     }
 }
 
@@ -376,7 +401,7 @@ impl DynDeserializeSeed<dyn Module> for TradingTerminalDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: TradingTerminal = from_intermediate_seed(
-            TradingTerminalSeed::new(&self.objective_vault),
+            TradingTerminalSeed::new(&self.order_holder, &self.objective_vault),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;
@@ -393,6 +418,8 @@ impl ModuleFactory for TradingTerminalFactory {
             id: ModuleId::new_v4(),
             buy_offers: vec![],
             sell_offers: vec![],
+            buy_orders: vec![],
+            sell_orders: vec![],
             operator: None,
         })
     }

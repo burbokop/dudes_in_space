@@ -1,12 +1,13 @@
 use crate::item::{Item, ItemRefStack};
 use crate::module::ModuleCapability;
 use crate::person::Money;
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::VesselId;
-use serde::{Deserialize, Serialize};
+use serde::de::DeserializeSeed;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
-use std::rc::Rc;
-use std::sync::Weak;
-use uuid::NonNilUuid;
+use std::rc::{Rc, Weak};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
@@ -33,8 +34,7 @@ impl WeakBuyOrder {
     }
 }
 
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct BuyOrder {
     id: NonNilUuid,
     data: Rc<BuyOrderImpl>,
@@ -63,7 +63,6 @@ struct SellOrderImpl {
     price: Money,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
     id: NonNilUuid,
@@ -82,7 +81,7 @@ impl WeakSellOrder {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct SellOrder {
     id: NonNilUuid,
     data: Rc<SellOrderImpl>,
@@ -106,9 +105,8 @@ impl SellOrder {
 
 pub struct WeakBuyVesselManualOrderEstimate {}
 
-pub struct BuyVesselOrderImpl {
-
-}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BuyVesselOrderImpl {}
 
 pub struct WeakBuyVesselOrder {
     id: NonNilUuid,
@@ -127,9 +125,144 @@ impl WeakBuyVesselOrder {
     }
 }
 
+#[derive(Debug)]
 pub struct BuyVesselOrder {
     id: NonNilUuid,
     data: Rc<BuyVesselOrderImpl>,
+}
+
+pub struct OrderSeed<'h, T> {
+    holder: &'h OrderHolder,
+    _pd: std::marker::PhantomData<T>,
+}
+
+impl<'h, T> Clone for OrderSeed<'h, T> {
+    fn clone(&self) -> Self {
+        Self {
+            holder: self.holder,
+            _pd: Default::default(),
+        }
+    }
+}
+
+impl<'h, T> OrderSeed<'h, T> {
+    pub fn new(holder: &'h OrderHolder) -> Self {
+        Self {
+            holder,
+            _pd: Default::default(),
+        }
+    }
+}
+
+impl Serialize for BuyOrder {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Impl<'a> {
+            data: &'a BuyOrderImpl,
+            id: NonNilUuid,
+        }
+
+        Impl {
+            data: &self.data,
+            id: self.id,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, BuyOrder> {
+    type Value = BuyOrder;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Impl {
+            data: BuyOrderImpl,
+            id: NonNilUuid,
+        }
+
+        let Impl { data, id } = Impl::deserialize(deserializer)?;
+        Ok(self.holder.register_buy_order(data, id))
+    }
+}
+
+impl Serialize for SellOrder {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Impl<'a> {
+            data: &'a SellOrderImpl,
+            id: NonNilUuid,
+        }
+
+        Impl {
+            data: &self.data,
+            id: self.id,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, SellOrder> {
+    type Value = SellOrder;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Impl {
+            data: SellOrderImpl,
+            id: NonNilUuid,
+        }
+
+        let Impl { data, id } = Impl::deserialize(deserializer)?;
+        Ok(self.holder.register_sell_order(data, id))
+    }
+}
+
+impl Serialize for BuyVesselOrder {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Impl<'a> {
+            data: &'a BuyVesselOrderImpl,
+            id: NonNilUuid,
+        }
+
+        Impl {
+            data: &self.data,
+            id: self.id,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, BuyVesselOrder> {
+    type Value = BuyVesselOrder;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Impl {
+            data: BuyVesselOrderImpl,
+            id: NonNilUuid,
+        }
+
+        let Impl { data, id } = Impl::deserialize(deserializer)?;
+        Ok(self.holder.register_buy_vessel_order(data, id))
+    }
 }
 
 impl BuyVesselOrder {
@@ -140,12 +273,55 @@ impl BuyVesselOrder {
     pub fn primary_caps(&self) -> BTreeSet<ModuleCapability> {
         todo!()
     }
-    
-    pub fn price(&self) -> Money { todo!() }
+
+    pub fn price(&self) -> Money {
+        todo!()
+    }
 }
 
-struct OrderHolder {
-    buy_orders: BTreeMap<NonNilUuid, Weak<BuyOrderImpl>>,
-    sell_orders: BTreeMap<NonNilUuid, Weak<WeakSellOrder>>,
-    buy_vessel_orders: BTreeMap<NonNilUuid, Weak<WeakBuyVesselOrder>>,
+pub struct OrderHolder {
+    buy_orders: RefCell<BTreeMap<NonNilUuid, Weak<BuyOrderImpl>>>,
+    sell_orders: RefCell<BTreeMap<NonNilUuid, Weak<SellOrderImpl>>>,
+    buy_vessel_orders: RefCell<BTreeMap<NonNilUuid, Weak<BuyVesselOrderImpl>>>,
+}
+
+impl OrderHolder {
+    pub fn new() -> Self {
+        Self {
+            buy_orders: RefCell::new(Default::default()),
+            sell_orders: RefCell::new(Default::default()),
+            buy_vessel_orders: RefCell::new(Default::default()),
+        }
+    }
+
+    fn register_buy_order(&self, data: BuyOrderImpl, id: NonNilUuid) -> BuyOrder {
+        let data = Rc::new(data);
+        self.buy_orders
+            .borrow_mut()
+            .try_insert(id, Rc::downgrade(&data))
+            .unwrap();
+        BuyOrder { data, id }
+    }
+
+    fn register_sell_order(&self, data: SellOrderImpl, id: NonNilUuid) -> SellOrder {
+        let data = Rc::new(data);
+        self.sell_orders
+            .borrow_mut()
+            .try_insert(id, Rc::downgrade(&data))
+            .unwrap();
+        SellOrder { data, id }
+    }
+
+    fn register_buy_vessel_order(
+        &self,
+        data: BuyVesselOrderImpl,
+        id: NonNilUuid,
+    ) -> BuyVesselOrder {
+        let data = Rc::new(data);
+        self.buy_vessel_orders
+            .borrow_mut()
+            .try_insert(id, Rc::downgrade(&data))
+            .unwrap();
+        BuyVesselOrder { data, id }
+    }
 }

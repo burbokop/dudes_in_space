@@ -471,7 +471,7 @@ impl Module for Assembler {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        INPUT_RECIPES.as_ref()
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {

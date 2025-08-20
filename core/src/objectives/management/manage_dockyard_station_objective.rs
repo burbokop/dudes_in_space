@@ -18,8 +18,7 @@ use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
-use std::fmt::{
-    Display, Formatter};
+use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
 /*
@@ -262,24 +261,22 @@ impl Objective for ManageDockyardStationObjective {
                 }
             }
             ManageDockyardStationObjective::CheckOrders => {
-
                 let console = this_module.trading_admin_console_mut().unwrap();
 
                 let orders = console.orders();
                 if orders.is_empty() {
-                    todo!()
+                    return Ok(ObjectiveStatus::InProgress);
                 }
-                
-                let current_order = &orders[0];
 
+                let current_order = &orders[0];
                 let caps = current_order.primary_caps();
-                
+
                 // - find recipes for caps
                 // - make a list of all input ingredients
                 // - place sell offers for all input ingredients
 
                 todo!()
-            },
+            }
         }
     }
 }

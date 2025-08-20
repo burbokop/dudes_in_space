@@ -1,24 +1,35 @@
-use std::collections::BTreeSet;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder};
-use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, Money, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
+use dudes_in_space_api::item::{
+    BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage,
+    OrderHolder, OrderSeed, SellOffer, WeakBuyOrder, WeakBuyVesselManualOrderEstimate,
+    WeakBuyVesselOrder, WeakSellOrder,
+};
+use dudes_in_space_api::module::{
+    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, Money, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+    StatusCollector,
+};
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
+use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, VecSeed,
+    from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::rc::Rc;
-use rand::rng;
-use dudes_in_space_api::utils::range::Range;
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
@@ -26,24 +37,31 @@ static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerm
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h, 'v>)]
 struct VesselSellingTerminal {
     id: ModuleId,
     offers: Vec<BuyVesselOffer>,
     capabilities_available_for_manual_order: BTreeSet<ModuleCapability>,
     primary_capabilities_available_for_manual_order: BTreeSet<ModuleCapability>,
+    #[deserialize_seed_xxx(seed = self.seed.order_seed)]
+    orders: Vec<BuyVesselOrder>,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
 
-struct VesselSellingTerminalSeed<'v> {
+struct VesselSellingTerminalSeed<'h, 'v> {
+    order_seed: VecSeed<OrderSeed<'h, BuyVesselOrder>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v>>,
 }
 
-impl<'v> VesselSellingTerminalSeed<'v> {
-    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+impl<'h, 'v> VesselSellingTerminalSeed<'h, 'v> {
+    fn new(
+        order_holder: &'h OrderHolder,
+        objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+    ) -> Self {
         Self {
+            order_seed: VecSeed::new(OrderSeed::new(order_holder)),
             person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
         }
     }
@@ -61,9 +79,10 @@ impl DynSerialize for VesselSellingTerminal {
 
 struct Console<'a> {
     id: ModuleId,
-    offers:&'a [BuyVesselOffer],
+    offers: &'a [BuyVesselOffer],
     capabilities_available_for_manual_order: &'a mut BTreeSet<ModuleCapability>,
     primary_capabilities_available_for_manual_order: &'a mut BTreeSet<ModuleCapability>,
+    orders: &'a [BuyVesselOrder],
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -161,28 +180,45 @@ impl<'a> ModuleConsole for Console<'a> {
 }
 
 impl<'a> TradingAdminConsole for Console<'a> {
-    fn place_buy_offer(&mut self, item: ItemId, count_range: Range<ItemCount>, price_per_unit: Money) -> Option<&BuyOffer> {
+    fn place_buy_offer(
+        &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer> {
         todo!()
     }
 
-    fn place_buy_vessel_offer(&mut self, primary_caps: Vec<ModuleCapability>, price_per_unit: Money) -> Option<&BuyOffer> {
+    fn place_buy_vessel_offer(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer> {
         todo!()
     }
 
-    fn place_sell_offer(&mut self, item: ItemId, count_range: Range<ItemCount>, price_per_unit: Money) -> Option<&SellOffer> {
+    fn place_sell_offer(
+        &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&SellOffer> {
         todo!()
     }
 
     fn set_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>) {
-*        self.capabilities_available_for_manual_order = caps
+        *self.capabilities_available_for_manual_order = caps
     }
 
-    fn set_primary_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>) {
-*        self.primary_capabilities_available_for_manual_order=caps;
+    fn set_primary_capabilities_available_for_manual_order(
+        &mut self,
+        caps: BTreeSet<ModuleCapability>,
+    ) {
+        *self.primary_capabilities_available_for_manual_order = caps;
     }
 
     fn orders(&self) -> &[BuyVesselOrder] {
-        todo!()
+        self.orders
     }
 }
 
@@ -213,8 +249,11 @@ impl Module for VesselSellingTerminal {
         let mut console = Console {
             id: self.id,
             offers: &self.offers,
-            capabilities_available_for_manual_order: &mut self.capabilities_available_for_manual_order,
-            primary_capabilities_available_for_manual_order: &mut self.primary_capabilities_available_for_manual_order,
+            capabilities_available_for_manual_order: &mut self
+                .capabilities_available_for_manual_order,
+            primary_capabilities_available_for_manual_order: &mut self
+                .primary_capabilities_available_for_manual_order,
+            orders: &self.orders,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -404,6 +443,7 @@ impl ModuleFactory for VesselSellingTerminalFactory {
             offers: vec![],
             capabilities_available_for_manual_order: BTreeSet::new(),
             primary_capabilities_available_for_manual_order: BTreeSet::new(),
+            orders: vec![],
             operator: None,
         })
     }
@@ -460,12 +500,19 @@ impl DynDeserializeSeed<dyn ModuleFactory> for VesselSellingTerminalFactoryDynSe
 }
 
 pub(crate) struct VesselSellingTerminalDynSeed {
+    order_holder: Rc<OrderHolder>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
 }
 
 impl VesselSellingTerminalDynSeed {
-    pub(crate) fn new(objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
-        Self { objective_vault }
+    pub(crate) fn new(
+        order_holder: Rc<OrderHolder>,
+        objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    ) -> Self {
+        Self {
+            order_holder,
+            objective_vault,
+        }
     }
 }
 
@@ -480,7 +527,7 @@ impl DynDeserializeSeed<dyn Module> for VesselSellingTerminalDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let r: VesselSellingTerminal = from_intermediate_seed(
-            VesselSellingTerminalSeed::new(&self.objective_vault),
+            VesselSellingTerminalSeed::new(&self.order_holder, &self.objective_vault),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

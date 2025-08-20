@@ -22,7 +22,7 @@ pub(crate) use shuttle::*;
 pub(crate) use trading_terminal::*;
 pub(crate) use vessel_selling_terminal::*;
 
-use dudes_in_space_api::item::ItemVault;
+use dudes_in_space_api::item::{ItemVault, OrderHolder};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
@@ -48,6 +48,7 @@ pub fn register_modules(
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     item_vault: Rc<ItemVault>,
+    order_holder: Rc<OrderHolder>,
     process_token_context: Rc<ProcessTokenContext>,
 ) -> DynDeserializeSeedVault<dyn Module> {
     vault
@@ -64,8 +65,12 @@ pub fn register_modules(
             process_token_context.clone(),
         ))
         .with(CargoContainerDynSeed::new(item_vault.clone()))
-        .with(TradingTerminalDynSeed::new(objective_seed_vault.clone()))
+        .with(TradingTerminalDynSeed::new(
+            order_holder.clone(),
+            objective_seed_vault.clone(),
+        ))
         .with(VesselSellingTerminalDynSeed::new(
+            order_holder,
             objective_seed_vault.clone(),
         ))
         .with(FabricatorDynSeed::new(

@@ -1,4 +1,7 @@
-use crate::item::{BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder};
+use crate::item::{
+    BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer,
+    WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
+};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::{Money, Role};
@@ -238,8 +241,11 @@ pub trait TradingAdminConsole {
         price_per_unit: Money,
     ) -> Option<&SellOffer>;
     fn set_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>);
-    fn set_primary_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>);
-    
+    fn set_primary_capabilities_available_for_manual_order(
+        &mut self,
+        caps: BTreeSet<ModuleCapability>,
+    );
+
     fn orders(&self) -> &[BuyVesselOrder];
 }
 
