@@ -1,14 +1,8 @@
+use std::collections::BTreeSet;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{
-    BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
-    WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
-};
-use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
-};
-use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
-};
+use dudes_in_space_api::item::{BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder};
+use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole};
+use dudes_in_space_api::person::{DynObjective, Logger, Money, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector};
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
@@ -23,6 +17,8 @@ use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
+use rand::rng;
+use dudes_in_space_api::utils::range::Range;
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
@@ -34,6 +30,8 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSel
 struct VesselSellingTerminal {
     id: ModuleId,
     offers: Vec<BuyVesselOffer>,
+    capabilities_available_for_manual_order: BTreeSet<ModuleCapability>,
+    primary_capabilities_available_for_manual_order: BTreeSet<ModuleCapability>,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
@@ -61,6 +59,133 @@ impl DynSerialize for VesselSellingTerminal {
     }
 }
 
+struct Console<'a> {
+    id: ModuleId,
+    offers:&'a [BuyVesselOffer],
+    capabilities_available_for_manual_order: &'a mut BTreeSet<ModuleCapability>,
+    primary_capabilities_available_for_manual_order: &'a mut BTreeSet<ModuleCapability>,
+}
+
+impl<'a> ModuleConsole for Console<'a> {
+    fn id(&self) -> ModuleId {
+        self.id
+    }
+
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn interact(&mut self) -> bool {
+        todo!()
+    }
+
+    fn in_progress(&self) -> bool {
+        todo!()
+    }
+
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
+        None
+    }
+
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
+        todo!()
+    }
+
+    fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+        Some(self)
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+        Some(self)
+    }
+
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
+    }
+
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+}
+
+impl<'a> TradingAdminConsole for Console<'a> {
+    fn place_buy_offer(&mut self, item: ItemId, count_range: Range<ItemCount>, price_per_unit: Money) -> Option<&BuyOffer> {
+        todo!()
+    }
+
+    fn place_buy_vessel_offer(&mut self, primary_caps: Vec<ModuleCapability>, price_per_unit: Money) -> Option<&BuyOffer> {
+        todo!()
+    }
+
+    fn place_sell_offer(&mut self, item: ItemId, count_range: Range<ItemCount>, price_per_unit: Money) -> Option<&SellOffer> {
+        todo!()
+    }
+
+    fn set_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>) {
+*        self.capabilities_available_for_manual_order = caps
+    }
+
+    fn set_primary_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>) {
+*        self.primary_capabilities_available_for_manual_order=caps;
+    }
+
+    fn orders(&self) -> &[BuyVesselOrder] {
+        todo!()
+    }
+}
+
 impl Module for VesselSellingTerminal {
     fn id(&self) -> ModuleId {
         self.id
@@ -85,6 +210,23 @@ impl Module for VesselSellingTerminal {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
+        let mut console = Console {
+            id: self.id,
+            offers: &self.offers,
+            capabilities_available_for_manual_order: &mut self.capabilities_available_for_manual_order,
+            primary_capabilities_available_for_manual_order: &mut self.primary_capabilities_available_for_manual_order,
+        };
+
+        if let Some(operator) = &mut self.operator {
+            operator.proceed(
+                &mut rng(),
+                &mut console,
+                this_vessel.console(),
+                environment_context,
+                decider_vault,
+                logger,
+            )
+        }
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
@@ -260,6 +402,8 @@ impl ModuleFactory for VesselSellingTerminalFactory {
         Box::new(VesselSellingTerminal {
             id: ModuleId::new_v4(),
             offers: vec![],
+            capabilities_available_for_manual_order: BTreeSet::new(),
+            primary_capabilities_available_for_manual_order: BTreeSet::new(),
             operator: None,
         })
     }

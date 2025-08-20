@@ -3,7 +3,7 @@ use crate::module::ModuleCapability;
 use crate::person::Money;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
 use std::sync::Weak;
 use uuid::NonNilUuid;
@@ -11,13 +11,6 @@ use uuid::NonNilUuid;
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
     vessel_to_buy_from: VesselId,
-    items: Vec<ItemRefStack>,
-    price: Money,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct SellOrderImpl {
-    vessel_to_sell_to: VesselId,
     items: Vec<ItemRefStack>,
     price: Money,
 }
@@ -39,6 +32,7 @@ impl WeakBuyOrder {
         todo!()
     }
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuyOrder {
@@ -62,21 +56,13 @@ impl BuyOrder {
     }
 }
 
-pub struct WeakBuyVesselManualOrderEstimate {}
-
-pub struct WeakBuyVesselOrder {}
-
-impl WeakBuyVesselOrder {
-    pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
-        todo!()
-    }
-    pub fn primary_caps(&self) -> Option<Vec<ModuleCapability>> {
-        todo!()
-    }
-    pub fn price(&self) -> Option<Money> {
-        todo!()
-    }
+#[derive(Debug, Serialize, Deserialize)]
+struct SellOrderImpl {
+    vessel_to_sell_to: VesselId,
+    items: Vec<ItemRefStack>,
+    price: Money,
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
@@ -118,7 +104,48 @@ impl SellOrder {
     }
 }
 
+pub struct WeakBuyVesselManualOrderEstimate {}
+
+pub struct BuyVesselOrderImpl {
+
+}
+
+pub struct WeakBuyVesselOrder {
+    id: NonNilUuid,
+    data: Option<Weak<BuyVesselOrderImpl>>,
+}
+
+impl WeakBuyVesselOrder {
+    pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
+        todo!()
+    }
+    pub fn primary_caps(&self) -> Option<Vec<ModuleCapability>> {
+        todo!()
+    }
+    pub fn price(&self) -> Option<Money> {
+        todo!()
+    }
+}
+
+pub struct BuyVesselOrder {
+    id: NonNilUuid,
+    data: Rc<BuyVesselOrderImpl>,
+}
+
+impl BuyVesselOrder {
+    pub fn new() -> (Self, WeakBuyVesselOrder) {
+        todo!()
+    }
+
+    pub fn primary_caps(&self) -> BTreeSet<ModuleCapability> {
+        todo!()
+    }
+    
+    pub fn price(&self) -> Money { todo!() }
+}
+
 struct OrderHolder {
     buy_orders: BTreeMap<NonNilUuid, Weak<BuyOrderImpl>>,
     sell_orders: BTreeMap<NonNilUuid, Weak<WeakSellOrder>>,
+    buy_vessel_orders: BTreeMap<NonNilUuid, Weak<WeakBuyVesselOrder>>,
 }

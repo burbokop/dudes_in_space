@@ -3,9 +3,7 @@ use dudes_in_space_api::item::{
     BuyOffer, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, SellOffer, WeakBuyOrder,
     WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
 };
-use dudes_in_space_api::module::{
-    Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
-};
+use dudes_in_space_api::module::{CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole};
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
@@ -24,6 +22,7 @@ use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
+use rand::rng;
 
 static TYPE_ID: &str = "TradingTerminal";
 static FACTORY_TYPE_ID: &str = "TradingTerminalFactory";
@@ -74,6 +73,106 @@ impl DynSerialize for TradingTerminal {
     }
 }
 
+struct Console<'a> {
+    id: ModuleId,
+    buy_offers: &'a [BuyOffer],
+    sell_offers: &'a [SellOffer],
+}
+
+impl<'a> ModuleConsole for Console<'a> {
+    fn id(&self) -> ModuleId {
+        todo!()
+    }
+
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        todo!()
+    }
+
+    fn interact(&mut self) -> bool {
+        todo!()
+    }
+
+    fn in_progress(&self) -> bool {
+        todo!()
+    }
+
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
+        todo!()
+    }
+
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
+        todo!()
+    }
+
+    fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+        todo!()
+    }
+
+    fn storages(&self) -> &[ItemStorage] {
+        todo!()
+    }
+
+    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+}
+
 impl Module for TradingTerminal {
     fn id(&self) -> ModuleId {
         self.id
@@ -98,6 +197,22 @@ impl Module for TradingTerminal {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
+        let mut console = Console {
+            id: self.id,
+            buy_offers: &self.buy_offers,
+            sell_offers: &self.sell_offers,       
+        };
+
+        if let Some(operator) = &mut self.operator {
+            operator.proceed(
+                &mut rng(),
+                &mut console,
+                this_vessel.console(),
+                environment_context,
+                decider_vault,
+                logger,
+            )
+        }
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
@@ -301,7 +416,7 @@ impl ModuleFactoryOutputDescription for TradingTerminalFactory {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {

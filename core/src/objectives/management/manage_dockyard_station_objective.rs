@@ -18,7 +18,8 @@ use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{
+    Display, Formatter};
 use std::iter;
 use std::rc::Rc;
 /*
@@ -58,6 +59,7 @@ enum ManageDockyardStationObjective {
         dst: ModuleId,
     },
     PlaceOffers,
+    CheckOrders,
 }
 
 struct ManageDockyardStationObjectiveSeed<'context> {
@@ -161,7 +163,7 @@ impl Objective for ManageDockyardStationObjective {
 
                 let console = this_module.trading_admin_console_mut().unwrap();
 
-                console.set_caps_available_for_manual_order(
+                console.set_capabilities_available_for_manual_order(
                     assembly_recipes
                         .iter()
                         .map(|x| x.output_description().capabilities().iter())
@@ -169,7 +171,7 @@ impl Objective for ManageDockyardStationObjective {
                         .cloned()
                         .collect(),
                 );
-                console.set_primary_caps_available_for_manual_order(
+                console.set_primary_capabilities_available_for_manual_order(
                     assembly_recipes
                         .iter()
                         .map(|x| x.output_description().primary_capabilities().iter())
@@ -178,7 +180,8 @@ impl Objective for ManageDockyardStationObjective {
                         .collect(),
                 );
 
-                todo!()
+                *self = Self::CheckOrders;
+                Ok(ObjectiveStatus::InProgress)
             }
             Self::FindBestOffersAndDecideBestRecipe {
                 future,
@@ -258,6 +261,25 @@ impl Objective for ManageDockyardStationObjective {
                     }
                 }
             }
+            ManageDockyardStationObjective::CheckOrders => {
+
+                let console = this_module.trading_admin_console_mut().unwrap();
+
+                let orders = console.orders();
+                if orders.is_empty() {
+                    todo!()
+                }
+                
+                let current_order = &orders[0];
+
+                let caps = current_order.primary_caps();
+                
+                // - find recipes for caps
+                // - make a list of all input ingredients
+                // - place sell offers for all input ingredients
+
+                todo!()
+            },
         }
     }
 }
