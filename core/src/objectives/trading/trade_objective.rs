@@ -78,7 +78,7 @@ pub(crate) struct TradeObjectiveSeed<'context> {
 }
 
 impl<'context> TradeObjectiveSeed<'context> {
-    pub fn new(context: &'context ReqContext) -> Self {
+    pub(crate) fn new(context: &'context ReqContext) -> Self {
         Self {
             req_future_seed: ReqFutureSeed::new(context),
         }

@@ -120,6 +120,13 @@ impl Environment {
             });
 
         self.request_storage
+            .find_best_buy_vessel_offer_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+                todo!()
+            });
+
+        self.request_storage
             .find_best_offers_for_items_requests
             .retain_mut(|req| {
                 assert!(req.promise.check_pending(req_context));

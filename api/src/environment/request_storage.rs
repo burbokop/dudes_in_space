@@ -1,4 +1,4 @@
-use crate::item::{BuyOffer, ItemId, ItemVolume, OfferRef, SellOffer};
+use crate::item::{BuyOffer, BuyVesselOffer, ItemId, ItemVolume, OfferRef, SellOffer};
 use crate::module::ModuleCapability;
 use crate::person::{MoneyAmount, PersonId};
 use crate::utils::request::{ReqFuture, ReqPromise};
@@ -10,6 +10,9 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 pub struct RequestStorage {
     pub(crate) find_best_buy_offer_requests:
         VecDeque<EnvironmentRequest<FindBestBuyOffer, FindBestBuyOfferResult>>,
+
+    pub(crate) find_best_buy_vessel_offer_requests:
+        VecDeque<EnvironmentRequest<FindBestBuyVesselOffer, FindBestBuyVesselOfferResult>>,
 
     pub(crate) find_best_offers_for_items_requests:
         VecDeque<EnvironmentRequest<FindBestOffersForItems, FindBestOffersForItemsResult>>,
@@ -59,6 +62,30 @@ impl FindBestBuyOffer {
         let (promise, future) = ReqPromise::new();
         context
             .find_best_buy_offer_requests
+            .push_back(EnvironmentRequest {
+                promise,
+                input: self,
+            });
+        future
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindBestBuyVesselOffer {
+    pub required_capabilities: BTreeSet<ModuleCapability>,
+    pub required_primary_capabilities: BTreeSet<ModuleCapability>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FindBestBuyVesselOfferResult {
+    pub cheapest_offer: OfferRef<BuyVesselOffer>,
+}
+
+impl FindBestBuyVesselOffer {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestBuyVesselOfferResult> {
+        let (promise, future) = ReqPromise::new();
+        context
+            .find_best_buy_vessel_offer_requests
             .push_back(EnvironmentRequest {
                 promise,
                 input: self,

@@ -19,6 +19,7 @@ struct BuyOrderImpl {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyOrder {
     id: NonNilUuid,
+    #[serde(skip)]
     data: Option<Weak<BuyOrderImpl>>,
 }
 
@@ -66,6 +67,7 @@ struct SellOrderImpl {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
     id: NonNilUuid,
+    #[serde(skip)]
     data: Option<Weak<SellOrderImpl>>,
 }
 
@@ -108,8 +110,10 @@ pub struct WeakBuyVesselManualOrderEstimate {}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuyVesselOrderImpl {}
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyVesselOrder {
     id: NonNilUuid,
+    #[serde(skip)]
     data: Option<Weak<BuyVesselOrderImpl>>,
 }
 

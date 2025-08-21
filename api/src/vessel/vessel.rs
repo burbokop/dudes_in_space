@@ -207,7 +207,8 @@ impl Vessel {
     }
 
     pub(crate) fn has_empty_pilot_seat(&self) -> bool {
-        todo!()
+        self.modules_with_capability(ModuleCapability::Cockpit)
+            .any(|cockpit| cockpit.free_person_slots_count() > 0)
     }
 
     pub fn new(

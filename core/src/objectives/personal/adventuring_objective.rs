@@ -1,4 +1,6 @@
-use crate::objectives::personal::acquire_vessel_objective::AcquireVesselObjective;
+use crate::objectives::personal::acquire_vessel_objective::{
+    AcquireVesselObjective, AcquireVesselObjectiveSeed,
+};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindOwnedVessels, FindOwnedVesselsResult,
 };
@@ -44,6 +46,7 @@ pub(crate) enum AdventuringObjective {
     SearchForOwnedShips {
         future: ReqFuture<FindOwnedVesselsResult>,
     },
+    #[deserialize_seed_xxx(seeds = [(objective, self.seed.seed.acquire_vessel_objective_seed)])]
     AcquireVessel {
         objective: AcquireVesselObjective,
     },
@@ -52,12 +55,14 @@ pub(crate) enum AdventuringObjective {
 
 struct AdventuringObjectiveSeed<'context> {
     req_future_seed: ReqFutureSeed<'context, FindOwnedVesselsResult>,
+    acquire_vessel_objective_seed: AcquireVesselObjectiveSeed<'context>,
 }
 
 impl<'context> AdventuringObjectiveSeed<'context> {
     pub fn new(context: &'context ReqContext) -> Self {
         Self {
             req_future_seed: ReqFutureSeed::new(context),
+            acquire_vessel_objective_seed: AcquireVesselObjectiveSeed::new(context),
         }
     }
 }
@@ -99,6 +104,7 @@ impl Objective for AdventuringObjective {
                             objective: AcquireVesselObjective::new(
                                 NEEDED_CAPABILITIES.iter().cloned().collect(),
                                 BTreeSet::new(),
+                                logger,
                             ),
                         };
                         return Ok(ObjectiveStatus::InProgress);
