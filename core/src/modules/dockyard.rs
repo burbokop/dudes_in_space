@@ -324,7 +324,7 @@ impl Module for Dockyard {
                             self.docking_clamp
                                 .dock(Vessel::new(
                                     format!("SS-{}", rng.random_range(1000..9999)),
-                                    this_vessel.owner(),
+                                    this_vessel.console().owner(),
                                     (0., 0.).into(),
                                     modules,
                                 ))

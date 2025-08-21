@@ -2,7 +2,7 @@ use crate::environment::EnvironmentContext;
 use crate::module::ModuleConsole;
 use crate::person::logger::PersonLogger;
 use crate::person::{Awareness, Boldness, Gender, Money, Morale, Passion, PersonId};
-use crate::vessel::VesselConsole;
+use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use rand::Rng;
@@ -33,7 +33,7 @@ pub trait Objective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error>;
@@ -44,7 +44,7 @@ pub trait DynObjective: Debug + DynSerialize {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>>;
@@ -57,7 +57,7 @@ impl<T: Objective + Debug + DynSerialize> DynObjective for T {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>> {

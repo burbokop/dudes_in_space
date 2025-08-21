@@ -6,6 +6,7 @@ use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecip
 use crate::utils::physics::M3;
 use crate::vessel::{
     DockingClamp, DockingClampConnection, DockingConnectorId, VesselConsole, VesselId,
+    VesselInternalConsole,
 };
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
@@ -57,7 +58,7 @@ pub struct ForEachDockingClampsEntry<'d, 'm> {
 
 pub fn for_each_docking_clamps_with_vessel_which_has_caps<F, R>(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
     caps: &[ModuleCapability],
     primary_caps: &[ModuleCapability],
     f: F,
@@ -217,7 +218,7 @@ pub fn are_dockyard_components_suitable(
 
 pub fn total_primary_free_space(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> ItemVolume {
     this_vessel
         .modules_with_primary_capability(ModuleCapability::ItemStorage)
@@ -246,7 +247,7 @@ pub fn total_primary_free_space(
 
 pub fn this_vessel_item_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<ItemRecipe> {
     this_vessel
         .modules_with_capability(ModuleCapability::ItemCrafting)
@@ -265,7 +266,7 @@ pub fn this_vessel_item_recipes(
 
 pub fn this_vessel_input_item_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<InputItemRecipe> {
     this_vessel
         .modules_with_capability(ModuleCapability::ItemConsumption)
@@ -284,7 +285,7 @@ pub fn this_vessel_input_item_recipes(
 
 pub fn this_vessel_output_item_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<OutputItemRecipe> {
     this_vessel
         .modules_with_capability(ModuleCapability::ItemProduction)
@@ -303,7 +304,7 @@ pub fn this_vessel_output_item_recipes(
 
 pub fn this_vessel_assembly_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<AssemblyRecipe> {
     this_vessel
         .modules_with_capability(ModuleCapability::ModuleCrafting)
@@ -322,7 +323,7 @@ pub fn this_vessel_assembly_recipes(
 
 pub fn this_vessel_potential_item_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<ItemRecipe> {
     this_vessel_assembly_recipes(this_module, this_vessel)
         .into_iter()
@@ -333,7 +334,7 @@ pub fn this_vessel_potential_item_recipes(
 
 pub fn this_vessel_potential_input_item_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<InputItemRecipe> {
     this_vessel_assembly_recipes(this_module, this_vessel)
         .into_iter()
@@ -344,7 +345,7 @@ pub fn this_vessel_potential_input_item_recipes(
 
 pub fn this_vessel_potential_output_item_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<OutputItemRecipe> {
     this_vessel_assembly_recipes(this_module, this_vessel)
         .into_iter()
@@ -355,7 +356,7 @@ pub fn this_vessel_potential_output_item_recipes(
 
 pub fn this_vessel_potential_assembly_recipes(
     this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
+    this_vessel: &dyn VesselInternalConsole,
 ) -> Vec<AssemblyRecipe> {
     this_vessel_assembly_recipes(this_module, this_vessel)
         .into_iter()

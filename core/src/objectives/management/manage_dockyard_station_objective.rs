@@ -9,7 +9,7 @@ use dudes_in_space_api::person::{
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
+use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -86,7 +86,7 @@ impl Objective for ManageDockyardStationObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
@@ -137,7 +137,11 @@ impl Objective for ManageDockyardStationObjective {
                     Ok(ObjectiveStatus::InProgress)
                 } else {
                     logger.info("Entering crafting module...");
-                    match this_vessel.move_person_to_module(*this_person.id, *dst) {
+                    match this_vessel.move_person_to_module(
+                        environment_context.subordination_table(),
+                        *this_person.id,
+                        *dst,
+                    ) {
                         Ok(_) => Ok(ObjectiveStatus::InProgress),
                         Err(MoveToModuleError::ModuleNotFound) => {
                             Err(ManageDockyardStationObjectiveError::VesselSellingTerminalMissing)

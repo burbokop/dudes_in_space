@@ -5,7 +5,7 @@ use crate::objectives::crafting::{
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -41,12 +41,12 @@ struct DockyardRef<'x> {
 }
 impl CraftVesselFromScratchObjective {
     pub(crate) fn new(
-        needed_capabilities: Vec<ModuleCapability>,
-        needed_primary_capabilities: Vec<ModuleCapability>,
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
     ) -> Self {
         Self::CheckingAllPrerequisites {
-            needed_capabilities,
-            needed_primary_capabilities,
+            needed_capabilities: needed_capabilities.into_iter().collect(),
+            needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
         }
     }
 
@@ -79,7 +79,7 @@ impl Objective for CraftVesselFromScratchObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {

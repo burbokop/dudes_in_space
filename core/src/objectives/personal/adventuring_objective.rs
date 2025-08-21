@@ -1,3 +1,4 @@
+use crate::objectives::personal::acquire_vessel_objective::AcquireVesselObjective;
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindOwnedVessels, FindOwnedVesselsResult,
 };
@@ -6,13 +7,14 @@ use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
@@ -42,7 +44,9 @@ pub(crate) enum AdventuringObjective {
     SearchForOwnedShips {
         future: ReqFuture<FindOwnedVesselsResult>,
     },
-    SearchShipToBuy,
+    AcquireVessel {
+        objective: AcquireVesselObjective,
+    },
     Fly,
 }
 
@@ -71,7 +75,7 @@ impl Objective for AdventuringObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
@@ -91,7 +95,13 @@ impl Objective for AdventuringObjective {
             AdventuringObjective::SearchForOwnedShips { future } => match future.take() {
                 Ok(search_result) => {
                     if search_result.vessels.is_empty() {
-                        todo!("Obtain vessel")
+                        *self = Self::AcquireVessel {
+                            objective: AcquireVesselObjective::new(
+                                NEEDED_CAPABILITIES.iter().cloned().collect(),
+                                BTreeSet::new(),
+                            ),
+                        };
+                        return Ok(ObjectiveStatus::InProgress);
                     }
 
                     if search_result
@@ -137,7 +147,17 @@ impl Objective for AdventuringObjective {
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            AdventuringObjective::SearchShipToBuy => todo!(),
+            AdventuringObjective::AcquireVessel { objective } => match objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done) => todo!(),
+                Err(err) => todo!(),
+            },
             AdventuringObjective::Fly => todo!(),
         }
     }

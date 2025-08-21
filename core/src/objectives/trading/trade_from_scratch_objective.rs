@@ -8,7 +8,7 @@ use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::utils::request::ReqContext;
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -73,7 +73,7 @@ impl Objective for TradeFromScratchObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
@@ -100,13 +100,8 @@ impl Objective for TradeFromScratchObjective {
                     logger.info("No suitable vessel found for trade. Crafting it...");
                     *self = Self::CraftVessel {
                         craft_vessel_objective: CraftVesselFromScratchObjective::new(
-                            vec![
-                                ModuleCapability::Cockpit,
-                                ModuleCapability::Engine,
-                                ModuleCapability::Reactor,
-                                ModuleCapability::FuelTank,
-                            ],
-                            vec![ModuleCapability::ItemStorage],
+                            NEEDED_CAPABILITIES.iter().cloned().collect(),
+                            NEEDED_PRIMARY_CAPABILITIES.iter().cloned().collect(),
                         ),
                     };
                     Ok(ObjectiveStatus::InProgress)

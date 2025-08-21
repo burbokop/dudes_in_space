@@ -8,7 +8,7 @@ use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
 };
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dudes_in_space_api::vessel::{VesselConsole, VesselId};
+use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -98,7 +98,7 @@ impl Objective for TradeObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
@@ -171,7 +171,12 @@ impl Objective for TradeObjective {
                     .connector_id;
 
                     this_vessel
-                        .move_person_to_docked_vessel(this_module, *this_person.id, connection_id)
+                        .move_person_to_docked_vessel(
+                            environment_context.subordination_table(),
+                            this_module,
+                            *this_person.id,
+                            connection_id,
+                        )
                         .unwrap();
 
                     *self = Self::SearchForCockpit;

@@ -5,7 +5,7 @@ use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
 use crate::person::{DynObjective, Money, ObjectiveDeciderVault, PersonInfo, StatusCollector};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
-use crate::vessel::VesselConsole;
+use crate::vessel::VesselInternalConsole;
 use dyn_serde::{DynDeserializeSeedVault, TypeId};
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::Rng;
@@ -213,6 +213,7 @@ pub struct Person {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
+    #[serde(with = "crate::utils::tagged_option")]
     boss: Option<PersonId>,
     budget: Money,
 }
@@ -265,6 +266,7 @@ impl Person {
             boldness: rng.random(),
             awareness: rng.random(),
             objective: None,
+            boss: None,
             budget: Money::default(),
         }
     }
@@ -273,7 +275,7 @@ impl Person {
         &mut self,
         rng: &mut R,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,

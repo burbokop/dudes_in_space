@@ -1,6 +1,6 @@
 use dudes_in_space_api::item::{ItemVault, OrderHolder};
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
-use dudes_in_space_api::person::ObjectiveDeciderVault;
+use dudes_in_space_api::person::{ObjectiveDeciderVault, SubordinationTable};
 use dudes_in_space_api::utils::request::ReqContext;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
@@ -12,6 +12,7 @@ pub(crate) struct Components {
     pub(crate) item_vault: Rc<ItemVault>,
     pub(crate) order_holder: Rc<OrderHolder>,
     pub(crate) module_seed_vault: Rc<DynDeserializeSeedVault<dyn Module>>,
+    pub(crate) subordination_table: Rc<SubordinationTable>,
 }
 
 pub(crate) fn core_components() -> Components {
@@ -19,6 +20,7 @@ pub(crate) fn core_components() -> Components {
     let req_context = Rc::new(ReqContext::new());
     let item_vault = Rc::new(dudes_in_space_core::register_items(ItemVault::new()));
     let order_holder = Rc::new(OrderHolder::new());
+    let subordination_table = Rc::new(SubordinationTable::new());
 
     let objectives_seed_vault =
         dudes_in_space_core::register_objectives(Default::default(), req_context.clone());
@@ -45,5 +47,6 @@ pub(crate) fn core_components() -> Components {
         item_vault,
         order_holder,
         module_seed_vault,
+        subordination_table,
     }
 }

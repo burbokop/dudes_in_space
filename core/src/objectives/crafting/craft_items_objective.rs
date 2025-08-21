@@ -3,7 +3,7 @@ use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::recipe::ItemRecipe;
-use dudes_in_space_api::vessel::{MoveToModuleError, VesselConsole};
+use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -57,7 +57,7 @@ impl Objective for CraftItemsObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
@@ -101,7 +101,11 @@ impl Objective for CraftItemsObjective {
                     };
                 } else {
                     logger.info("Entering crafting module...");
-                    match this_vessel.move_person_to_module(*this_person.id, *dst) {
+                    match this_vessel.move_person_to_module(
+                        environment_context.subordination_table(),
+                        *this_person.id,
+                        *dst,
+                    ) {
                         Ok(_) => {}
                         Err(MoveToModuleError::ModuleNotFound) => todo!(),
                         Err(MoveToModuleError::NotEnoughSpace) => {

@@ -13,6 +13,7 @@ impl StepCommand {
             &components.req_context,
             &components.objectives_decider_vault,
             &components.item_vault,
+            &components.subordination_table,
             &mut StdOutLogger,
         );
     }

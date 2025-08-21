@@ -3,7 +3,7 @@ use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, PersonInfo, PersonLogger,
 };
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::Intermediate;
@@ -22,7 +22,7 @@ impl Objective for MineAsteroidsObjective {
         &mut self,
         this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
+        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {

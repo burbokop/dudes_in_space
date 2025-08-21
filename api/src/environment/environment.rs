@@ -4,7 +4,7 @@ use crate::environment::{
 };
 use crate::item::{BuyOffer, ItemId, ItemVault, OfferRef, SellOffer, TradeTable};
 use crate::module::{Module, ProcessTokenContext};
-use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector};
+use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
 use crate::utils::request::ReqContext;
 use crate::vessel::{Vessel, VesselConsole, VesselId, VesselIdPath, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
@@ -61,10 +61,14 @@ impl Environment {
         req_context: &ReqContext,
         decider_vault: &ObjectiveDeciderVault,
         item_vault: &ItemVault,
+        subordination_table: &SubordinationTable,
         logger: &mut dyn Logger,
     ) {
-        let mut environment_context =
-            EnvironmentContext::new(process_token_context, &mut self.request_storage);
+        let mut environment_context = EnvironmentContext::new(
+            process_token_context,
+            &mut self.request_storage,
+            subordination_table,
+        );
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
         }

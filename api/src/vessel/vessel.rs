@@ -1,13 +1,15 @@
 use crate::environment::EnvironmentContext;
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed};
 use crate::person;
-use crate::person::{Logger, ObjectiveDeciderVault, PersonId, StatusCollector};
+use crate::person::{
+    Logger, ObjectiveDeciderVault, PersonId, StatusCollector, SubordinationTable, VesselPermissions,
+};
 use crate::utils::math::Point;
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
 use crate::vessel::{
     DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole,
-    VesselModuleInterface,
+    VesselInternalConsole, VesselModuleInterface,
 };
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
@@ -433,11 +435,7 @@ impl VesselModuleInterface for Vessel {
             .push(VesselRequest::AddModule { module })
     }
 
-    fn owner(&self) -> PersonId {
-        self.owner
-    }
-
-    fn console(&self) -> &dyn VesselConsole {
+    fn console(&self) -> &dyn VesselInternalConsole {
         self
     }
 }
@@ -451,6 +449,48 @@ impl VesselConsole for Vessel {
         self.owner
     }
 
+    fn capabilities(&self) -> BTreeSet<ModuleCapability> {
+        self.modules
+            .iter()
+            .filter_map(|module| {
+                if let Ok(module) = module.try_borrow() {
+                    Some(
+                        module
+                            .capabilities()
+                            .into_iter()
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    )
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect()
+    }
+
+    fn primary_capabilities(&self) -> BTreeSet<ModuleCapability> {
+        self.modules
+            .iter()
+            .filter_map(|module| {
+                if let Ok(module) = module.try_borrow() {
+                    Some(
+                        module
+                            .primary_capabilities()
+                            .into_iter()
+                            .cloned()
+                            .collect::<Vec<_>>(),
+                    )
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect()
+    }
+}
+
+impl VesselInternalConsole for Vessel {
     fn modules_with_capability<'a>(
         &'a self,
         cap: ModuleCapability,
@@ -481,6 +521,7 @@ impl VesselConsole for Vessel {
 
     fn move_person_to_module(
         &self,
+        subordination_table: &SubordinationTable,
         person_id: PersonId,
         module_id: ModuleId,
     ) -> Result<(), MoveToModuleError> {
@@ -503,6 +544,34 @@ impl VesselConsole for Vessel {
         let module = self
             .module_by_id(module_id)
             .ok_or(MoveToModuleError::ModuleNotFound)?;
+
+        if let Some(permissions_needed) =
+            if module.capabilities().contains(&ModuleCapability::Cockpit) {
+                Some(VesselPermissions::Pilot)
+            } else if module.capabilities().contains(&ModuleCapability::Dockyard)
+                || module
+                    .capabilities()
+                    .contains(&ModuleCapability::ModuleCrafting)
+                || module
+                    .capabilities()
+                    .contains(&ModuleCapability::ItemCrafting)
+                || module
+                    .capabilities()
+                    .contains(&ModuleCapability::TradingTerminal)
+                || module
+                    .capabilities()
+                    .contains(&ModuleCapability::VesselSellingTerminal)
+            {
+                Some(VesselPermissions::Operate)
+            } else {
+                None
+            }
+        {
+            if !subordination_table.has_permission(person_id, self, permissions_needed) {
+                todo!()
+            }
+        }
+
         if module.free_person_slots_count() < pending_requests + 1 {
             return Err(MoveToModuleError::NotEnoughSpace);
         }
@@ -519,6 +588,7 @@ impl VesselConsole for Vessel {
 
     fn move_person_to_docked_vessel(
         &self,
+        subordination_table: &SubordinationTable,
         this_module: &dyn ModuleConsole,
         person_id: PersonId,
         connector_id: DockingConnectorId,
@@ -555,12 +625,21 @@ impl VesselConsole for Vessel {
             })
             .unwrap();
 
-        if person_id != target_vessel.owner && person_id.boss() != target_vessel.owner && person_id.boss().boss() != target_vessel.owner {
-            todo!()
-        }
-
         let target_module = target_module.borrow();
         let target_module_id = target_module.id();
+
+        let permissions_needed = if target_module
+            .capabilities()
+            .contains(&ModuleCapability::Cockpit)
+        {
+            VesselPermissions::Pilot
+        } else {
+            VesselPermissions::Enter
+        };
+
+        if !subordination_table.has_permission(person_id, target_vessel, permissions_needed) {
+            todo!()
+        }
 
         let pending_requests = self
             .requests
@@ -604,45 +683,5 @@ impl VesselConsole for Vessel {
             });
 
         Ok(())
-    }
-
-    fn capabilities(&self) -> BTreeSet<ModuleCapability> {
-        self.modules
-            .iter()
-            .filter_map(|module| {
-                if let Ok(module) = module.try_borrow() {
-                    Some(
-                        module
-                            .capabilities()
-                            .into_iter()
-                            .cloned()
-                            .collect::<Vec<_>>(),
-                    )
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .collect()
-    }
-
-    fn primary_capabilities(&self) -> BTreeSet<ModuleCapability> {
-        self.modules
-            .iter()
-            .filter_map(|module| {
-                if let Ok(module) = module.try_borrow() {
-                    Some(
-                        module
-                            .primary_capabilities()
-                            .into_iter()
-                            .cloned()
-                            .collect::<Vec<_>>(),
-                    )
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .collect()
     }
 }
