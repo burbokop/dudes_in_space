@@ -1,5 +1,6 @@
+use crate::objectives::common::move_to_module_objective::MoveToModuleObjective;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::module::{ModuleConsole, ModuleId};
+use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
@@ -8,20 +9,24 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "move_to_docked_vessel_objective_stage")]
 pub(crate) enum MoveToDockedVesselObjective {
     SearchVessel {
         vessel_id: VesselId,
     },
-    MoveToVessel {
+    MoveToDockingClamp {
         vessel_id: VesselId,
-        docking_port_module_id: ModuleId,
+        objective: MoveToModuleObjective,
+    },
+    EnterVessel {
+        vessel_id: VesselId,
     },
     Done,
 }
 
 impl MoveToDockedVesselObjective {
     pub(crate) fn new(vessel_id: VesselId) -> Self {
-        todo!()
+        Self::SearchVessel { vessel_id }
     }
 }
 
@@ -56,44 +61,57 @@ impl Objective for MoveToDockedVesselObjective {
                         None
                     },
                 ) {
-                    logger.info("Moving to vessel...");
-                    *self = Self::MoveToVessel {
+                    logger.info("Moving to docking clamp...");
+                    *self = Self::MoveToDockingClamp {
                         vessel_id: *vessel_id,
-                        docking_port_module_id: module_id,
+                        objective: MoveToModuleObjective::new(module_id),
                     };
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
                 todo!()
             }
-            Self::MoveToVessel {
+            Self::MoveToDockingClamp {
                 vessel_id,
-                docking_port_module_id,
-            } => {
-                if *docking_port_module_id == this_module.id() {
-                    let connection_id = person::utils::find_docking_clamp_with_vessel_with_id_mut(
-                        this_module.docking_clamps_mut(),
-                        *vessel_id,
-                    )
-                    .unwrap()
-                    .connection()
-                    .unwrap()
-                    .connector_id;
-
-                    this_vessel
-                        .move_person_to_docked_vessel(
-                            environment_context.subordination_table(),
-                            this_module,
-                            *this_person.id,
-                            connection_id,
-                        )
-                        .unwrap();
-
-                    *self = Self::Done;
-                    Ok(ObjectiveStatus::Done)
-                } else {
-                    todo!()
+                objective,
+            } => match objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done) => {
+                    logger.info("Entering vessel...");
+                    *self = Self::EnterVessel {
+                        vessel_id: *vessel_id,
+                    };
+                    Ok(ObjectiveStatus::InProgress)
                 }
+                Err(err) => todo!(),
+            },
+            Self::EnterVessel { vessel_id } => {
+                let connection_id = person::utils::find_docking_clamp_with_vessel_with_id_mut(
+                    this_module.docking_clamps_mut(),
+                    *vessel_id,
+                )
+                .unwrap()
+                .connection()
+                .unwrap()
+                .connector_id;
+
+                this_vessel
+                    .move_person_to_docked_vessel(
+                        environment_context.subordination_table(),
+                        this_module,
+                        *this_person.id,
+                        connection_id,
+                    )
+                    .unwrap();
+
+                *self = Self::Done;
+                Ok(ObjectiveStatus::Done)
             }
             Self::Done => todo!(),
         }

@@ -169,15 +169,13 @@ impl Objective for ManageDockyardStationObjective {
 
                 let console = this_module.trading_admin_console_mut().unwrap();
 
-                console.set_capabilities_available_for_manual_order(
+                console.place_buy_custom_vessel_offer(
                     assembly_recipes
                         .iter()
                         .map(|x| x.output_description().capabilities().iter())
                         .flatten()
                         .cloned()
                         .collect(),
-                );
-                console.set_primary_capabilities_available_for_manual_order(
                     assembly_recipes
                         .iter()
                         .map(|x| x.output_description().primary_capabilities().iter())
@@ -270,7 +268,7 @@ impl Objective for ManageDockyardStationObjective {
             ManageDockyardStationObjective::CheckOrders => {
                 let console = this_module.trading_admin_console_mut().unwrap();
 
-                let orders = console.orders();
+                let orders = console.buy_vessel_orders();
                 if orders.is_empty() {
                     return Ok(ObjectiveStatus::InProgress);
                 }

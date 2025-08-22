@@ -1,6 +1,6 @@
 use crate::environment::{
-    EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemsResult,
-    FindOwnedVesselsResult, Nebula, RequestStorage,
+    EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
+    FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, RequestStorage,
 };
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
@@ -127,7 +127,61 @@ impl Environment {
 
                 let trade_table = VesselTradeTable::build(&self.vessels);
 
+                if let Some(offer) = trade_table
+                    .offers()
+                    .filter(|offer| {
+                        req.input
+                            .required_capabilities
+                            .iter()
+                            .all(|x| offer.offer.capabilities.contains(x))
+                            && req
+                                .input
+                                .required_primary_capabilities
+                                .iter()
+                                .all(|x| offer.offer.primary_capabilities.contains(x))
+                    })
+                    .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+                {
+                    req.promise
+                        .make_ready(
+                            req_context,
+                            FindBestBuyVesselOfferResult {
+                                cheapest_offer: offer,
+                            },
+                        )
+                        .unwrap();
+                    return false;
+                }
+
+                if let Some(offer) = trade_table
+                    .custom_offers()
+                    .filter(|offer| {
+                        req.input
+                            .required_capabilities
+                            .iter()
+                            .all(|x| offer.offer.available_capabilities.contains(x))
+                            && req
+                                .input
+                                .required_primary_capabilities
+                                .iter()
+                                .all(|x| offer.offer.available_primary_capabilities.contains(x))
+                    })
+                    .map(|offer| (offer, offer.estimate()))
+                    .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+                {
+                    req.promise
+                        .make_ready(
+                            req_context,
+                            FindBestBuyVesselOfferResult {
+                                cheapest_offer: offer,
+                            },
+                        )
+                        .unwrap();
+                    return false;
+                }
+
                 todo!()
+                // true
             });
 
         self.request_storage

@@ -356,8 +356,8 @@ impl TradingConsole for TradingTerminal {
         todo!()
     }
 
-    fn buy_custom_vessel_offer(&self) -> Option<BuyCustomVesselOffer> {
-        todo!()
+    fn buy_custom_vessel_offer(&self) -> Option<&BuyCustomVesselOffer> {
+        None
     }
 
     fn estimate_buy_custom_vessel_order(

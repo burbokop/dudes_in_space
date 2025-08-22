@@ -6,7 +6,7 @@ use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
 };
 use crate::trade::{
-    BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, BuyVesselOrder, SellOffer,
+    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder,
     WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::utils::math::Vector;
@@ -207,7 +207,7 @@ pub trait TradingConsole {
         count: usize,
     ) -> Option<WeakBuyVesselOrder>;
 
-    fn buy_custom_vessel_offer(&self) -> Option<BuyCustomVesselOffer>;
+    fn buy_custom_vessel_offer(&self) -> Option<&BuyCustomVesselOffer>;
 
     fn estimate_buy_custom_vessel_order(
         &mut self,
@@ -240,13 +240,16 @@ pub trait TradingAdminConsole {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer>;
-    fn set_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>);
-    fn set_primary_capabilities_available_for_manual_order(
-        &mut self,
-        caps: BTreeSet<ModuleCapability>,
-    );
 
-    fn orders(&self) -> &[BuyVesselOrder];
+    fn place_buy_custom_vessel_offer(
+        &mut self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
+    ) -> BuyCustomVesselOffer;
+
+    fn buy_orders(&self) -> &[BuyOrder];
+    fn sell_orders(&self) -> &[SellOrder];
+    fn buy_vessel_orders(&self) -> &[BuyVesselOrder];
 }
 
 pub(crate) trait CaptainControlPanel {

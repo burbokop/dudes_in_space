@@ -19,6 +19,7 @@ pub struct BuyOffer {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BuyVesselOffer {
     pub id: OfferId,
+    pub capabilities: BTreeSet<ModuleCapability>,
     pub primary_capabilities: BTreeSet<ModuleCapability>,
     pub price_per_unit: MoneyRef,
 }

@@ -13,8 +13,9 @@ use dudes_in_space_api::recipe::{
     OutputItemRecipe,
 };
 use dudes_in_space_api::trade::{
-    BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, BuyVesselOrder, OrderHolder, OrderSeed,
-    SellOffer, WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, OrderHolder,
+    OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrderEstimate, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
@@ -41,8 +42,8 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSel
 struct VesselSellingTerminal {
     id: ModuleId,
     offers: Vec<BuyVesselOffer>,
-    capabilities_available_for_manual_order: BTreeSet<ModuleCapability>,
-    primary_capabilities_available_for_manual_order: BTreeSet<ModuleCapability>,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    buy_custom_vessel_offer: Option<BuyCustomVesselOffer>,
     #[deserialize_seed_xxx(seed = self.seed.order_seed)]
     orders: Vec<BuyVesselOrder>,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
@@ -80,8 +81,7 @@ impl DynSerialize for VesselSellingTerminal {
 struct Console<'a> {
     id: ModuleId,
     offers: &'a [BuyVesselOffer],
-    capabilities_available_for_manual_order: &'a mut BTreeSet<ModuleCapability>,
-    primary_capabilities_available_for_manual_order: &'a mut BTreeSet<ModuleCapability>,
+    buy_custom_vessel_offer: &'a mut Option<BuyCustomVesselOffer>,
     orders: &'a [BuyVesselOrder],
 }
 
@@ -206,18 +206,23 @@ impl<'a> TradingAdminConsole for Console<'a> {
         todo!()
     }
 
-    fn set_capabilities_available_for_manual_order(&mut self, caps: BTreeSet<ModuleCapability>) {
-        *self.capabilities_available_for_manual_order = caps
-    }
-
-    fn set_primary_capabilities_available_for_manual_order(
+    fn place_buy_custom_vessel_offer(
         &mut self,
-        caps: BTreeSet<ModuleCapability>,
-    ) {
-        *self.primary_capabilities_available_for_manual_order = caps;
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
+    ) -> BuyCustomVesselOffer {
+        todo!()
     }
 
-    fn orders(&self) -> &[BuyVesselOrder] {
+    fn buy_orders(&self) -> &[BuyOrder] {
+        todo!()
+    }
+
+    fn sell_orders(&self) -> &[SellOrder] {
+        todo!()
+    }
+
+    fn buy_vessel_orders(&self) -> &[BuyVesselOrder] {
         self.orders
     }
 }
@@ -249,10 +254,7 @@ impl Module for VesselSellingTerminal {
         let mut console = Console {
             id: self.id,
             offers: &self.offers,
-            capabilities_available_for_manual_order: &mut self
-                .capabilities_available_for_manual_order,
-            primary_capabilities_available_for_manual_order: &mut self
-                .primary_capabilities_available_for_manual_order,
+            buy_custom_vessel_offer: &mut self.buy_custom_vessel_offer,
             orders: &self.orders,
         };
 
@@ -361,7 +363,7 @@ impl Module for VesselSellingTerminal {
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        Some(self)
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
@@ -398,8 +400,8 @@ impl TradingConsole for VesselSellingTerminal {
         todo!()
     }
 
-    fn buy_custom_vessel_offer(&self) -> Option<BuyCustomVesselOffer> {
-        todo!()
+    fn buy_custom_vessel_offer(&self) -> Option<&BuyCustomVesselOffer> {
+        self.buy_custom_vessel_offer.as_ref()
     }
 
     fn estimate_buy_custom_vessel_order(
@@ -437,8 +439,7 @@ impl ModuleFactory for VesselSellingTerminalFactory {
         Box::new(VesselSellingTerminal {
             id: ModuleId::new_v4(),
             offers: vec![],
-            capabilities_available_for_manual_order: BTreeSet::new(),
-            primary_capabilities_available_for_manual_order: BTreeSet::new(),
+            buy_custom_vessel_offer: None,
             orders: vec![],
             operator: None,
         })

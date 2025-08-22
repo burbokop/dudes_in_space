@@ -73,6 +73,7 @@ impl<'context> AdventuringObjectiveSeed<'context> {
 
 impl AdventuringObjective {
     pub(crate) fn new(logger: &mut PersonLogger) -> Self {
+        logger.info("AdventuringObjective::new");
         Self::CheckThisVessel
     }
 }

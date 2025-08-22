@@ -2,6 +2,7 @@ use crate::person::PersonId;
 use crate::utils::math::{NoNeg, noneg_float};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 pub type Currency = String;
@@ -27,6 +28,12 @@ impl Default for Money {
 pub struct MoneyRef {
     pub currency: Currency,
     pub amount: NoNeg<MoneyAmount>,
+}
+
+impl Ord for MoneyRef {
+    fn cmp(&self, other: &Self) -> Ordering {
+        todo!()
+    }
 }
 
 impl Money {
