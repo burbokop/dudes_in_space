@@ -214,6 +214,7 @@ pub struct Person {
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
     #[serde(with = "crate::utils::tagged_option")]
+    // #[serde(skip_deserializing)]
     boss: Option<PersonId>,
     budget: Money,
 }
@@ -238,7 +239,6 @@ impl Person {
     pub fn name(&self) -> &str {
         &self.name
     }
-
     pub fn boss(&self) -> &Option<PersonId> {
         &self.boss
     }

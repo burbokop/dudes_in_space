@@ -1,3 +1,5 @@
+use crate::objectives::common::{MoveToDockedVesselObjective
+};
 use crate::objectives::personal::acquire_vessel_objective::{
     AcquireVesselObjective, AcquireVesselObjectiveSeed,
 };
@@ -49,6 +51,9 @@ pub(crate) enum AdventuringObjective {
     #[deserialize_seed_xxx(seeds = [(objective, self.seed.seed.acquire_vessel_objective_seed)])]
     AcquireVessel {
         objective: AcquireVesselObjective,
+    },
+    MoveToDockedVessel {
+        objective: MoveToDockedVesselObjective,
     },
     Fly,
 }
@@ -133,18 +138,22 @@ impl Objective for AdventuringObjective {
                         }
                     }
 
+                    if let Some(target_vessel) = search_result
+                        .vessels
+                        .iter()
+                        .find(|x| x.is_parent(&this_vessel.id()))
+                    {
+                        *self = Self::MoveToDockedVessel {
+                            objective: MoveToDockedVesselObjective::new(*target_vessel.leaf()),
+                        };
+                        return Ok(ObjectiveStatus::InProgress);
+                    }
+
                     if let Some(ancestor) = search_result
                         .vessels
                         .iter()
                         .find(|x| x.is_ancestor(&this_vessel.id()))
                     {
-                        if let Some(parent) = search_result
-                            .vessels
-                            .iter()
-                            .find(|x| x.is_parent(&this_vessel.id()))
-                        {
-                            todo!()
-                        }
                         todo!()
                     }
 
@@ -154,6 +163,17 @@ impl Objective for AdventuringObjective {
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
             AdventuringObjective::AcquireVessel { objective } => match objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done) => todo!(),
+                Err(err) => todo!(),
+            },
+            AdventuringObjective::MoveToDockedVessel { objective } => match objective.pursue(
                 this_person,
                 this_module,
                 this_vessel,

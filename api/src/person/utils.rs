@@ -96,6 +96,48 @@ where
         .try_for_each(f)
 }
 
+pub fn find_map_docking_clamp<T>(
+    this_module: &dyn ModuleConsole,
+    this_vessel: &dyn VesselInternalConsole,
+    mut f: impl FnMut(ModuleId, &DockingClamp) -> Option<T>,
+) -> Option<T> {
+    this_vessel
+        .modules_with_capability(ModuleCapability::DockingClamp)
+        .iter()
+        .map(|m| m.docking_clamps().iter().map(|c| (m.id(), c)))
+        .flatten()
+        .chain(
+            this_module
+                .docking_clamps()
+                .iter()
+                .map(|c| (this_module.id(), c)),
+        )
+        .find_map(|(a, b)| f(a, b))
+}
+
+pub fn find_map_docking_clamp_mut<T>(
+    this_module: &mut dyn ModuleConsole,
+    this_vessel: &dyn VesselInternalConsole,
+    mut f: impl FnMut(ModuleId, &mut DockingClamp) -> Option<T>,
+) -> Option<T> {
+    let this_module_id = this_module.id();
+    this_vessel
+        .modules_with_capability_mut(ModuleCapability::DockingClamp)
+        .iter_mut()
+        .map(|m| {
+            let id = m.id();
+            m.docking_clamps_mut().iter_mut().map(move |c| (id, c))
+        })
+        .flatten()
+        .chain(
+            this_module
+                .docking_clamps_mut()
+                .iter_mut()
+                .map(|c| (this_module_id, c)),
+        )
+        .find_map(|(a, b)| f(a, b))
+}
+
 pub fn find_docking_clamp_with_vessel_with_id(
     docking_clamps: &[DockingClamp],
     vessel_id: VesselId,
