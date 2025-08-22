@@ -569,7 +569,7 @@ impl VesselInternalConsole for Vessel {
             }
         {
             if !subordination_table.has_permission(person_id, self, permissions_needed) {
-                todo!()
+                return Err(MoveToModuleError::PermissionDenied);
             }
         }
 

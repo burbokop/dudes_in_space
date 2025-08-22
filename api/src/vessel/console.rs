@@ -58,6 +58,7 @@ pub trait VesselInternalConsole: VesselConsole {
 pub enum MoveToModuleError {
     ModuleNotFound,
     NotEnoughSpace,
+    PermissionDenied,
 }
 
 impl Display for MoveToModuleError {

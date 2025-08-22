@@ -1,9 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{
-    BuyOffer, BuyOrder, BuyVesselOffer, ItemCount, ItemSafe, ItemStorage, OrderHolder, OrderSeed,
-    SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder,
-    WeakSellOrder,
-};
+use dudes_in_space_api::item::{ItemCount, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
@@ -14,6 +10,10 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
+};
+use dudes_in_space_api::trade::{
+    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, OrderHolder, OrderSeed, SellOffer,
+    SellOrder, WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -348,15 +348,7 @@ impl TradingConsole for TradingTerminal {
         todo!()
     }
 
-    fn estimate_buy_vessel_manual_order(
-        &mut self,
-        primary_caps: Vec<ModuleCapability>,
-        count: usize,
-    ) -> Option<WeakBuyVesselManualOrderEstimate> {
-        todo!()
-    }
-
-    fn place_buy_vessel_manual_order(
+    fn place_buy_custom_vessel_order(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
         count: usize,
@@ -364,11 +356,15 @@ impl TradingConsole for TradingTerminal {
         todo!()
     }
 
-    fn caps_available_for_manual_order(&self) -> Vec<ModuleCapability> {
+    fn buy_custom_vessel_offer(&self) -> Option<BuyCustomVesselOffer> {
         todo!()
     }
 
-    fn primary_caps_available_for_manual_order(&self) -> Vec<ModuleCapability> {
+    fn estimate_buy_custom_vessel_order(
+        &mut self,
+        primary_capabilities: Vec<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyCustomVesselOrderEstimate> {
         todo!()
     }
 }

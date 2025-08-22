@@ -22,10 +22,11 @@ pub(crate) use shuttle::*;
 pub(crate) use trading_terminal::*;
 pub(crate) use vessel_selling_terminal::*;
 
-use dudes_in_space_api::item::{ItemVault, OrderHolder};
+use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
 use dudes_in_space_api::recipe::ModuleFactory;
+use dudes_in_space_api::trade::OrderHolder;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
 

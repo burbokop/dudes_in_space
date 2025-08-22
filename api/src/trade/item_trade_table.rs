@@ -1,18 +1,11 @@
-use crate::item::{BuyOffer, ItemCount, ItemId, ItemVault, ItemVolume, SellOffer};
-use crate::module::{ModuleCapability, ModuleId};
+use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
+use crate::module::ModuleCapability;
 use crate::person::{MoneyAmount, MoneyRef};
+use crate::trade::{BuyOffer, OfferRef, SellOffer};
 use crate::utils::math::NoNeg;
 use crate::utils::range::Range;
-use crate::vessel::{Vessel, VesselId};
-use serde::{Deserialize, Serialize};
+use crate::vessel::Vessel;
 use std::collections::BTreeMap;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OfferRef<Offer> {
-    vessel_id: VesselId,
-    module_id: ModuleId,
-    offer: Offer,
-}
 
 pub(crate) struct ItemRecord {
     id: ItemId,
@@ -102,11 +95,11 @@ impl ItemRecord {
     }
 }
 
-pub(crate) struct TradeTable {
+pub(crate) struct ItemTradeTable {
     data: BTreeMap<ItemId, ItemRecord>,
 }
 
-impl TradeTable {
+impl ItemTradeTable {
     pub(crate) fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemRecord)> {
         self.data.iter()
     }

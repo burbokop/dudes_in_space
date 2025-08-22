@@ -1,7 +1,8 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::WeakBuyOrder;
+
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::trade::WeakBuyOrder;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::error::Error;

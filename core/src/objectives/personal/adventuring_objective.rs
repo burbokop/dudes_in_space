@@ -1,5 +1,4 @@
-use crate::objectives::common::{MoveToDockedVesselObjective
-};
+use crate::objectives::common::MoveToDockedVesselObjective;
 use crate::objectives::personal::acquire_vessel_objective::{
     AcquireVesselObjective, AcquireVesselObjectiveSeed,
 };

@@ -136,7 +136,7 @@ impl Objective for ManageDockyardStationObjective {
                     *self = Self::PlaceOffers;
                     Ok(ObjectiveStatus::InProgress)
                 } else {
-                    logger.info("Entering crafting module...");
+                    logger.info("Entering vessel selling terminal module...");
                     match this_vessel.move_person_to_module(
                         environment_context.subordination_table(),
                         *this_person.id,
@@ -145,6 +145,9 @@ impl Objective for ManageDockyardStationObjective {
                         Ok(_) => Ok(ObjectiveStatus::InProgress),
                         Err(MoveToModuleError::ModuleNotFound) => {
                             Err(ManageDockyardStationObjectiveError::VesselSellingTerminalMissing)
+                        }
+                        Err(MoveToModuleError::PermissionDenied) => {
+                            Err(ManageDockyardStationObjectiveError::PermissionsDenied)
                         }
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
@@ -288,6 +291,7 @@ impl Objective for ManageDockyardStationObjective {
 #[derive(Debug)]
 enum ManageDockyardStationObjectiveError {
     VesselSellingTerminalMissing,
+    PermissionsDenied,
 }
 
 impl Display for ManageDockyardStationObjectiveError {

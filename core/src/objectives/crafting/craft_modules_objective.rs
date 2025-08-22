@@ -172,6 +172,7 @@ impl Objective for CraftModulesObjective {
                     ) {
                         Ok(_) => {}
                         Err(MoveToModuleError::ModuleNotFound) => todo!(),
+                        Err(MoveToModuleError::PermissionDenied) => todo!(),
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in crafting module. Searching another one...",

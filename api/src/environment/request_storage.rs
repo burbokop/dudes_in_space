@@ -1,6 +1,7 @@
-use crate::item::{BuyOffer, BuyVesselOffer, ItemId, ItemVolume, OfferRef, SellOffer};
+use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::{MoneyAmount, PersonId};
+use crate::trade::{BuyOffer, BuyVesselOffer, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::VesselIdPath;
 use serde::{Deserialize, Serialize};

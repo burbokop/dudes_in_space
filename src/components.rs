@@ -1,6 +1,7 @@
-use dudes_in_space_api::item::{ItemVault, OrderHolder};
+use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::{ObjectiveDeciderVault, SubordinationTable};
+use dudes_in_space_api::trade::OrderHolder;
 use dudes_in_space_api::utils::request::ReqContext;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;

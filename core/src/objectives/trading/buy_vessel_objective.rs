@@ -1,9 +1,10 @@
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult, RequestStorage,
 };
-use dudes_in_space_api::item::WeakBuyVesselOrder;
+
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::trade::WeakBuyVesselOrder;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde_macro::DeserializeSeedXXX;

@@ -1,9 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{
-    BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage,
-    OrderHolder, OrderSeed, SellOffer, WeakBuyOrder, WeakBuyVesselManualOrderEstimate,
-    WeakBuyVesselOrder, WeakSellOrder,
-};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
@@ -15,6 +11,10 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
+};
+use dudes_in_space_api::trade::{
+    BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, BuyVesselOrder, OrderHolder, OrderSeed,
+    SellOffer, WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
@@ -378,16 +378,16 @@ impl TradingConsole for VesselSellingTerminal {
         &[]
     }
 
-    fn buy_vessel_offers(&self) -> &[BuyVesselOffer] {
-        &self.offers
-    }
-
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {
         todo!()
     }
 
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder> {
         todo!()
+    }
+
+    fn buy_vessel_offers(&self) -> &[BuyVesselOffer] {
+        &self.offers
     }
 
     fn place_buy_vessel_order(
@@ -398,27 +398,23 @@ impl TradingConsole for VesselSellingTerminal {
         todo!()
     }
 
-    fn estimate_buy_vessel_manual_order(
-        &mut self,
-        primary_caps: Vec<ModuleCapability>,
-        count: usize,
-    ) -> Option<WeakBuyVesselManualOrderEstimate> {
+    fn buy_custom_vessel_offer(&self) -> Option<BuyCustomVesselOffer> {
         todo!()
     }
 
-    fn place_buy_vessel_manual_order(
+    fn estimate_buy_custom_vessel_order(
+        &mut self,
+        primary_capabilities: Vec<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyCustomVesselOrderEstimate> {
+        todo!()
+    }
+
+    fn place_buy_custom_vessel_order(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyVesselOrder> {
-        todo!()
-    }
-
-    fn caps_available_for_manual_order(&self) -> Vec<ModuleCapability> {
-        todo!()
-    }
-
-    fn primary_caps_available_for_manual_order(&self) -> Vec<ModuleCapability> {
         todo!()
     }
 }

@@ -2,9 +2,10 @@ use crate::environment::{
     EnvironmentContext, FindBestBuyOfferResult, FindBestOffersForItemsResult,
     FindOwnedVesselsResult, Nebula, RequestStorage,
 };
-use crate::item::{BuyOffer, ItemId, ItemVault, OfferRef, SellOffer, TradeTable};
+use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
+use crate::trade::{BuyOffer, ItemTradeTable, OfferRef, SellOffer, VesselTradeTable};
 use crate::utils::request::ReqContext;
 use crate::vessel::{Vessel, VesselConsole, VesselId, VesselIdPath, VesselSeed};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
@@ -89,7 +90,7 @@ impl Environment {
             .retain_mut(|req| {
                 assert!(req.promise.check_pending(req_context));
 
-                let trade_table = TradeTable::build(&self.vessels);
+                let trade_table = ItemTradeTable::build(&self.vessels);
                 if let Some((
                     (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
                     max_profit_record,
@@ -123,6 +124,9 @@ impl Environment {
             .find_best_buy_vessel_offer_requests
             .retain_mut(|req| {
                 assert!(req.promise.check_pending(req_context));
+
+                let trade_table = VesselTradeTable::build(&self.vessels);
+
                 todo!()
             });
 
@@ -137,7 +141,7 @@ impl Environment {
                     Default::default();
 
                 for item in &req.input.items {
-                    if let Some(record) = TradeTable::build(&self.vessels).get(item) {
+                    if let Some(record) = ItemTradeTable::build(&self.vessels).get(item) {
                         if let Some(o) = record.cheapest_buy_offer() {
                             max_profit_buy_offers.insert(item.clone(), o.clone());
                         }

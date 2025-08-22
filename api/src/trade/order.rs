@@ -105,7 +105,7 @@ impl SellOrder {
     }
 }
 
-pub struct WeakBuyVesselManualOrderEstimate {}
+pub struct WeakBuyCustomVesselOrderEstimate {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuyVesselOrderImpl {}

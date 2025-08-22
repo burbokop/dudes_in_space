@@ -1,12 +1,13 @@
-use crate::item::{
-    BuyOffer, BuyVesselOffer, BuyVesselOrder, ItemCount, ItemId, ItemSafe, ItemStorage, SellOffer,
-    WeakBuyOrder, WeakBuyVesselManualOrderEstimate, WeakBuyVesselOrder, WeakSellOrder,
-};
+use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::{Money, Role};
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
+};
+use crate::trade::{
+    BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, BuyVesselOrder, SellOffer,
+    WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
@@ -195,27 +196,26 @@ pub trait DockyardConsole {
 
 pub trait TradingConsole {
     fn buy_offers(&self) -> &[BuyOffer];
-    fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
     fn sell_offers(&self) -> &[SellOffer];
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder>;
+    fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
+
+    fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
     fn place_buy_vessel_order(
         &mut self,
         offer: &BuyVesselOffer,
         count: usize,
     ) -> Option<WeakBuyVesselOrder>;
-    fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
 
-    fn caps_available_for_manual_order(&self) -> Vec<ModuleCapability>;
+    fn buy_custom_vessel_offer(&self) -> Option<BuyCustomVesselOffer>;
 
-    fn primary_caps_available_for_manual_order(&self) -> Vec<ModuleCapability>;
-
-    fn estimate_buy_vessel_manual_order(
+    fn estimate_buy_custom_vessel_order(
         &mut self,
-        primary_caps: Vec<ModuleCapability>,
+        primary_capabilities: Vec<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyVesselManualOrderEstimate>;
+    ) -> Option<WeakBuyCustomVesselOrderEstimate>;
 
-    fn place_buy_vessel_manual_order(
+    fn place_buy_custom_vessel_order(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
         count: usize,
