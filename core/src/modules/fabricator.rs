@@ -28,6 +28,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
+use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
@@ -121,7 +122,7 @@ impl<'context> FabricatorStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v, 'sv, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v,'b, 'sv, 'context>)]
 struct Fabricator {
     id: ModuleId,
     // recipes: Vec<ItemRecipe>,
@@ -135,20 +136,21 @@ struct Fabricator {
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
-struct FabricatorSeed<'v, 'sv, 'context> {
-    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+struct FabricatorSeed<'v,'b, 'sv, 'context> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
     item_storage_seed: ItemStorageSeed<'sv>,
     state_seed: FabricatorStateSeed<'context>,
 }
 
-impl<'v, 'sv, 'context> FabricatorSeed<'v, 'sv, 'context> {
+impl<'v,'b, 'sv, 'context> FabricatorSeed<'v,'b, 'sv, 'context> {
     fn new(
         objective_seed_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry :&'b BankRegistry,
         item_vault: &'sv ItemVault,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_seed_vault)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_seed_vault, bank_registry)),
             item_storage_seed: ItemStorageSeed::new(item_vault),
             state_seed: FabricatorStateSeed::new(context),
         }
@@ -425,6 +427,7 @@ impl Module for Fabricator {
 
 pub(crate) struct FabricatorDynSeed {
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
     item_vault: Rc<ItemVault>,
     context: Rc<ProcessTokenContext>,
 }
@@ -432,11 +435,13 @@ pub(crate) struct FabricatorDynSeed {
 impl FabricatorDynSeed {
     pub(crate) fn new(
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,
         item_vault: Rc<ItemVault>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             objective_seed_vault,
+            bank_registry,
             item_vault,
             context,
         }
@@ -454,7 +459,7 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Fabricator = from_intermediate_seed(
-            FabricatorSeed::new(&self.objective_seed_vault, &self.item_vault, &self.context),
+            FabricatorSeed::new(&self.objective_seed_vault,&self.bank_registry, &self.item_vault, &self.context),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

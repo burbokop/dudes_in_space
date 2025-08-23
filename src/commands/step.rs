@@ -14,6 +14,7 @@ impl StepCommand {
             &components.objectives_decider_vault,
             &components.item_vault,
             &components.subordination_table,
+            &components.bank_registry,
             &mut StdOutLogger,
         );
     }

@@ -21,23 +21,20 @@ pub trait VesselConsole {
 }
 
 pub trait VesselInternalConsole: VesselConsole {
-    fn modules_with_capability<'a>(
-        &'a self,
-        cap: ModuleCapability,
-    ) -> Vec<Ref<'a, Box<dyn Module>>>;
+    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, dyn Module>>;
     fn modules_with_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> Vec<RefMut<'a, Box<dyn Module>>>;
+    ) -> Vec<RefMut<'a, dyn Module>>;
     fn modules_with_primary_capability<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> Vec<Ref<'a, Box<dyn Module>>>;
+    ) -> Vec<Ref<'a, dyn Module>>;
 
     fn modules_with_primary_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> Vec<RefMut<'a, Box<dyn Module>>>;
+    ) -> Vec<RefMut<'a, dyn Module>>;
 
     fn move_person_to_module(
         &self,

@@ -1,7 +1,8 @@
+use crate::finance::MoneyRef;
 use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
-use crate::person::{Money, Role};
+use crate::person::Role;
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
 };
@@ -210,14 +211,16 @@ pub trait TradingConsole {
     fn buy_custom_vessel_offer(&self) -> Option<&BuyCustomVesselOffer>;
 
     fn estimate_buy_custom_vessel_order(
-        &mut self,
-        primary_capabilities: Vec<ModuleCapability>,
+        &self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyCustomVesselOrderEstimate>;
 
     fn place_buy_custom_vessel_order(
         &mut self,
-        primary_caps: Vec<ModuleCapability>,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyVesselOrder>;
 }
@@ -227,18 +230,18 @@ pub trait TradingAdminConsole {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&BuyOffer>;
     fn place_buy_vessel_offer(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&BuyOffer>;
     fn place_sell_offer(
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&SellOffer>;
 
     fn place_buy_custom_vessel_offer(

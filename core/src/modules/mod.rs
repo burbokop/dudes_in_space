@@ -29,6 +29,7 @@ use dudes_in_space_api::recipe::ModuleFactory;
 use dudes_in_space_api::trade::OrderHolder;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
+use dudes_in_space_api::finance::BankRegistry;
 
 pub fn register_module_factories(
     vault: DynDeserializeSeedVault<dyn ModuleFactory>,
@@ -48,34 +49,35 @@ pub fn register_modules(
     vault: DynDeserializeSeedVault<dyn Module>,
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
     item_vault: Rc<ItemVault>,
     order_holder: Rc<OrderHolder>,
     process_token_context: Rc<ProcessTokenContext>,
 ) -> DynDeserializeSeedVault<dyn Module> {
     vault
-        .with(PersonnelAreaDynSeed::new(objective_seed_vault.clone()))
-        .with(ShuttleDynSeed::new(objective_seed_vault.clone()))
+        .with(PersonnelAreaDynSeed::new(objective_seed_vault.clone(), bank_registry.clone()))
+        .with(ShuttleDynSeed::new(objective_seed_vault.clone(), bank_registry.clone()))
         .with(DockyardDynSeed::new(
-            objective_seed_vault.clone(),
+            objective_seed_vault.clone(), bank_registry.clone(),
             process_token_context.clone(),
         ))
         .with(AssemblerDynSeed::new(
             factory_seed_vault,
-            objective_seed_vault.clone(),
+            objective_seed_vault.clone(), bank_registry.clone(),
             item_vault.clone(),
             process_token_context.clone(),
         ))
         .with(CargoContainerDynSeed::new(item_vault.clone()))
         .with(TradingTerminalDynSeed::new(
             order_holder.clone(),
-            objective_seed_vault.clone(),
+            objective_seed_vault.clone(), bank_registry.clone(),
         ))
         .with(VesselSellingTerminalDynSeed::new(
             order_holder,
-            objective_seed_vault.clone(),
+            objective_seed_vault.clone(), bank_registry.clone(),
         ))
         .with(FabricatorDynSeed::new(
-            objective_seed_vault,
+            objective_seed_vault, bank_registry.clone(),
             item_vault,
             process_token_context,
         ))

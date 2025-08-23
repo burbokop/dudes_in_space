@@ -33,6 +33,7 @@ use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
+use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
@@ -128,7 +129,7 @@ impl<'context> AssemblerStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v, 'sv, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v,'b, 'sv, 'context>)]
 pub struct Assembler {
     id: ModuleId,
     // #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
@@ -143,23 +144,24 @@ pub struct Assembler {
 }
 
 #[derive(Clone)]
-pub struct AssemblerSeed<'v, 'sv, 'context> {
+pub struct AssemblerSeed<'v, 'b, 'sv, 'context> {
     recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
     item_storage_seed: ItemStorageSeed<'sv>,
     state_seed: AssemblerStateSeed<'context>,
 }
 
-impl<'v, 'sv, 'context> AssemblerSeed<'v, 'sv, 'context> {
+impl<'v, 'b, 'sv, 'context> AssemblerSeed<'v, 'b, 'sv, 'context> {
     pub fn new(
         module_factory_vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
         item_vault: &'sv ItemVault,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
             recipe_seq_seed: VecSeed::new(AssemblyRecipeSeed::new(module_factory_vault)),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
             item_storage_seed: ItemStorageSeed::new(item_vault),
             state_seed: AssemblerStateSeed::new(context),
         }
@@ -582,6 +584,7 @@ impl CoreModule for Assembler {
 pub(crate) struct AssemblerDynSeed {
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
     item_vault: Rc<ItemVault>,
     context: Rc<ProcessTokenContext>,
 }
@@ -590,12 +593,14 @@ impl AssemblerDynSeed {
     pub fn new(
         factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,
         item_vault: Rc<ItemVault>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             factory_seed_vault,
             objective_seed_vault,
+            bank_registry,
             item_vault,
             context,
         }
@@ -616,6 +621,7 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
             AssemblerSeed::new(
                 &self.factory_seed_vault,
                 &self.objective_seed_vault,
+                &self.bank_registry,
                 &self.item_vault,
                 &self.context,
             ),

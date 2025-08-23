@@ -1,4 +1,4 @@
-use crate::objectives::crafting::RequireModulesObjective;
+use crate::objectives::crafting::{CraftModulesObjectiveError, RequireModulesObjective};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
@@ -260,9 +260,7 @@ impl Objective for ManageDockyardStationObjective {
 
                         Ok(ObjectiveStatus::InProgress)
                     }
-                    Err(err) => {
-                        todo!()
-                    }
+                    Err(err) => Err(Self::Error::CanNotCraftRequiredModules(err)),
                 }
             }
             ManageDockyardStationObjective::CheckOrders => {
@@ -288,6 +286,7 @@ impl Objective for ManageDockyardStationObjective {
 
 #[derive(Debug)]
 enum ManageDockyardStationObjectiveError {
+    CanNotCraftRequiredModules(CraftModulesObjectiveError),
     VesselSellingTerminalMissing,
     PermissionsDenied,
 }

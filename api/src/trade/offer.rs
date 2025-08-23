@@ -1,6 +1,6 @@
+use crate::finance::MoneyRef;
 use crate::item::{ItemCount, ItemId};
 use crate::module::{ModuleCapability, ModuleId};
-use crate::person::MoneyRef;
 use crate::utils::range::Range;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};

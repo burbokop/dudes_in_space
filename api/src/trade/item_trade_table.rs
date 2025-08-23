@@ -1,6 +1,6 @@
+use crate::finance::{MoneyAmount, MoneyRef};
 use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
 use crate::module::ModuleCapability;
-use crate::person::{MoneyAmount, MoneyRef};
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
 use crate::utils::math::NoNeg;
 use crate::utils::range::Range;

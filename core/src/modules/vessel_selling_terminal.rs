@@ -5,7 +5,8 @@ use dudes_in_space_api::module::{
     ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    DynObjective, Logger, Money, ObjectiveDeciderVault, Person, PersonId, PersonSeed,
+    DynObjective, Logger,
+    ObjectiveDeciderVault, Person, PersonId, PersonSeed,
     StatusCollector,
 };
 use dudes_in_space_api::recipe::{
@@ -31,6 +32,7 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::rc::Rc;
+use dudes_in_space_api::finance::{BankRegistry, MoneyRef};
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
@@ -38,7 +40,7 @@ static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerm
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h, 'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h,'b, 'v>)]
 struct VesselSellingTerminal {
     id: ModuleId,
     offers: Vec<BuyVesselOffer>,
@@ -51,19 +53,20 @@ struct VesselSellingTerminal {
     operator: Option<Person>,
 }
 
-struct VesselSellingTerminalSeed<'h, 'v> {
+struct VesselSellingTerminalSeed<'h,'b, 'v> {
     order_seed: VecSeed<OrderSeed<'h, BuyVesselOrder>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
 }
 
-impl<'h, 'v> VesselSellingTerminalSeed<'h, 'v> {
+impl<'h,'b, 'v> VesselSellingTerminalSeed<'h,'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
     ) -> Self {
         Self {
             order_seed: VecSeed::new(OrderSeed::new(order_holder)),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault,bank_registry)),
         }
     }
 }
@@ -99,11 +102,11 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -184,7 +187,7 @@ impl<'a> TradingAdminConsole for Console<'a> {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&BuyOffer> {
         todo!()
     }
@@ -192,7 +195,7 @@ impl<'a> TradingAdminConsole for Console<'a> {
     fn place_buy_vessel_offer(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&BuyOffer> {
         todo!()
     }
@@ -201,7 +204,7 @@ impl<'a> TradingAdminConsole for Console<'a> {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&SellOffer> {
         todo!()
     }
@@ -241,7 +244,7 @@ impl Module for VesselSellingTerminal {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn proceed(
@@ -405,8 +408,9 @@ impl TradingConsole for VesselSellingTerminal {
     }
 
     fn estimate_buy_custom_vessel_order(
-        &mut self,
-        primary_capabilities: Vec<ModuleCapability>,
+        &self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyCustomVesselOrderEstimate> {
         todo!()
@@ -414,7 +418,8 @@ impl TradingConsole for VesselSellingTerminal {
 
     fn place_buy_custom_vessel_order(
         &mut self,
-        primary_caps: Vec<ModuleCapability>,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyVesselOrder> {
         todo!()
@@ -499,16 +504,19 @@ impl DynDeserializeSeed<dyn ModuleFactory> for VesselSellingTerminalFactoryDynSe
 pub(crate) struct VesselSellingTerminalDynSeed {
     order_holder: Rc<OrderHolder>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
 }
 
 impl VesselSellingTerminalDynSeed {
     pub(crate) fn new(
         order_holder: Rc<OrderHolder>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,   
     ) -> Self {
         Self {
             order_holder,
             objective_vault,
+            bank_registry,       
         }
     }
 }
@@ -524,7 +532,7 @@ impl DynDeserializeSeed<dyn Module> for VesselSellingTerminalDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let r: VesselSellingTerminal = from_intermediate_seed(
-            VesselSellingTerminalSeed::new(&self.order_holder, &self.objective_vault),
+            VesselSellingTerminalSeed::new(&self.order_holder, &self.objective_vault, &self.    bank_registry),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

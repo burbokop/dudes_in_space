@@ -20,13 +20,14 @@ use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
+use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v,'b>)]
 pub(crate) struct PersonnelArea {
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     personnel: Vec<Person>,
@@ -34,14 +35,16 @@ pub(crate) struct PersonnelArea {
 }
 
 #[derive(Clone)]
-struct PersonnelAreaSeed<'v> {
-    person_seed: VecSeed<PersonSeed<'v>>,
+struct PersonnelAreaSeed<'v,'b> {
+    person_seed: VecSeed<PersonSeed<'v,'b>>,
 }
 
-impl<'v> PersonnelAreaSeed<'v> {
-    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+impl<'v,'b> PersonnelAreaSeed<'v,'b> {
+    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>
+    , bank_registry: &'b BankRegistry,
+    ) -> Self {
         Self {
-            person_seed: VecSeed::new(PersonSeed::new(objective_vault)),
+            person_seed: VecSeed::new(PersonSeed::new(objective_vault, bank_registry)),
         }
     }
 }
@@ -207,12 +210,17 @@ impl CoreModule for PersonnelArea {
 
 pub(crate) struct PersonnelAreaDynSeed {
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
 }
 
 impl PersonnelAreaDynSeed {
-    pub fn new(objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+    pub fn new(objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+               bank_registry: Rc<BankRegistry>,
+    
+    ) -> Self {
         Self {
             objective_seed_vault,
+            bank_registry,
         }
     }
 }
@@ -228,7 +236,7 @@ impl DynDeserializeSeed<dyn Module> for PersonnelAreaDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: PersonnelArea = from_intermediate_seed(
-            PersonnelAreaSeed::new(&self.objective_seed_vault),
+            PersonnelAreaSeed::new(&self.objective_seed_vault, &self.bank_registry),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

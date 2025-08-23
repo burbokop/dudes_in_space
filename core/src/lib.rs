@@ -1,4 +1,3 @@
-#![feature(iter_chain)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]

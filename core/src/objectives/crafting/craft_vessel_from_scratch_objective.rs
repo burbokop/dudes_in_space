@@ -241,7 +241,7 @@ impl Objective for CraftVesselFromScratchObjective {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) enum CraftVesselFromScratchObjectiveError {
     CraftingDockyard(CraftModulesObjectiveError),
     CraftingVesselModules(CraftModulesObjectiveError),

@@ -19,7 +19,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeSet;
 use std::fmt::Formatter;
 use std::iter;
-use std::ops::{ControlFlow, Try};
+use std::ops::{ControlFlow, Deref, DerefMut, Try};
 
 pub type VesselId = NonNilUuid;
 
@@ -268,11 +268,11 @@ impl Vessel {
     pub fn modules_with_capability<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
+    ) -> impl Iterator<Item = Ref<'a, dyn Module>> {
         self.modules.iter().filter_map(move |module| {
             if let Ok(module) = module.try_borrow() {
                 if module.capabilities().contains(&cap) {
-                    return Some(module);
+                    return Some(Ref::map(module, |x| x.deref()));
                 }
             }
             None
@@ -282,11 +282,14 @@ impl Vessel {
     pub fn modules_with_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> impl Iterator<Item = RefMut<'a, Box<dyn Module>>> {
+    ) -> impl Iterator<Item = RefMut<'a, dyn Module>> {
         self.modules.iter().filter_map(move |module| {
             if let Ok(module) = module.try_borrow_mut() {
                 if module.capabilities().contains(&cap) {
-                    return Some(module);
+                    return Some(RefMut::map(module, |x| {
+                        let x = x.deref_mut();
+                        x
+                    }));
                 }
             }
             None
@@ -296,11 +299,11 @@ impl Vessel {
     pub fn modules_with_primary_capability<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
+    ) -> impl Iterator<Item = Ref<'a, dyn Module>> {
         self.modules.iter().filter_map(move |module| {
             if let Ok(module) = module.try_borrow() {
                 if module.primary_capabilities().contains(&cap) {
-                    return Some(module);
+                    return Some(Ref::map(module, |x| x.deref()));
                 }
             }
             None
@@ -310,7 +313,7 @@ impl Vessel {
     pub fn modules_with_primary_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> impl Iterator<Item = RefMut<'a, Box<dyn Module>>> {
+    ) -> impl Iterator<Item = RefMut<'a, dyn Module>> {
         #[allow(unreachable_code)]
         iter::once(todo!())
     }
@@ -492,31 +495,28 @@ impl VesselConsole for Vessel {
 }
 
 impl VesselInternalConsole for Vessel {
-    fn modules_with_capability<'a>(
-        &'a self,
-        cap: ModuleCapability,
-    ) -> Vec<Ref<'a, Box<dyn Module>>> {
+    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, dyn Module>> {
         self.modules_with_capability(cap).collect()
     }
 
     fn modules_with_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> Vec<RefMut<'a, Box<dyn Module>>> {
+    ) -> Vec<RefMut<'a, dyn Module>> {
         self.modules_with_capability_mut(cap).collect()
     }
 
     fn modules_with_primary_capability<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> Vec<Ref<'a, Box<dyn Module>>> {
+    ) -> Vec<Ref<'a, dyn Module>> {
         self.modules_with_primary_capability(cap).collect()
     }
 
     fn modules_with_primary_capability_mut<'a>(
         &'a self,
         cap: ModuleCapability,
-    ) -> Vec<RefMut<'a, Box<dyn Module>>> {
+    ) -> Vec<RefMut<'a, dyn Module>> {
         self.modules_with_primary_capability_mut(cap).collect()
     }
 

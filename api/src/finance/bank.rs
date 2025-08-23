@@ -1,51 +1,13 @@
+use crate::finance::{Currency, MoneyAmount, MoneyRef, Wallet};
 use crate::person::PersonId;
 use crate::utils::math::{NoNeg, noneg_float};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-pub type Currency = String;
-pub type MoneyAmount = i64;
 pub type Cycle = u64;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Money {
-    currency: Currency,
-    amount: NoNeg<MoneyAmount>,
-}
-
-impl Default for Money {
-    fn default() -> Self {
-        Self {
-            amount: NoNeg::wrap(0).unwrap(),
-            currency: "".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct MoneyRef {
-    pub currency: Currency,
-    pub amount: NoNeg<MoneyAmount>,
-}
-
-impl Ord for MoneyRef {
-    fn cmp(&self, other: &Self) -> Ordering {
-        todo!()
-    }
-}
-
-impl Money {
-    pub fn currency(&self) -> &Currency {
-        &self.currency
-    }
-
-    pub fn amount(&self) -> NoNeg<MoneyAmount> {
-        self.amount
-    }
-}
-
 pub struct BankAccount {
     pub money: MoneyAmount,
     pub growth_rate: NoNeg<Float>,
@@ -62,6 +24,7 @@ impl BankAccount {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Bank {
     owner: PersonId,
     currency: Currency,
@@ -82,12 +45,21 @@ impl Bank {
             current_cycle: 0,
         }
     }
+    
+    pub fn currency(&self) -> &Currency {
+        &self.currency
+    }
 
     pub fn account(&self, customer: PersonId) -> Option<&BankAccount> {
         self.customers.get(&customer)
     }
 
-    pub fn withdraw(&mut self, customer: PersonId, amount: NoNeg<MoneyAmount>) -> Money {
+    pub fn withdraw(
+        &mut self,
+        customer: PersonId,
+        target_wallet: &mut Wallet,
+        amount: NoNeg<MoneyAmount>,
+    ) {
         assert_ne!(amount.unwrap(), 0);
 
         self.customers.entry(customer).or_insert(BankAccount::new());
@@ -99,10 +71,10 @@ impl Bank {
         if customer == self.owner {
             account.money -= amount.unwrap();
             self.money_created += amount.unwrap();
-            Money {
+            target_wallet.put(MoneyRef {
                 currency: self.currency.clone(),
                 amount,
-            }
+            })
         } else {
             account.money -= amount.unwrap();
 
@@ -117,25 +89,88 @@ impl Bank {
                     self.current_cycle + 2_f64.log(1. + account.growth_rate.unwrap()) as Cycle,
                 );
             }
-
-            Money {
+            target_wallet.put(MoneyRef {
                 currency: self.currency.clone(),
                 amount,
-            }
+            })
         }
     }
 
-    pub fn deposit(&mut self, customer: PersonId, money: Money) {
-        assert_eq!(self.currency, money.currency);
-        assert_ne!(money.amount.unwrap(), 0);
+    pub fn deposit(
+        &mut self,
+        customer: PersonId,
+        source_wallet: &mut Wallet,
+        amount: NoNeg<MoneyAmount>,
+    ) {
+        assert_ne!(amount.unwrap(), 0);
+
+        source_wallet
+            .take(MoneyRef {
+                currency: self.currency.clone(),
+                amount,
+            })
+            .unwrap();
 
         let account = self.customers.entry(customer).or_insert(BankAccount::new());
-        account.money += money.amount.unwrap();
-        self.money_stored += money.amount.unwrap();
+        account.money += amount.unwrap();
+        self.money_stored += amount.unwrap();
 
         if account.deadline.is_some() && account.money >= 0 {
             account.deadline = None;
         }
+    }
+
+    pub fn currency_price(
+        &self,
+        source_currency_bank: &Bank,
+        target_amount: NoNeg<MoneyAmount>,
+    ) -> NoNeg<MoneyAmount> {
+        let source_amount = (target_amount.unwrap() as Float
+            * source_currency_bank.money_created as Float
+            / self.money_created as Float) as MoneyAmount;
+        NoNeg::wrap(source_amount).unwrap()
+    }
+
+    pub fn buy_currency(
+        &mut self,
+        bank_owner_wallet: &mut Wallet,
+        wallet: &mut Wallet,
+        source_currency_bank: &Bank,
+        target_amount: NoNeg<MoneyAmount>,
+    ) {
+        assert_ne!(target_amount.unwrap(), 0);
+        assert!(self.money_created > 0);
+
+        let source_amount = (target_amount.unwrap() as Float
+            * source_currency_bank.money_created as Float
+            / self.money_created as Float) as MoneyAmount;
+
+        let money_to_take_from_bank_owner = MoneyRef {
+            currency: self.currency.clone(),
+            amount: target_amount,
+        };
+
+        let money_to_take_from_customer = MoneyRef {
+            currency: self.currency.clone(),
+            amount: target_amount,
+        };
+
+        {
+            let owner_money =
+                bank_owner_wallet.amount(money_to_take_from_bank_owner.currency.clone());
+            if owner_money < money_to_take_from_bank_owner.amount.unwrap() {
+                let delta = money_to_take_from_bank_owner.amount.unwrap() - owner_money;
+                self.withdraw(self.owner, bank_owner_wallet, NoNeg::wrap(delta).unwrap());
+            }
+        }
+
+        bank_owner_wallet
+            .take(money_to_take_from_bank_owner.clone())
+            .unwrap();
+
+        wallet.take(money_to_take_from_customer.clone()).unwrap();
+        bank_owner_wallet.put(money_to_take_from_customer);
+        wallet.put(money_to_take_from_bank_owner);
     }
 
     pub fn cycle(&mut self) {

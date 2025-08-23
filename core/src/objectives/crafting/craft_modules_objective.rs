@@ -163,6 +163,7 @@ impl Objective for CraftModulesObjective {
                         deploy: *deploy,
                         process_token: None,
                     };
+                    Ok(ObjectiveStatus::InProgress)
                 } else {
                     logger.info("Entering crafting module...");
                     match this_vessel.move_person_to_module(
@@ -170,9 +171,11 @@ impl Objective for CraftModulesObjective {
                         *this_person.id,
                         *dst,
                     ) {
-                        Ok(_) => {}
+                        Ok(_) => todo!(),
                         Err(MoveToModuleError::ModuleNotFound) => todo!(),
-                        Err(MoveToModuleError::PermissionDenied) => todo!(),
+                        Err(MoveToModuleError::PermissionDenied) => {
+                            Err(Self::Error::PermissionDenied)
+                        }
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in crafting module. Searching another one...",
@@ -184,11 +187,10 @@ impl Objective for CraftModulesObjective {
                                 ),
                                 deploy: *deploy,
                             };
-                            return Ok(ObjectiveStatus::InProgress);
+                            Ok(ObjectiveStatus::InProgress)
                         }
                     }
                 }
-                Ok(ObjectiveStatus::InProgress)
             }
             Self::Crafting {
                 needed_capabilities,
@@ -252,7 +254,9 @@ impl Objective for CraftModulesObjective {
                         return Ok(ObjectiveStatus::InProgress);
                     }
 
-                    todo!()
+                    logger.info("Done crafting modules.");
+                    *self = Self::Done;
+                    Ok(ObjectiveStatus::Done)
                 }
                 Some(some_process_token) => {
                     if some_process_token
@@ -286,9 +290,10 @@ impl Objective for CraftModulesObjective {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) enum CraftModulesObjectiveError {
     CanNotFindCraftingModule,
+    PermissionDenied,
 }
 
 impl Display for CraftModulesObjectiveError {

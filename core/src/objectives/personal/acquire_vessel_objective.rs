@@ -1,5 +1,9 @@
-use crate::objectives::crafting::CraftVesselFromScratchObjective;
-use crate::objectives::trading::{BuyVesselObjective, BuyVesselObjectiveSeed};
+use crate::objectives::crafting::{
+    CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
+};
+use crate::objectives::trading::{
+    BuyVesselObjective, BuyVesselObjectiveError, BuyVesselObjectiveSeed,
+};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
@@ -23,6 +27,7 @@ pub(crate) enum AcquireVesselObjective {
     },
     #[deserialize_seed_xxx(seeds = [(objective, self.seed.seed.buy_vessel_objective_seed)])]
     BuyVessel {
+        craft_error: CraftVesselFromScratchObjectiveError,
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
         objective: BuyVesselObjective,
@@ -91,6 +96,7 @@ impl Objective for AcquireVesselObjective {
                 Ok(ObjectiveStatus::InProgress)
             }
             Self::BuyVessel {
+                craft_error,
                 needed_capabilities,
                 needed_primary_capabilities,
                 objective,
@@ -103,7 +109,10 @@ impl Objective for AcquireVesselObjective {
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                 Ok(ObjectiveStatus::Done) => Ok(ObjectiveStatus::Done),
-                Err(_) => todo!(),
+                Err(err) => Err(AcquireVesselObjectiveError::CanNotCraftCanNotBuy {
+                    craft_error: craft_error.clone(),
+                    buy_error: err,
+                }),
             },
 
             Self::CraftVessel {
@@ -121,12 +130,12 @@ impl Objective for AcquireVesselObjective {
                 Ok(ObjectiveStatus::Done) => Ok(ObjectiveStatus::Done),
                 Err(err) => {
                     *self = Self::BuyVessel {
+                        craft_error: err,
                         needed_capabilities: needed_capabilities.clone(),
                         needed_primary_capabilities: needed_primary_capabilities.clone(),
                         objective: BuyVesselObjective::new(
                             std::mem::take(needed_capabilities),
                             std::mem::take(needed_primary_capabilities),
-                            environment_context.request_storage_mut(),
                             logger,
                         ),
                     };
@@ -138,7 +147,12 @@ impl Objective for AcquireVesselObjective {
 }
 
 #[derive(Debug)]
-pub(crate) enum AcquireVesselObjectiveError {}
+pub(crate) enum AcquireVesselObjectiveError {
+    CanNotCraftCanNotBuy {
+        craft_error: CraftVesselFromScratchObjectiveError,
+        buy_error: BuyVesselObjectiveError,
+    },
+}
 
 impl Display for AcquireVesselObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

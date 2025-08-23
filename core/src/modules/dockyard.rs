@@ -27,6 +27,7 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
+use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
@@ -65,7 +66,7 @@ impl<'context> DockyardStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v,'b, 'context>)]
 pub struct Dockyard {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
@@ -92,23 +93,24 @@ impl Dockyard {
 }
 
 #[derive(Clone)]
-struct DockyardSeed<'v, 'context> {
+struct DockyardSeed<'v,'b, 'context> {
     module_storage_seed: ModuleStorageSeed<'v>,
     docking_clamp_seed: DockingClampSeed<'v>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
     state_seed: DockyardStateSeed<'context>,
 }
 
-impl<'v, 'context> DockyardSeed<'v, 'context> {
+impl<'v,'b, 'context> DockyardSeed<'v,'b, 'context> {
     fn new(
         module_vault: &'v DynDeserializeSeedVault<dyn Module>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
             module_storage_seed: ModuleStorageSeed::new(module_vault),
             docking_clamp_seed: DockingClampSeed::new(module_vault),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
             state_seed: DockyardStateSeed::new(context),
         }
     }
@@ -512,16 +514,19 @@ impl ModuleFactoryOutputDescription for DockyardFactory {
 
 pub(crate) struct DockyardDynSeed {
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
     context: Rc<ProcessTokenContext>,
 }
 
 impl DockyardDynSeed {
     pub fn new(
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,   
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             objective_seed_vault,
+            bank_registry,
             context,
         }
     }
@@ -538,7 +543,7 @@ impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Dockyard = from_intermediate_seed(
-            DockyardSeed::new(this_vault, &self.objective_seed_vault, &self.context),
+            DockyardSeed::new(this_vault, &self.objective_seed_vault,&self.bank_registry, &self.context),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

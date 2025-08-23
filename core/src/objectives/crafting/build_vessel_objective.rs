@@ -183,7 +183,7 @@ impl Objective for BuildVesselObjective {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) enum BuildVesselObjectiveError {
     CanNotFindDockyard,
     CanNotFindExpectedModulesUponArrivalInDockyard,

@@ -1,6 +1,6 @@
 use crate::objectives::common::MoveToDockedVesselObjective;
 use crate::objectives::personal::acquire_vessel_objective::{
-    AcquireVesselObjective, AcquireVesselObjectiveSeed,
+    AcquireVesselObjective, AcquireVesselObjectiveError, AcquireVesselObjectiveSeed,
 };
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindOwnedVessels, FindOwnedVesselsResult,
@@ -171,7 +171,7 @@ impl Objective for AdventuringObjective {
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                 Ok(ObjectiveStatus::Done) => todo!(),
-                Err(err) => todo!(),
+                Err(err) => Err(Self::Error::FailedToAcquireVessel(err)),
             },
             AdventuringObjective::MoveToDockedVessel { objective } => match objective.pursue(
                 this_person,
@@ -190,11 +190,13 @@ impl Objective for AdventuringObjective {
 }
 
 #[derive(Debug)]
-pub(crate) enum AdventuringObjectiveError {}
+pub(crate) enum AdventuringObjectiveError {
+    FailedToAcquireVessel(AcquireVesselObjectiveError),
+}
 
 impl Display for AdventuringObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{:?}", self)
     }
 }
 

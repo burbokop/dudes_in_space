@@ -1,9 +1,10 @@
+use crate::finance::MoneyAmount;
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
-use crate::person::{MoneyAmount, PersonId};
-use crate::trade::{BuyOffer, BuyVesselOffer, OfferRef, SellOffer};
+use crate::person::PersonId;
+use crate::trade::{BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
-use crate::vessel::VesselIdPath;
+use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -73,13 +74,18 @@ impl FindBestBuyOffer {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestBuyVesselOffer {
+    #[serde(with = "crate::utils::tagged_option")]
+    pub prefer_to_buy_from: Option<VesselId>,
     pub required_capabilities: BTreeSet<ModuleCapability>,
     pub required_primary_capabilities: BTreeSet<ModuleCapability>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindBestBuyVesselOfferResult {
-    pub cheapest_offer: OfferRef<BuyVesselOffer>,
+#[serde(tag = "offer_type")]
+pub enum FindBestBuyVesselOfferResult {
+    BuyVesselOffer(OfferRef<BuyVesselOffer>),
+    BuyCustomVesselOffer(OfferRef<BuyCustomVesselOffer>),
+    None,
 }
 
 impl FindBestBuyVesselOffer {

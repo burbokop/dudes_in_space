@@ -1,22 +1,25 @@
-use crate::module::ModuleCapability;
+use crate::module::{Module, ModuleCapability};
 use crate::trade::{BuyCustomVesselOffer, BuyVesselOffer, OfferRef};
 use crate::vessel::Vessel;
+use std::cell::Ref;
 
-pub(crate) struct VesselTradeTable {
+pub(crate) struct VesselTradeTable<'a> {
     offers: Vec<OfferRef<BuyVesselOffer>>,
-    custom_offers: Vec<OfferRef<BuyCustomVesselOffer>>,
+    custom_offers: Vec<(OfferRef<BuyCustomVesselOffer>, Ref<'a, dyn Module>)>,
 }
 
-impl VesselTradeTable {
-    pub fn offers(&self) -> impl Iterator<Item = OfferRef<BuyVesselOffer>> {
+impl<'a> VesselTradeTable<'a> {
+    pub fn offers(&self) -> impl Iterator<Item = &OfferRef<BuyVesselOffer>> {
         self.offers.iter()
     }
 
-    pub fn custom_offers(&self) -> impl Iterator<Item = OfferRef<BuyCustomVesselOffer>> {
+    pub fn custom_offers(
+        &self,
+    ) -> impl Iterator<Item = &(OfferRef<BuyCustomVesselOffer>, Ref<'a, dyn Module>)> {
         self.custom_offers.iter()
     }
 
-    pub(crate) fn build(vessels: &[Vessel]) -> Self {
+    pub(crate) fn build(vessels: &'a [Vessel]) -> Self {
         Self {
             offers: vessels
                 .iter()
@@ -46,15 +49,20 @@ impl VesselTradeTable {
                     vessel
                         .modules_with_capability(ModuleCapability::VesselSellingTerminal)
                         .map(|module| {
-                            module
-                                .trading_console()
-                                .unwrap()
+                            let console = module.trading_console().unwrap();
+
+                            console
                                 .buy_custom_vessel_offer()
                                 .into_iter()
-                                .map(|offer| OfferRef {
-                                    vessel_id: vessel.id(),
-                                    module_id: module.id(),
-                                    offer: offer.clone(),
+                                .map(|offer| {
+                                    (
+                                        OfferRef {
+                                            vessel_id: vessel.id(),
+                                            module_id: module.id(),
+                                            offer: offer.clone(),
+                                        },
+                                        Ref::clone(&module),
+                                    )
                                 })
                                 .collect::<Vec<_>>()
                         })

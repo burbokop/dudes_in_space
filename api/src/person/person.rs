@@ -1,8 +1,9 @@
 use crate::environment::EnvironmentContext;
+use crate::finance::{BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed};
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, Money, ObjectiveDeciderVault, PersonInfo, StatusCollector};
+use crate::person::{DynObjective, ObjectiveDeciderVault, PersonInfo, StatusCollector};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselInternalConsole;
@@ -200,7 +201,7 @@ impl Distribution<Gender> for StandardUniform {
 pub type PersonId = NonNilUuid;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v, 'b>)]
 pub struct Person {
     id: PersonId,
     name: String,
@@ -215,18 +216,22 @@ pub struct Person {
     objective: Option<Box<dyn DynObjective>>,
     #[serde(with = "crate::utils::tagged_option")]
     boss: Option<PersonId>,
-    budget: Money,
+    #[deserialize_seed_xxx(seed = self.seed.finance_package_seed)]
+    finance: PersonalFinancePackage,
 }
 
 #[derive(Clone)]
-pub struct PersonSeed<'v> {
+pub struct PersonSeed<'v, 'b> {
     objective_seed: TaggedOptionSeed<ObjectiveSeed<'v>>,
+    finance_package_seed: PersonalFinancePackageSeed<'b>,
 }
 
-impl<'v> PersonSeed<'v> {
-    pub fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+impl<'v, 'b> PersonSeed<'v, 'b> {
+    pub fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>,    bank_registry: &'b BankRegistry,
+    ) -> Self {
         Self {
             objective_seed: TaggedOptionSeed::new(ObjectiveSeed::new(vault)),
+            finance_package_seed: PersonalFinancePackageSeed::new(bank_registry),
         }
     }
 }
@@ -266,7 +271,7 @@ impl Person {
             awareness: rng.random(),
             objective: None,
             boss: None,
-            budget: Money::default(),
+            finance: Default::default(),
         }
     }
 
@@ -287,7 +292,7 @@ impl Person {
             morale: &self.morale,
             boldness: &self.boldness,
             awareness: &self.awareness,
-            budget: &self.budget,
+            finance: &self.finance,
         };
         let mut logger = PersonLogger::new(&self.id, &self.name, logger);
 

@@ -5,6 +5,7 @@ use dudes_in_space_api::trade::OrderHolder;
 use dudes_in_space_api::utils::request::ReqContext;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
+use dudes_in_space_api::finance::BankRegistry;
 
 pub(crate) struct Components {
     pub(crate) process_token_context: Rc<ProcessTokenContext>,
@@ -14,6 +15,7 @@ pub(crate) struct Components {
     pub(crate) order_holder: Rc<OrderHolder>,
     pub(crate) module_seed_vault: Rc<DynDeserializeSeedVault<dyn Module>>,
     pub(crate) subordination_table: Rc<SubordinationTable>,
+    pub(crate) bank_registry: Rc<BankRegistry>,
 }
 
 pub(crate) fn core_components() -> Components {
@@ -22,6 +24,7 @@ pub(crate) fn core_components() -> Components {
     let item_vault = Rc::new(dudes_in_space_core::register_items(ItemVault::new()));
     let order_holder = Rc::new(OrderHolder::new());
     let subordination_table = Rc::new(SubordinationTable::new());
+    let bank_registry = Rc::new(BankRegistry::new());
 
     let objectives_seed_vault =
         dudes_in_space_core::register_objectives(Default::default(), req_context.clone());
@@ -35,6 +38,7 @@ pub(crate) fn core_components() -> Components {
         Default::default(),
         module_factory_seed_vault,
         objectives_seed_vault.into_rc(),
+        bank_registry.clone(),
         item_vault.clone(),
         order_holder.clone(),
         process_token_context.clone(),
@@ -49,5 +53,6 @@ pub(crate) fn core_components() -> Components {
         order_holder,
         module_seed_vault,
         subordination_table,
+        bank_registry,
     }
 }

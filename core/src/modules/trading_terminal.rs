@@ -25,9 +25,11 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
+use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "TradingTerminal";
 static FACTORY_TYPE_ID: &str = "TradingTerminalFactory";
@@ -35,7 +37,7 @@ static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'h,'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'h,'b,'v>)]
 pub(crate) struct TradingTerminal {
     id: ModuleId,
     buy_offers: Vec<BuyOffer>,
@@ -49,21 +51,22 @@ pub(crate) struct TradingTerminal {
     operator: Option<Person>,
 }
 
-struct TradingTerminalSeed<'h, 'v> {
+struct TradingTerminalSeed<'h,'b, 'v> {
     buy_order_seed: VecSeed<OrderSeed<'h, BuyOrder>>,
     sell_order_seed: VecSeed<OrderSeed<'h, SellOrder>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
 }
 
-impl<'h, 'v> TradingTerminalSeed<'h, 'v> {
+impl<'h,'b, 'v> TradingTerminalSeed<'h,'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
     ) -> Self {
         Self {
             buy_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
             sell_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
         }
     }
 }
@@ -348,23 +351,25 @@ impl TradingConsole for TradingTerminal {
         todo!()
     }
 
-    fn place_buy_custom_vessel_order(
-        &mut self,
-        primary_caps: Vec<ModuleCapability>,
-        count: usize,
-    ) -> Option<WeakBuyVesselOrder> {
-        todo!()
-    }
-
     fn buy_custom_vessel_offer(&self) -> Option<&BuyCustomVesselOffer> {
         None
     }
 
     fn estimate_buy_custom_vessel_order(
-        &mut self,
-        primary_capabilities: Vec<ModuleCapability>,
+        &self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyCustomVesselOrderEstimate> {
+        todo!()
+    }
+
+    fn place_buy_custom_vessel_order(
+        &mut self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyVesselOrder> {
         todo!()
     }
 }
@@ -372,16 +377,19 @@ impl TradingConsole for TradingTerminal {
 pub(crate) struct TradingTerminalDynSeed {
     order_holder: Rc<OrderHolder>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
 }
 
 impl TradingTerminalDynSeed {
     pub(crate) fn new(
         order_holder: Rc<OrderHolder>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,   
     ) -> Self {
         Self {
             order_holder,
             objective_vault,
+             bank_registry,       
         }
     }
 }
@@ -397,7 +405,7 @@ impl DynDeserializeSeed<dyn Module> for TradingTerminalDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: TradingTerminal = from_intermediate_seed(
-            TradingTerminalSeed::new(&self.order_holder, &self.objective_vault),
+            TradingTerminalSeed::new(&self.order_holder, &self.objective_vault, &self.bank_registry),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

@@ -13,6 +13,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::ops::ControlFlow;
+use crate::finance::BankRegistry;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -63,6 +64,7 @@ impl Environment {
         decider_vault: &ObjectiveDeciderVault,
         item_vault: &ItemVault,
         subordination_table: &SubordinationTable,
+        bank_registry: &BankRegistry,
         logger: &mut dyn Logger,
     ) {
         let mut environment_context = EnvironmentContext::new(
@@ -73,7 +75,7 @@ impl Environment {
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
-        self.process_requests(req_context, item_vault);
+        self.process_requests(req_context, item_vault, bank_registry);
     }
 
     pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
@@ -84,7 +86,7 @@ impl Environment {
         collector.exit_environment();
     }
 
-    fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault) {
+    fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault, bank_registry: &BankRegistry) {
         self.request_storage
             .find_best_buy_offer_requests
             .retain_mut(|req| {
@@ -140,22 +142,20 @@ impl Environment {
                                 .iter()
                                 .all(|x| offer.offer.primary_capabilities.contains(x))
                     })
-                    .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+                    .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit, bank_registry))
                 {
                     req.promise
                         .make_ready(
                             req_context,
-                            FindBestBuyVesselOfferResult {
-                                cheapest_offer: offer,
-                            },
+                            FindBestBuyVesselOfferResult::BuyVesselOffer(offer.clone()),
                         )
                         .unwrap();
                     return false;
                 }
 
-                if let Some(offer) = trade_table
+                if let Some((offer, _)) = trade_table
                     .custom_offers()
-                    .filter(|offer| {
+                    .filter(|(offer, _)| {
                         req.input
                             .required_capabilities
                             .iter()
@@ -166,22 +166,35 @@ impl Environment {
                                 .iter()
                                 .all(|x| offer.offer.available_primary_capabilities.contains(x))
                     })
-                    .map(|offer| (offer, offer.estimate()))
-                    .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit))
+                    .map(|(offer, module)| {
+                        (
+                            offer,
+                            module
+                                .trading_console()
+                                .unwrap()
+                                .estimate_buy_custom_vessel_order(
+                                    req.input.required_capabilities.clone(),
+                                    req.input.required_primary_capabilities.clone(),
+                                    1,
+                                )
+                                .unwrap(),
+                        )
+                    })
+                    .min_by(|(_, a), (_, b)| a.money().cmp( &b.money(), bank_registry))
                 {
                     req.promise
                         .make_ready(
                             req_context,
-                            FindBestBuyVesselOfferResult {
-                                cheapest_offer: offer,
-                            },
+                            FindBestBuyVesselOfferResult::BuyCustomVesselOffer(offer.clone()),
                         )
                         .unwrap();
                     return false;
                 }
 
-                todo!()
-                // true
+                req.promise
+                    .make_ready(req_context, FindBestBuyVesselOfferResult::None)
+                    .unwrap();
+                return false;
             });
 
         self.request_storage

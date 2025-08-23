@@ -70,11 +70,7 @@ where
     this_vessel
         .modules_with_capability(ModuleCapability::DockingClamp)
         .iter()
-        .map(|m| {
-            m.docking_clamps()
-                .iter()
-                .map(|x| (x, Some(m.deref().deref())))
-        })
+        .map(|m| m.docking_clamps().iter().map(|x| (x, Some(m.deref()))))
         .flatten()
         .chain(this_module.docking_clamps().iter().map(|x| (x, None)))
         .filter_map(|(clamp, module)| {
