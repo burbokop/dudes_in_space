@@ -1,5 +1,6 @@
 use crate::person::PersonId;
 use crate::vessel::VesselConsole;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
@@ -12,10 +13,30 @@ pub struct SubordinationTable {
     bosses: BTreeMap<PersonId, PersonId>,
 }
 
-pub enum VesselPermissions {
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub enum VesselPermission {
+    None,
     Enter,
     Operate,
     Pilot,
+}
+
+impl VesselPermission {
+    pub(crate) fn has_permission(&self, permission: VesselPermission) -> bool {
+        *self as u8 >= permission as u8
+    }
+}
+
+impl Default for VesselPermission {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct VesselPermissions {
+    pub subordinate: VesselPermission,
+    pub other: VesselPermission,
 }
 
 impl SubordinationTable {
@@ -53,10 +74,19 @@ impl SubordinationTable {
         &self,
         person_id: PersonId,
         vessel: &dyn VesselConsole,
-        permission: VesselPermissions,
+        permission: VesselPermission,
     ) -> bool {
-        // TODO: take into account permissions
-        self.subordination_chain(person_id)
+        if person_id == vessel.owner() {
+            return true;
+        }
+
+        if self
+            .subordination_chain(person_id)
             .contains(&vessel.owner())
+        {
+            return vessel.permissions().subordinate.has_permission(permission);
+        }
+
+        vessel.permissions().other.has_permission(permission)
     }
 }

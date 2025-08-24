@@ -41,6 +41,8 @@ struct SerdeFieldAttributes {
     skip: bool,
     #[darling(default)]
     skip_deserializing: bool,
+    #[darling(default)]
+    default: bool,
     with: Option<String>,
 }
 
@@ -141,6 +143,13 @@ fn deserialize_seed_struct_visitor(
     fields: &Fields,
     extra_field_seeds: Vec<(Ident, Expr)>,
 ) -> proc_macro2::TokenStream {
+    #[derive(Eq, PartialEq)]
+    enum FieldKind {
+        Usual,
+        Default,
+        Skip,
+    }
+
     struct FieldRecipe {
         field_ident: Ident,
         has_unnamed_ident: bool,
@@ -150,7 +159,7 @@ fn deserialize_seed_struct_visitor(
         key_arm: proc_macro2::TokenStream,
         value_arm: proc_macro2::TokenStream,
         check_missing: proc_macro2::TokenStream,
-        skip: bool,
+        kind: FieldKind,
     }
 
     let fields: Vec<FieldRecipe> = fields.into_iter().enumerate().map(|(index, field)| {
@@ -163,6 +172,13 @@ fn deserialize_seed_struct_visitor(
         let var_decl = quote! { let mut #locale_variable_ident: Option<#field_type> = None; };
         let serde_options = SerdeFieldAttributes::from_field(field).expect("Wrong serde attributes");
         let skip = serde_options.skip || serde_options.skip_deserializing;
+        let default = serde_options.default;
+
+        if skip && default {
+            panic!("Field {} is both skip and default", field_name);
+        }
+
+        let kind = if skip { FieldKind::Skip } else if default { FieldKind::Default } else { FieldKind::Usual };
 
         let seed: Option<Expr> = DeserializeSeedXXXFieldAttributes::from_field(field).expect("Wrong attributes").seed;
         let extra_seed = extra_field_seeds.iter().find_map(|(ident, seed)| if ident == &field_ident { Some(seed) } else { None });
@@ -214,18 +230,20 @@ fn deserialize_seed_struct_visitor(
             }
         };
 
-        let check_missing = quote! {
+        let check_missing = if kind == FieldKind::Default { quote! {
+            let #locale_variable_ident: #field_type = #locale_variable_ident.unwrap_or_default();
+        } } else { quote! {
             let #locale_variable_ident: #field_type = #locale_variable_ident.ok_or_else(|| serde::de::Error::missing_field(#field_name))?;
-        };
+        }};
 
-        FieldRecipe { field_ident, has_unnamed_ident: field.ident.is_none(), variant_ident, field_name, var_decl, key_arm, value_arm, check_missing, skip, }
+        FieldRecipe { field_ident, has_unnamed_ident: field.ident.is_none(), variant_ident, field_name, var_decl, key_arm, value_arm, check_missing, kind, }
     }).collect();
 
     let expected_root: String = format!("struct {}", ident);
     let expected_key: String = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(format!("`{}`", f.field_name))
@@ -238,10 +256,10 @@ fn deserialize_seed_struct_visitor(
         .iter()
         .map(|f| {
             let field_ident = &f.field_ident;
-            if f.skip {
-                quote! { #field_ident: Default::default() }
-            } else {
-                quote! { #field_ident }
+            match f.kind {
+                FieldKind::Usual => quote! { #field_ident },
+                FieldKind::Default => quote! { #field_ident },
+                FieldKind::Skip => quote! { #field_ident: Default::default() },
             }
         })
         .collect();
@@ -249,7 +267,7 @@ fn deserialize_seed_struct_visitor(
     let variant_idents: Vec<_> = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(f.variant_ident.clone())
@@ -260,7 +278,7 @@ fn deserialize_seed_struct_visitor(
     let field_names: Vec<_> = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(f.field_name.clone())
@@ -271,7 +289,7 @@ fn deserialize_seed_struct_visitor(
     let var_decls: Vec<_> = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(f.var_decl.clone())
@@ -282,7 +300,7 @@ fn deserialize_seed_struct_visitor(
     let key_arms: Vec<_> = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(f.key_arm.clone())
@@ -293,7 +311,7 @@ fn deserialize_seed_struct_visitor(
     let value_arms: Vec<_> = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(f.value_arm.clone())
@@ -304,7 +322,7 @@ fn deserialize_seed_struct_visitor(
     let check_missings: Vec<_> = fields
         .iter()
         .filter_map(|f| {
-            if f.skip {
+            if f.kind == FieldKind::Skip {
                 None
             } else {
                 Some(f.check_missing.clone())

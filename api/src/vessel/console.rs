@@ -1,5 +1,5 @@
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId};
-use crate::person::{PersonId, SubordinationTable};
+use crate::person::{PersonId, SubordinationTable, VesselPermissions};
 use crate::vessel::{DockingConnectorId, VesselId};
 use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
@@ -18,6 +18,7 @@ pub trait VesselConsole {
     fn owner(&self) -> PersonId;
     fn capabilities(&self) -> BTreeSet<ModuleCapability>;
     fn primary_capabilities(&self) -> BTreeSet<ModuleCapability>;
+    fn permissions(&self) -> &VesselPermissions;
 }
 
 pub trait VesselInternalConsole: VesselConsole {

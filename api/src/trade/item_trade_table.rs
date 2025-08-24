@@ -1,4 +1,4 @@
-use crate::finance::{MoneyAmount, MoneyRef};
+use crate::finance::{BankRegistry, MoneyAmount, MoneyRef};
 use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
@@ -22,29 +22,34 @@ impl ItemRecord {
         }
     }
 
-    pub(crate) fn cheapest_buy_offer(&self) -> Option<&OfferRef<BuyOffer>> {
+    pub(crate) fn cheapest_buy_offer(
+        &self,
+        bank_registry: &BankRegistry,
+    ) -> Option<&OfferRef<BuyOffer>> {
         self.buy_offers.iter().min_by(|a, b| {
             a.offer
                 .price_per_unit
-                .amount
-                .cmp(&b.offer.price_per_unit.amount)
+                .cmp(&b.offer.price_per_unit, bank_registry)
         })
     }
 
-    pub(crate) fn the_most_expensive_sell_offer(&self) -> Option<&OfferRef<SellOffer>> {
+    pub(crate) fn the_most_expensive_sell_offer(
+        &self,
+        bank_registry: &BankRegistry,
+    ) -> Option<&OfferRef<SellOffer>> {
         self.sell_offers.iter().max_by(|a, b| {
             a.offer
                 .price_per_unit
-                .amount
-                .cmp(&b.offer.price_per_unit.amount)
+                .cmp(&b.offer.price_per_unit, bank_registry)
         })
     }
 
     pub(crate) fn eval_max_profit(
         &self,
+        bank_registry: &BankRegistry,
         free_storage_space: ItemVolume,
         item_vault: &ItemVault,
-    ) -> (MoneyAmount, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
+    ) -> (MoneyRef, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
@@ -63,7 +68,7 @@ impl ItemRecord {
                     offer,
                 )
             })
-            .min_by(|(a, _), (b, _)| a.amount.cmp(&b.amount))
+            .min_by(|(a, _), (b, _)| a.cmp(&b, bank_registry))
             .unwrap();
 
         let (max_sell_price, max_price_sell_offer) = self
@@ -84,11 +89,11 @@ impl ItemRecord {
                     offer,
                 )
             })
-            .max_by(|(a, _), (b, _)| a.amount.cmp(&b.amount))
+            .max_by(|(a, _), (b, _)| a.cmp(&b, bank_registry))
             .unwrap();
 
         (
-            max_sell_price.amount - min_buy_price.amount,
+            max_sell_price.sub(min_buy_price, bank_registry),
             min_price_buy_offer.clone(),
             max_price_sell_offer.clone(),
         )

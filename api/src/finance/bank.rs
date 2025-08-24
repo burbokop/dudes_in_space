@@ -45,7 +45,7 @@ impl Bank {
             current_cycle: 0,
         }
     }
-    
+
     pub fn currency(&self) -> &Currency {
         &self.currency
     }

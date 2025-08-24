@@ -4,6 +4,7 @@ use crate::modules::{
     TradingTerminalFactory, VesselSellingTerminalFactory,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{
     ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault,
 };
@@ -33,7 +34,6 @@ use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
-use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[

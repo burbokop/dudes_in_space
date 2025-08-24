@@ -2,6 +2,7 @@ use crate::environment::{
     EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, RequestStorage,
 };
+use crate::finance::BankRegistry;
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
@@ -13,7 +14,6 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::ops::ControlFlow;
-use crate::finance::BankRegistry;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -86,7 +86,12 @@ impl Environment {
         collector.exit_environment();
     }
 
-    fn process_requests(&mut self, req_context: &ReqContext, item_vault: &ItemVault, bank_registry: &BankRegistry) {
+    fn process_requests(
+        &mut self,
+        req_context: &ReqContext,
+        item_vault: &ItemVault,
+        bank_registry: &BankRegistry,
+    ) {
         self.request_storage
             .find_best_buy_offer_requests
             .retain_mut(|req| {
@@ -100,11 +105,15 @@ impl Environment {
                     .iter()
                     .map(|(item_id, record)| {
                         (
-                            record.eval_max_profit(req.input.free_storage_space, item_vault),
+                            record.eval_max_profit(
+                                bank_registry,
+                                req.input.free_storage_space,
+                                item_vault,
+                            ),
                             record,
                         )
                     })
-                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b))
+                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b, bank_registry))
                 {
                     req.promise
                         .make_ready(
@@ -142,7 +151,11 @@ impl Environment {
                                 .iter()
                                 .all(|x| offer.offer.primary_capabilities.contains(x))
                     })
-                    .min_by(|a, b| a.offer.price_per_unit.cmp(&b.offer.price_per_unit, bank_registry))
+                    .min_by(|a, b| {
+                        a.offer
+                            .price_per_unit
+                            .cmp(&b.offer.price_per_unit, bank_registry)
+                    })
                 {
                     req.promise
                         .make_ready(
@@ -180,7 +193,7 @@ impl Environment {
                                 .unwrap(),
                         )
                     })
-                    .min_by(|(_, a), (_, b)| a.money().cmp( &b.money(), bank_registry))
+                    .min_by(|(_, a), (_, b)| a.money().cmp(&b.money(), bank_registry))
                 {
                     req.promise
                         .make_ready(
@@ -209,10 +222,10 @@ impl Environment {
 
                 for item in &req.input.items {
                     if let Some(record) = ItemTradeTable::build(&self.vessels).get(item) {
-                        if let Some(o) = record.cheapest_buy_offer() {
+                        if let Some(o) = record.cheapest_buy_offer(bank_registry) {
                             max_profit_buy_offers.insert(item.clone(), o.clone());
                         }
-                        if let Some(o) = record.the_most_expensive_sell_offer() {
+                        if let Some(o) = record.the_most_expensive_sell_offer(bank_registry) {
                             max_profit_sell_offers.insert(item.clone(), o.clone());
                         }
                     }

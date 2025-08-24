@@ -1,8 +1,8 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use crate::finance::{Bank, BankRegistry, Wallet};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize};
-use crate::finance::{Bank, BankRegistry, Wallet};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Default, Debug, Serialize)]
 pub struct PersonalFinancePackage {
@@ -27,7 +27,7 @@ impl<'de, 'b> DeserializeSeed<'de> for PersonalFinancePackageSeed<'b> {
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         #[derive(Deserialize)]
         pub struct Impl {
@@ -39,8 +39,8 @@ impl<'de, 'b> DeserializeSeed<'de> for PersonalFinancePackageSeed<'b> {
         let Impl { bank, wallet } = Impl::deserialize(deserializer)?;
 
         Ok(Self::Value {
-            bank: bank.map(|bank|self.bank_registry.register(bank)),
-            wallet
+            bank: bank.map(|bank| self.bank_registry.register(bank)),
+            wallet,
         })
     }
 }

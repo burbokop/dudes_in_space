@@ -1,13 +1,12 @@
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::{BankRegistry, MoneyRef};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    DynObjective, Logger,
-    ObjectiveDeciderVault, Person, PersonId, PersonSeed,
-    StatusCollector,
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
@@ -32,7 +31,6 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::rc::Rc;
-use dudes_in_space_api::finance::{BankRegistry, MoneyRef};
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
@@ -53,12 +51,12 @@ struct VesselSellingTerminal {
     operator: Option<Person>,
 }
 
-struct VesselSellingTerminalSeed<'h,'b, 'v> {
+struct VesselSellingTerminalSeed<'h, 'b, 'v> {
     order_seed: VecSeed<OrderSeed<'h, BuyVesselOrder>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
 }
 
-impl<'h,'b, 'v> VesselSellingTerminalSeed<'h,'b, 'v> {
+impl<'h, 'b, 'v> VesselSellingTerminalSeed<'h, 'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
@@ -66,7 +64,7 @@ impl<'h,'b, 'v> VesselSellingTerminalSeed<'h,'b, 'v> {
     ) -> Self {
         Self {
             order_seed: VecSeed::new(OrderSeed::new(order_holder)),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault,bank_registry)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
         }
     }
 }
@@ -511,12 +509,12 @@ impl VesselSellingTerminalDynSeed {
     pub(crate) fn new(
         order_holder: Rc<OrderHolder>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
-        bank_registry: Rc<BankRegistry>,   
+        bank_registry: Rc<BankRegistry>,
     ) -> Self {
         Self {
             order_holder,
             objective_vault,
-            bank_registry,       
+            bank_registry,
         }
     }
 }
@@ -532,7 +530,11 @@ impl DynDeserializeSeed<dyn Module> for VesselSellingTerminalDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let r: VesselSellingTerminal = from_intermediate_seed(
-            VesselSellingTerminalSeed::new(&self.order_holder, &self.objective_vault, &self.    bank_registry),
+            VesselSellingTerminalSeed::new(
+                &self.order_holder,
+                &self.objective_vault,
+                &self.bank_registry,
+            ),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

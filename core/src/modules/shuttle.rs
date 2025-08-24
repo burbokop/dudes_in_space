@@ -1,4 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
@@ -23,7 +24,6 @@ use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
@@ -54,12 +54,15 @@ struct Shuttle {
 }
 
 #[derive(Clone)]
-struct ShuttleSeed<'v,'b> {
-    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
+struct ShuttleSeed<'v, 'b> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
 }
 
-impl<'v,'b> ShuttleSeed<'v,'b> {
-    fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>, bank_registry: &'b BankRegistry) -> Self {
+impl<'v, 'b> ShuttleSeed<'v, 'b> {
+    fn new(
+        vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
+    ) -> Self {
         ShuttleSeed {
             person_seed: TaggedOptionSeed::new(PersonSeed::new(vault, bank_registry)),
         }
@@ -216,10 +219,14 @@ pub(crate) struct ShuttleDynSeed {
 }
 
 impl ShuttleDynSeed {
-    pub(crate) fn new(vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
-                      bank_registry: Rc<BankRegistry>,
+    pub(crate) fn new(
+        vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,
     ) -> Self {
-        Self { vault, bank_registry }
+        Self {
+            vault,
+            bank_registry,
+        }
     }
 }
 
@@ -233,8 +240,11 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
         intermediate: Intermediate,
         _: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
-        let obj: Shuttle = from_intermediate_seed(ShuttleSeed::new(&self.vault, &self.bank_registry), &intermediate)
-            .map_err(|e| e.to_string())?;
+        let obj: Shuttle = from_intermediate_seed(
+            ShuttleSeed::new(&self.vault, &self.bank_registry),
+            &intermediate,
+        )
+        .map_err(|e| e.to_string())?;
         Ok(Box::new(obj))
     }
 }

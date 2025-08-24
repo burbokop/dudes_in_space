@@ -1,4 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -28,7 +29,6 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
-use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
@@ -136,21 +136,24 @@ struct Fabricator {
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
-struct FabricatorSeed<'v,'b, 'sv, 'context> {
-    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
+struct FabricatorSeed<'v, 'b, 'sv, 'context> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
     item_storage_seed: ItemStorageSeed<'sv>,
     state_seed: FabricatorStateSeed<'context>,
 }
 
-impl<'v,'b, 'sv, 'context> FabricatorSeed<'v,'b, 'sv, 'context> {
+impl<'v, 'b, 'sv, 'context> FabricatorSeed<'v, 'b, 'sv, 'context> {
     fn new(
         objective_seed_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry :&'b BankRegistry,
+        bank_registry: &'b BankRegistry,
         item_vault: &'sv ItemVault,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_seed_vault, bank_registry)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(
+                objective_seed_vault,
+                bank_registry,
+            )),
             item_storage_seed: ItemStorageSeed::new(item_vault),
             state_seed: FabricatorStateSeed::new(context),
         }
@@ -459,7 +462,12 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Fabricator = from_intermediate_seed(
-            FabricatorSeed::new(&self.objective_seed_vault,&self.bank_registry, &self.item_vault, &self.context),
+            FabricatorSeed::new(
+                &self.objective_seed_vault,
+                &self.bank_registry,
+                &self.item_vault,
+                &self.context,
+            ),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

@@ -227,7 +227,9 @@ pub struct PersonSeed<'v, 'b> {
 }
 
 impl<'v, 'b> PersonSeed<'v, 'b> {
-    pub fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>,    bank_registry: &'b BankRegistry,
+    pub fn new(
+        vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
     ) -> Self {
         Self {
             objective_seed: TaggedOptionSeed::new(ObjectiveSeed::new(vault)),

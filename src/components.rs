@@ -1,3 +1,4 @@
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::{ObjectiveDeciderVault, SubordinationTable};
@@ -5,7 +6,6 @@ use dudes_in_space_api::trade::OrderHolder;
 use dudes_in_space_api::utils::request::ReqContext;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
-use dudes_in_space_api::finance::BankRegistry;
 
 pub(crate) struct Components {
     pub(crate) process_token_context: Rc<ProcessTokenContext>,

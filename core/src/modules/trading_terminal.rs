@@ -1,4 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemCount, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -29,7 +30,6 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "TradingTerminal";
 static FACTORY_TYPE_ID: &str = "TradingTerminalFactory";
@@ -51,13 +51,13 @@ pub(crate) struct TradingTerminal {
     operator: Option<Person>,
 }
 
-struct TradingTerminalSeed<'h,'b, 'v> {
+struct TradingTerminalSeed<'h, 'b, 'v> {
     buy_order_seed: VecSeed<OrderSeed<'h, BuyOrder>>,
     sell_order_seed: VecSeed<OrderSeed<'h, SellOrder>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
 }
 
-impl<'h,'b, 'v> TradingTerminalSeed<'h,'b, 'v> {
+impl<'h, 'b, 'v> TradingTerminalSeed<'h, 'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
@@ -384,12 +384,12 @@ impl TradingTerminalDynSeed {
     pub(crate) fn new(
         order_holder: Rc<OrderHolder>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
-        bank_registry: Rc<BankRegistry>,   
+        bank_registry: Rc<BankRegistry>,
     ) -> Self {
         Self {
             order_holder,
             objective_vault,
-             bank_registry,       
+            bank_registry,
         }
     }
 }
@@ -405,7 +405,11 @@ impl DynDeserializeSeed<dyn Module> for TradingTerminalDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: TradingTerminal = from_intermediate_seed(
-            TradingTerminalSeed::new(&self.order_holder, &self.objective_vault, &self.bank_registry),
+            TradingTerminalSeed::new(
+                &self.order_holder,
+                &self.objective_vault,
+                &self.bank_registry,
+            ),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

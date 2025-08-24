@@ -17,6 +17,10 @@ impl MoneyRef {
     pub fn cmp(&self, other: &MoneyRef, reg: &BankRegistry) -> Ordering {
         todo!()
     }
+
+    pub fn sub(self, other: MoneyRef, reg: &BankRegistry) -> Self {
+        todo!()
+    }
 }
 
 #[derive(Clone)]

@@ -1,6 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
@@ -20,7 +21,6 @@ use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
-use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
@@ -35,13 +35,14 @@ pub(crate) struct PersonnelArea {
 }
 
 #[derive(Clone)]
-struct PersonnelAreaSeed<'v,'b> {
-    person_seed: VecSeed<PersonSeed<'v,'b>>,
+struct PersonnelAreaSeed<'v, 'b> {
+    person_seed: VecSeed<PersonSeed<'v, 'b>>,
 }
 
-impl<'v,'b> PersonnelAreaSeed<'v,'b> {
-    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>
-    , bank_registry: &'b BankRegistry,
+impl<'v, 'b> PersonnelAreaSeed<'v, 'b> {
+    fn new(
+        objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
     ) -> Self {
         Self {
             person_seed: VecSeed::new(PersonSeed::new(objective_vault, bank_registry)),
@@ -214,9 +215,9 @@ pub(crate) struct PersonnelAreaDynSeed {
 }
 
 impl PersonnelAreaDynSeed {
-    pub fn new(objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
-               bank_registry: Rc<BankRegistry>,
-    
+    pub fn new(
+        objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,
     ) -> Self {
         Self {
             objective_seed_vault,

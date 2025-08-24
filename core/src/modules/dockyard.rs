@@ -1,4 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -27,7 +28,6 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use dudes_in_space_api::finance::BankRegistry;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
@@ -93,14 +93,14 @@ impl Dockyard {
 }
 
 #[derive(Clone)]
-struct DockyardSeed<'v,'b, 'context> {
+struct DockyardSeed<'v, 'b, 'context> {
     module_storage_seed: ModuleStorageSeed<'v>,
     docking_clamp_seed: DockingClampSeed<'v>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v,'b>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
     state_seed: DockyardStateSeed<'context>,
 }
 
-impl<'v,'b, 'context> DockyardSeed<'v,'b, 'context> {
+impl<'v, 'b, 'context> DockyardSeed<'v, 'b, 'context> {
     fn new(
         module_vault: &'v DynDeserializeSeedVault<dyn Module>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
@@ -521,7 +521,7 @@ pub(crate) struct DockyardDynSeed {
 impl DockyardDynSeed {
     pub fn new(
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
-        bank_registry: Rc<BankRegistry>,   
+        bank_registry: Rc<BankRegistry>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
@@ -543,7 +543,12 @@ impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Dockyard = from_intermediate_seed(
-            DockyardSeed::new(this_vault, &self.objective_seed_vault,&self.bank_registry, &self.context),
+            DockyardSeed::new(
+                this_vault,
+                &self.objective_seed_vault,
+                &self.bank_registry,
+                &self.context,
+            ),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

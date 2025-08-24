@@ -1,6 +1,5 @@
 use crate::environment::EnvironmentContext;
-use crate::finance::{
-    PersonalFinancePackage};
+use crate::finance::PersonalFinancePackage;
 use crate::module::ModuleConsole;
 use crate::person::logger::PersonLogger;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};

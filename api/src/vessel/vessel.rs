@@ -2,7 +2,8 @@ use crate::environment::EnvironmentContext;
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed};
 use crate::person;
 use crate::person::{
-    Logger, ObjectiveDeciderVault, PersonId, StatusCollector, SubordinationTable, VesselPermissions,
+    Logger, ObjectiveDeciderVault, PersonId, StatusCollector, SubordinationTable, VesselPermission,
+    VesselPermissions,
 };
 use crate::utils::math::Point;
 use crate::utils::non_nil_uuid::NonNilUuid;
@@ -102,6 +103,8 @@ pub struct Vessel {
     modules: Vec<RefCell<Box<dyn Module>>>,
     #[serde(skip)]
     requests: RefCell<Vec<VesselRequest>>,
+    #[serde(default)]
+    permissions: VesselPermissions,
 }
 
 #[derive(Clone)]
@@ -224,6 +227,7 @@ impl Vessel {
             pos,
             modules: modules.into_iter().map(RefCell::new).collect(),
             requests: Default::default(),
+            permissions: Default::default(),
         }
     }
 
@@ -492,6 +496,10 @@ impl VesselConsole for Vessel {
             .flatten()
             .collect()
     }
+
+    fn permissions(&self) -> &VesselPermissions {
+        &self.permissions
+    }
 }
 
 impl VesselInternalConsole for Vessel {
@@ -548,7 +556,7 @@ impl VesselInternalConsole for Vessel {
 
         if let Some(permissions_needed) =
             if module.capabilities().contains(&ModuleCapability::Cockpit) {
-                Some(VesselPermissions::Pilot)
+                Some(VesselPermission::Pilot)
             } else if module.capabilities().contains(&ModuleCapability::Dockyard)
                 || module
                     .capabilities()
@@ -563,7 +571,7 @@ impl VesselInternalConsole for Vessel {
                     .capabilities()
                     .contains(&ModuleCapability::VesselSellingTerminal)
             {
-                Some(VesselPermissions::Operate)
+                Some(VesselPermission::Operate)
             } else {
                 None
             }
@@ -633,9 +641,9 @@ impl VesselInternalConsole for Vessel {
             .capabilities()
             .contains(&ModuleCapability::Cockpit)
         {
-            VesselPermissions::Pilot
+            VesselPermission::Pilot
         } else {
-            VesselPermissions::Enter
+            VesselPermission::Enter
         };
 
         if !subordination_table.has_permission(person_id, target_vessel, permissions_needed) {

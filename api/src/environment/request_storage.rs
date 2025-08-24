@@ -1,4 +1,4 @@
-use crate::finance::MoneyAmount;
+use crate::finance::MoneyRef;
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
@@ -54,7 +54,7 @@ pub struct FindBestBuyOffer {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestBuyOfferResult {
-    pub max_estimated_profit: MoneyAmount,
+    pub max_estimated_profit: MoneyRef,
     pub max_profit_buy_offer: OfferRef<BuyOffer>,
     pub max_profit_sell_offer: OfferRef<SellOffer>,
 }
