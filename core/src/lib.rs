@@ -5,10 +5,10 @@
 
 pub(crate) const CORE_PACKAGE_ID: &str = "core";
 
+pub mod components;
 pub mod env_presets;
 mod modules;
 mod objectives;
-pub mod components;
 
 use dudes_in_space_api::item::{Item, ItemVault};
 use dudes_in_space_api::recipe::ItemRecipe;

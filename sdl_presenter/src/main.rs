@@ -1,13 +1,17 @@
-use std::env::home_dir;
+#![deny(warnings)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use crate::camera::Camera;
-use crate::render_model::RenderModel;
+use crate::render::{EnvironmentRenderModel, FontProvider};
+use crate::utils::{load, load_camera, save, save_camera};
 use dudes_in_space_api::utils::utils::Float;
-use std::time::Duration;
 use dudes_in_space_core::components::core_components;
-use crate::utils::{load, save};
+use std::env::home_dir;
+use std::time::Duration;
 
 mod camera;
-mod render_model;
+mod render;
 mod utils;
 
 fn main() {
@@ -17,6 +21,7 @@ fn main() {
     let window = video_subsystem
         .window("rust-sdl2 demo: Video", 800, 600)
         .position_centered()
+        .resizable()
         .opengl()
         .build()
         .unwrap();
@@ -25,23 +30,23 @@ fn main() {
 
     let mut control = false;
     let mut shift = false;
-    let mut camera: Camera = Default::default();
-    let render_model = RenderModel::new();
-
-
 
     let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
+    let camera_save_path = home_dir().unwrap().join(".dudes_in_space/camera.json");
+
+    let mut camera: Camera = load_camera(camera_save_path.clone());
+    let render_model = EnvironmentRenderModel::new();
+    let font_provider = FontProvider::new();
+    let mut texture_creator = canvas.texture_creator();
+
     let components = core_components();
-    let mut environment = load(&components, save_path.clone());
-
-
-    
+    let environment = load(&components, save_path.clone());
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     'running: loop {
         for event in event_pump.poll_iter() {
-            use sdl2::event::Event::{KeyDown, KeyUp, Quit,MouseWheel};
+            use sdl2::event::Event::{KeyDown, KeyUp, MouseWheel, Quit};
             use sdl2::keyboard::Keycode;
             match event {
                 Quit { .. }
@@ -110,9 +115,13 @@ fn main() {
             }
         }
 
-        render_model.render( &mut canvas, &environment, &camera).unwrap();
+        render_model
+            .render(&mut canvas, &mut texture_creator, &font_provider, &camera, &environment)
+            .unwrap();
+        canvas.present();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
-    save(environment, save_path)
+    save(environment, save_path);
+    save_camera(camera, camera_save_path);
 }

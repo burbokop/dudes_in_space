@@ -34,6 +34,7 @@ use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
+use crate::CORE_PACKAGE_ID;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
@@ -387,7 +388,7 @@ impl Module for Assembler {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {

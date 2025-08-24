@@ -1,7 +1,9 @@
 use dudes_in_space_api::utils::math::{Complex, Matrix, One, Point, Vector, Zero};
 use dudes_in_space_api::utils::utils::Float;
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Mul, Sub};
 
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Camera {
     translation: Matrix<Float>,
     scale: Matrix<Float>,

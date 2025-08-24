@@ -174,6 +174,10 @@ impl Vessel {
         self.owner
     }
 
+    pub fn pos(&self) -> Point<Float> {
+        self.pos
+    }
+
     pub(crate) fn traverse<R>(&self, mut f: impl FnMut(VesselIdPathRef, &Vessel) -> R) -> R
     where
         R: Try<Output = ()>,
@@ -231,21 +235,28 @@ impl Vessel {
         }
     }
 
-    pub fn modules<'a>(&'a self) -> impl Iterator<Item = Ref<'a, Box<dyn Module>>> {
-        self.modules.iter().map(|module| module.borrow())
+    pub fn modules<'a>(&'a self) -> impl Iterator<Item = Ref<'a, dyn Module>> {
+        self.modules
+            .iter()
+            .map(|module| Ref::map(module.borrow(), |x| x.deref()))
     }
 
-    pub fn modules_mut<'a>(&'a self) -> impl Iterator<Item = RefMut<'a, Box<dyn Module>>> {
-        self.modules.iter().map(|module| module.borrow_mut())
+    pub fn modules_mut<'a>(&'a self) -> impl Iterator<Item = RefMut<'a, dyn Module>> {
+        self.modules.iter().map(|module| {
+            RefMut::map(module.borrow_mut(), |x| {
+                let x = x.deref_mut();
+                x
+            })
+        })
     }
 
-    pub fn module_by_id<'a>(&'a self, id: ModuleId) -> Option<Ref<'a, Box<dyn Module>>> {
+    pub fn module_by_id<'a>(&'a self, id: ModuleId) -> Option<Ref<'a, dyn Module>> {
         self.modules
             .iter()
             .find_map(|module| match module.try_borrow() {
                 Ok(module) => {
                     if module.id() == id {
-                        Some(module)
+                        Some(Ref::map(module, |x| x.deref()))
                     } else {
                         None
                     }
@@ -254,13 +265,16 @@ impl Vessel {
             })
     }
 
-    pub fn module_by_id_mut<'a>(&'a self, id: ModuleId) -> Option<RefMut<'a, Box<dyn Module>>> {
+    pub fn module_by_id_mut<'a>(&'a self, id: ModuleId) -> Option<RefMut<'a, dyn Module>> {
         self.modules
             .iter()
             .find_map(|module| match module.try_borrow_mut() {
                 Ok(module) => {
                     if module.id() == id {
-                        Some(module)
+                        Some(RefMut::map(module, |x| {
+                            let x = x.deref_mut();
+                            x
+                        }))
                     } else {
                         None
                     }

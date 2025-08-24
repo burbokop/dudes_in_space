@@ -1,7 +1,7 @@
-use crate::components::Components;
 use crate::logger::StdOutLogger;
 use clap::Parser;
 use dudes_in_space_api::environment::Environment;
+use dudes_in_space_core::components::Components;
 
 #[derive(Parser)]
 pub(crate) struct StepCommand {}

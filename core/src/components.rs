@@ -26,13 +26,10 @@ pub fn core_components() -> Components {
     let subordination_table = Rc::new(SubordinationTable::new());
     let bank_registry = Rc::new(BankRegistry::new());
 
-    let objectives_seed_vault =
-        crate::register_objectives(Default::default(), req_context.clone());
-    let objectives_decider_vault =
-        crate::register_objective_deciders(Default::default());
+    let objectives_seed_vault = crate::register_objectives(Default::default(), req_context.clone());
+    let objectives_decider_vault = crate::register_objective_deciders(Default::default());
 
-    let module_factory_seed_vault =
-        crate::register_module_factories(Default::default()).into_rc();
+    let module_factory_seed_vault = crate::register_module_factories(Default::default()).into_rc();
 
     let module_seed_vault = crate::register_modules(
         Default::default(),

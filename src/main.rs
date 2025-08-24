@@ -3,14 +3,13 @@
 #![allow(dead_code)]
 
 mod commands;
-mod components;
 mod logger;
 mod utils;
 
 use crate::commands::{Args, Command};
-use crate::components::core_components;
 use crate::utils::{load, save};
 use clap::Parser as _;
+use dudes_in_space_core::components::core_components;
 use std::env::home_dir;
 
 fn main() {

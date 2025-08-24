@@ -1,6 +1,6 @@
-use crate::components::Components;
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::Module;
+use dudes_in_space_core::components::Components;
 use dudes_in_space_core::env_presets;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;

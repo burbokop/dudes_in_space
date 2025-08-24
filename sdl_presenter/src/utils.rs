@@ -1,6 +1,7 @@
-use dudes_in_space_core::components::Components;
+use crate::camera::Camera;
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::Module;
+use dudes_in_space_core::components::Components;
 use dudes_in_space_core::env_presets;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
@@ -41,4 +42,17 @@ pub(crate) fn load(components: &Components, save_path: PathBuf) -> Environment {
 pub(crate) fn save(environment: Environment, save_path: PathBuf) {
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
     std::fs::write(save_path, env_to_json(&environment).unwrap()).unwrap();
+}
+
+pub(crate) fn load_camera(save_path: PathBuf) -> Camera {
+    if save_path.exists() {
+        serde_json::from_slice(&std::fs::read(save_path.as_path()).unwrap()).unwrap()
+    } else {
+        Camera::default()
+    }
+}
+
+pub(crate) fn save_camera(camera: Camera, save_path: PathBuf) {
+    std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
+    std::fs::write(save_path, serde_json::to_vec(&camera).unwrap()).unwrap();
 }

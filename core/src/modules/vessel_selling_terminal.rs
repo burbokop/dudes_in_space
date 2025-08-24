@@ -31,6 +31,7 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::rc::Rc;
+use crate::CORE_PACKAGE_ID;
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
@@ -234,7 +235,8 @@ impl Module for VesselSellingTerminal {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.into()
+
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {

@@ -28,6 +28,7 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
+use crate::CORE_PACKAGE_ID;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
@@ -270,7 +271,8 @@ impl Module for Dockyard {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.into()
+        
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
