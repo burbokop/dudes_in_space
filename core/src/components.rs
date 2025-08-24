@@ -7,34 +7,34 @@ use dudes_in_space_api::utils::request::ReqContext;
 use dyn_serde::DynDeserializeSeedVault;
 use std::rc::Rc;
 
-pub(crate) struct Components {
-    pub(crate) process_token_context: Rc<ProcessTokenContext>,
-    pub(crate) req_context: Rc<ReqContext>,
-    pub(crate) objectives_decider_vault: ObjectiveDeciderVault,
-    pub(crate) item_vault: Rc<ItemVault>,
-    pub(crate) order_holder: Rc<OrderHolder>,
-    pub(crate) module_seed_vault: Rc<DynDeserializeSeedVault<dyn Module>>,
-    pub(crate) subordination_table: Rc<SubordinationTable>,
-    pub(crate) bank_registry: Rc<BankRegistry>,
+pub struct Components {
+    pub process_token_context: Rc<ProcessTokenContext>,
+    pub req_context: Rc<ReqContext>,
+    pub objectives_decider_vault: ObjectiveDeciderVault,
+    pub item_vault: Rc<ItemVault>,
+    pub order_holder: Rc<OrderHolder>,
+    pub module_seed_vault: Rc<DynDeserializeSeedVault<dyn Module>>,
+    pub subordination_table: Rc<SubordinationTable>,
+    pub bank_registry: Rc<BankRegistry>,
 }
 
-pub(crate) fn core_components() -> Components {
+pub fn core_components() -> Components {
     let process_token_context = Rc::new(ProcessTokenContext::new());
     let req_context = Rc::new(ReqContext::new());
-    let item_vault = Rc::new(dudes_in_space_core::register_items(ItemVault::new()));
+    let item_vault = Rc::new(crate::register_items(ItemVault::new()));
     let order_holder = Rc::new(OrderHolder::new());
     let subordination_table = Rc::new(SubordinationTable::new());
     let bank_registry = Rc::new(BankRegistry::new());
 
     let objectives_seed_vault =
-        dudes_in_space_core::register_objectives(Default::default(), req_context.clone());
+        crate::register_objectives(Default::default(), req_context.clone());
     let objectives_decider_vault =
-        dudes_in_space_core::register_objective_deciders(Default::default());
+        crate::register_objective_deciders(Default::default());
 
     let module_factory_seed_vault =
-        dudes_in_space_core::register_module_factories(Default::default()).into_rc();
+        crate::register_module_factories(Default::default()).into_rc();
 
-    let module_seed_vault = dudes_in_space_core::register_modules(
+    let module_seed_vault = crate::register_modules(
         Default::default(),
         module_factory_seed_vault,
         objectives_seed_vault.into_rc(),

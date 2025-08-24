@@ -1,5 +1,5 @@
 [workspace]
-members = ["dyn_serde", "dyn_serde_macro", "api", "core"]
+members = ["dyn_serde", "dyn_serde_macro", "api", "core", "sdl_presenter"]
 
 [package]
 name = "dudes_in_space"
