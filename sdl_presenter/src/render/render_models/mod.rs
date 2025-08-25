@@ -12,8 +12,11 @@ pub use person_render_model::*;
 #[allow(unused_imports)]
 pub use vessel_render_model::*;
 
+use dudes_in_space_api::utils::utils::Float;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+
+pub static DEFAULT_MARGIN: Float = 0.95;
 
 #[derive(Debug)]
 pub enum RenderError {}

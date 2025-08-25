@@ -15,3 +15,5 @@ pub use font_provider::*;
 pub use layout::*;
 #[allow(unused_imports)]
 pub use render_models::*;
+#[allow(unused_imports)]
+pub use renderer::*;

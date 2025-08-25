@@ -86,16 +86,14 @@ where
             let ssx = (bounding_box.w() / longest_line_len as Float) as u16;
             let ssy = (bounding_box.h() / lines_count as Float) as u16;
 
-
-
-            let point_size = ssx.min(ssy) .checked_mul(4) ;
+            let point_size = ssx.min(ssy).checked_mul(4);
             if point_size.is_none() {
                 self.fill_rect(rect_to_sdl2_rect(bounding_box)).unwrap();
                 return;
             }
 
             let point_size = point_size.unwrap() / 3;
-            
+
             let font = font_provider.font(point_size);
 
             let color = color_to_sdl2_rgba_color(color);

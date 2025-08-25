@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 
 use crate::camera::Camera;
-use crate::render::{EnvironmentRenderModel, FontProvider};
+use crate::render::{EnvironmentRenderModel, FontProvider, Renderer};
 use crate::utils::{load, load_camera, save, save_camera};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
@@ -26,7 +26,7 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let canvas = window.into_canvas().build().unwrap();
 
     let mut control = false;
     let mut shift = false;
@@ -37,7 +37,9 @@ fn main() {
     let mut camera: Camera = load_camera(camera_save_path.clone());
     let render_model = EnvironmentRenderModel::new();
     let font_provider = FontProvider::new();
-    let mut texture_creator = canvas.texture_creator();
+    let texture_creator = canvas.texture_creator();
+
+    let mut renderer = Renderer::new(canvas, texture_creator, font_provider);
 
     let components = core_components();
     let environment = load(&components, save_path.clone());
@@ -115,16 +117,11 @@ fn main() {
             }
         }
 
-        render_model
-            .render(
-                &mut canvas,
-                &mut texture_creator,
-                &font_provider,
-                &camera,
-                &environment,
-            )
-            .unwrap();
-        canvas.present();
+        renderer.begin(&camera);
+
+        render_model.render(&mut renderer, &environment).unwrap();
+
+        renderer.end();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }

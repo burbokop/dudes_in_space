@@ -1,7 +1,7 @@
-use crate::camera::Camera;
-use crate::render::font_provider::FontProvider;
+use crate::render::RenderError;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
-use crate::render::{RenderError, rect_to_sdl2_rect};
+use crate::render::renderer::Renderer;
+use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Rect, Vector};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::Vessel;
@@ -20,14 +20,9 @@ impl VesselRenderModel {
 
     pub fn render<T: sdl2::render::RenderTarget>(
         &self,
-        canvas: &mut sdl2::render::Canvas<T>,
-        texture_creator: &mut sdl2::render::TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        camera: &Camera,
-        view_port_in_world_space: Rect<Float>,
+        renderer: &mut Renderer<T>,
         vessel: &Vessel,
     ) -> Result<(), RenderError> {
-        let tr = camera.transformation();
         let modules: Vec<_> = vessel.modules().collect();
         let modules_count = modules.len();
         let side_count = (modules_count as Float).sqrt().ceil() as usize;
@@ -51,8 +46,15 @@ impl VesselRenderModel {
             (side_width + margin * 2., side_height + margin * 2.).into(),
         );
 
-        canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
-        canvas.draw_rect(rect_to_sdl2_rect(&tr * &rect)).unwrap();
+        renderer.draw_rect(
+            rect,
+            Color {
+                r: 0.,
+                g: 0.,
+                b: 0.,
+                a: 1.,
+            },
+        );
 
         let mut i = 0;
         for x in 0..side_count {
@@ -71,15 +73,8 @@ impl VesselRenderModel {
                 )
                     .into();
 
-                self.module_render_model.render(
-                    canvas,
-                    texture_creator,
-                    font_provider,
-                    camera,
-                    view_port_in_world_space,
-                    modules[i].deref(),
-                    bounding_box,
-                )?;
+                self.module_render_model
+                    .render(renderer, modules[i].deref(), bounding_box)?;
                 i += 1;
             }
         }

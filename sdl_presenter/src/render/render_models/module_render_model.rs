@@ -1,24 +1,18 @@
-use crate::camera::Camera;
-use crate::render::draw_utils::DrawConfinedText;
-use crate::render::font_provider::FontProvider;
 use crate::render::render_models::person_render_model::PersonRenderModel;
-use crate::render::{ColumnLayout, LayoutElement, RenderError, RowLayout, rect_to_sdl2_rect};
+use crate::render::renderer::Renderer;
+use crate::render::{ColumnLayout, LayoutElement, RenderError, RowLayout};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{Module, ModuleStorage};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::trade::{BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, SellOffer};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Matrix, Rect};
+use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
-use sdl2::render::{Canvas, TextureCreator};
 
 fn draw_top_info<T: sdl2::render::RenderTarget>(
-    canvas: &mut sdl2::render::Canvas<T>,
-    texture_creator: &sdl2::render::TextureCreator<T::Context>,
-    font_provider: &FontProvider,
-    tr: &Matrix<Float>,
+    renderer: &mut Renderer<T>,
     module: &dyn Module,
     bounding_box: Rect<Float>,
 ) {
@@ -32,16 +26,14 @@ fn draw_top_info<T: sdl2::render::RenderTarget>(
     )
         .into();
 
-    canvas.draw_confined_text(
-        texture_creator,
-        font_provider,
+    renderer.draw_confined_text(
         &format!(
             "{} ({}:{})",
             module.id(),
             module.package_id(),
             module.type_id()
         ),
-        tr * &text_box,
+        text_box,
         Color {
             r: 0.,
             g: 0.,
@@ -49,13 +41,11 @@ fn draw_top_info<T: sdl2::render::RenderTarget>(
             a: 1.,
         },
     );
+    draw_bounding_box(renderer, bounding_box);
 }
 
 fn draw_bottom_info<T: sdl2::render::RenderTarget>(
-    canvas: &mut sdl2::render::Canvas<T>,
-    texture_creator: &sdl2::render::TextureCreator<T::Context>,
-    font_provider: &FontProvider,
-    tr: &Matrix<Float>,
+    renderer: &mut Renderer<T>,
     module: &dyn Module,
     bounding_box: Rect<Float>,
 ) {
@@ -69,15 +59,13 @@ fn draw_bottom_info<T: sdl2::render::RenderTarget>(
     )
         .into();
 
-    canvas.draw_confined_text(
-        texture_creator,
-        font_provider,
+    renderer.draw_confined_text(
         &format!(
             "{:?} <=> {:?}",
             module.capabilities(),
             module.primary_capabilities()
         ),
-        tr * &text_box,
+        text_box,
         Color {
             r: 0.,
             g: 0.,
@@ -85,17 +73,22 @@ fn draw_bottom_info<T: sdl2::render::RenderTarget>(
             a: 1.,
         },
     );
+    draw_bounding_box(renderer, bounding_box);
 }
 
 fn draw_bounding_box<T: sdl2::render::RenderTarget>(
-    canvas: &mut sdl2::render::Canvas<T>,
-    tr: &Matrix<Float>,
+    renderer: &mut Renderer<T>,
     bounding_box: Rect<Float>,
 ) {
-    canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
-    canvas
-        .draw_rect(rect_to_sdl2_rect(tr * &bounding_box))
-        .unwrap();
+    renderer.draw_rect(
+        bounding_box,
+        Color {
+            r: 0.,
+            g: 0.,
+            b: 0.,
+            a: 1.,
+        },
+    );
 }
 
 struct DrawPerson<'a> {
@@ -118,23 +111,13 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a> {
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         match self.person {
             None => {}
             Some(person) => {
-                canvas.draw_confined_text(
-                    texture_creator,
-                    font_provider,
+                renderer.draw_confined_text(
                     &format!("{} ({})", person.id(), person.name()),
-                    tr * &bounding_box,
+                    bounding_box,
                     Color {
                         r: 0.,
                         g: 0.,
@@ -144,7 +127,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a> {
                 );
             }
         }
-        draw_bounding_box(canvas, tr, bounding_box)
+        draw_bounding_box(renderer, bounding_box)
     }
 }
 
@@ -163,15 +146,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a> {
         !(self.module.persons().is_empty() && self.module.free_person_slots_count() == 0)
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let persons = self.module.persons();
         let free_person_slots_count = self.module.free_person_slots_count();
 
@@ -184,14 +159,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a> {
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -210,20 +179,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipe<'a> 
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?} -> {:?}", self.recipe.input, self.recipe.output,),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -231,6 +190,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipe<'a> 
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -249,15 +209,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipes<'a>
         !self.recipes.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.recipes
                 .iter()
@@ -266,14 +218,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipes<'a>
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -292,20 +238,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?} -> |", self.recipe,),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -313,6 +249,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -331,15 +268,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
         !self.recipes.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.recipes
                 .iter()
@@ -348,14 +277,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -374,20 +297,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("| -> {:?}", self.recipe,),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -395,6 +308,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -413,15 +327,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
         !self.recipes.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.recipes
                 .iter()
@@ -430,14 +336,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -456,24 +356,14 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipe<
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!(
                 "{:?} -> {}",
                 self.recipe.input(),
                 self.recipe.output_description().type_id(),
             ),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -481,6 +371,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipe<
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -499,15 +390,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipes
         !self.recipes.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.recipes
                 .iter()
@@ -516,14 +399,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipes
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -545,15 +422,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawRecipes<'a> {
             || !self.module.assembly_recipes().is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
             DrawAssemblyRecipes::new(self.module.assembly_recipes()),
             DrawItemRecipes::new(self.module.item_recipes()),
@@ -561,14 +430,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawRecipes<'a> {
             DrawOutputItemRecipes::new(self.module.output_item_recipes()),
         ]);
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        )
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -587,20 +450,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorage<'a>
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?}", self.storage,),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -608,6 +461,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorage<'a>
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -626,15 +480,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorages<'a
         !self.storages.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.storages
                 .iter()
@@ -644,14 +490,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorages<'a
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -670,20 +510,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafe<'a> {
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?}", self.safe,),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -691,6 +521,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafe<'a> {
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -709,15 +540,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafes<'a> {
         !self.safes.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.safes
                 .iter()
@@ -726,14 +549,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafes<'a> {
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -752,20 +569,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorage<'
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?}", self.storage,),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -773,6 +580,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorage<'
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -791,15 +599,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorages<
         !self.storages.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.storages
                 .iter()
@@ -808,14 +608,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorages<
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -836,29 +630,15 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawStorages<'a> {
             || !self.module.module_storages().is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
             DrawItemStorages::new(self.module.storages()),
             DrawItemSafes::new(self.module.safes()),
             DrawModuleStorages::new(self.module.module_storages()),
         ]);
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        )
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -877,20 +657,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a
         true
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?}", self.clamp.connection().map(|x| x.vessel.name()),),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -898,6 +668,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -916,15 +687,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'
         !self.clamps.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.clamps
                 .iter()
@@ -933,14 +696,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -959,20 +716,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        canvas.draw_confined_text(
-            texture_creator,
-            font_provider,
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
             &format!("{:?}", self.connector),
-            tr * &bounding_box,
+            bounding_box,
             Color {
                 r: 0.,
                 g: 0.,
@@ -980,6 +727,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
                 a: 1.,
             },
         );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -998,15 +746,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
         !self.connectors.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(
             self.connectors
                 .iter()
@@ -1015,14 +755,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
                 .collect(),
         );
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -1041,28 +775,14 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingStuff<'a
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
             DrawDockingClamps::new(self.module.docking_clamps()),
             DrawDockingConnectors::new(self.module.docking_connectors()),
         ]);
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            tr,
-            view_port_in_world_space,
-            bounding_box,
-        )
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -1081,15 +801,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyOffer<'a> {
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1109,15 +821,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyOffers<'a> {
         !self.offers.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1137,15 +841,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawSellOffer<'a> {
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1165,15 +861,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawSellOffers<'a> 
         !self.offers.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1193,15 +881,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyVesselOffer<
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1221,15 +901,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyVesselOffers
         !self.offers.is_empty()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1249,15 +921,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyCustomVessel
         self.offer.is_some()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         todo!()
     }
 }
@@ -1277,15 +941,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawTradingInfo<'a>
         self.module.trading_console().is_some()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let console = self.module.trading_console().unwrap();
 
         let layout = RowLayout::new(vec![
@@ -1295,14 +951,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawTradingInfo<'a>
             DrawBuyCustomVesselOffer::new(console.buy_custom_vessel_offer()),
         ]);
 
-        layout.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            &tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -1319,39 +969,17 @@ impl ModuleRenderModel {
 
     pub fn render<'m, T: sdl2::render::RenderTarget>(
         &self,
-        canvas: &mut sdl2::render::Canvas<T>,
-        texture_creator: &mut sdl2::render::TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        camera: &Camera,
-        view_port_in_world_space: Rect<Float>,
+        renderer: &mut Renderer<T>,
         module: &'m dyn Module,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
-        if !view_port_in_world_space.instersects(&bounding_box) {
+        if !renderer.intersects_with_view_port(&bounding_box) {
             return Ok(());
         }
 
-        let tr = camera.transformation();
-
-        draw_top_info(
-            canvas,
-            texture_creator,
-            font_provider,
-            &tr,
-            module,
-            bounding_box,
-        );
-
-        draw_bottom_info(
-            canvas,
-            texture_creator,
-            font_provider,
-            &tr,
-            module,
-            bounding_box,
-        );
-
-        draw_bounding_box(canvas, &tr, bounding_box);
+        draw_top_info(renderer, module, bounding_box);
+        draw_bottom_info(renderer, module, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
 
         let column = ColumnLayout::new(vec![
             DrawPersons::new(module),
@@ -1361,14 +989,7 @@ impl ModuleRenderModel {
             DrawTradingInfo::new(module),
         ]);
 
-        column.draw(
-            canvas,
-            texture_creator,
-            font_provider,
-            &tr,
-            view_port_in_world_space,
-            bounding_box,
-        );
+        column.draw(renderer, bounding_box);
 
         Ok(())
     }

@@ -1,19 +1,11 @@
-use crate::render::FontProvider;
-use dudes_in_space_api::utils::math::{Matrix, Rect};
+use crate::render::DEFAULT_MARGIN;
+use crate::render::renderer::Renderer;
+use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
-use sdl2::render::{Canvas, TextureCreator};
 
 pub trait LayoutElement<T: sdl2::render::RenderTarget> {
     fn visible(&self) -> bool;
-    fn draw(
-        &self,
-        canvas: &mut sdl2::render::Canvas<T>,
-        texture_creator: &sdl2::render::TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    );
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>);
 }
 
 pub struct ColumnLayout<'a, T: sdl2::render::RenderTarget> {
@@ -31,16 +23,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for ColumnLayout<'a, T>
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        if !view_port_in_world_space.instersects(&bounding_box) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        let (bounding_box, margin) = bounding_box.homogeneous_mul(DEFAULT_MARGIN);
+
+        if !renderer.intersects_with_view_port(&bounding_box) {
             return;
         }
 
@@ -49,22 +35,21 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for ColumnLayout<'a, T>
             return;
         }
 
+        let margin = margin / 2.;
+        let sum_margin = margin.abs() * (count - 1) as Float;
+
         let x = *bounding_box.x();
         let y = *bounding_box.y();
         let w = *bounding_box.w();
-        let h = bounding_box.h() / count as Float;
+        let h = (bounding_box.h() - sum_margin) / count as Float;
 
         let mut i = 0;
 
         for elem in &self.elems {
             if elem.visible() {
                 elem.draw(
-                    canvas,
-                    texture_creator,
-                    font_provider,
-                    tr,
-                    view_port_in_world_space,
-                    (x, i as Float * y, w, h).into(),
+                    renderer,
+                    (x, i as Float * (h + margin.abs()) + y, w, h).into(),
                 );
                 i += 1;
             }
@@ -87,16 +72,10 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for RowLayout<'a, T> {
         todo!()
     }
 
-    fn draw(
-        &self,
-        canvas: &mut Canvas<T>,
-        texture_creator: &TextureCreator<T::Context>,
-        font_provider: &FontProvider,
-        tr: &Matrix<Float>,
-        view_port_in_world_space: Rect<Float>,
-        bounding_box: Rect<Float>,
-    ) {
-        if !view_port_in_world_space.instersects(&bounding_box) {
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        let (bounding_box, margin) = bounding_box.homogeneous_mul(DEFAULT_MARGIN);
+
+        if !renderer.intersects_with_view_port(&bounding_box) {
             return;
         }
 
@@ -105,9 +84,12 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for RowLayout<'a, T> {
             return;
         }
 
+        let margin = margin / 2.;
+        let sum_margin = margin.abs() * (count - 1) as Float;
+
         let x = *bounding_box.x();
         let y = *bounding_box.y();
-        let w = bounding_box.w() / count as Float;
+        let w = (bounding_box.w() - sum_margin) / count as Float;
         let h = *bounding_box.h();
 
         let mut i = 0;
@@ -115,12 +97,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for RowLayout<'a, T> {
         for elem in &self.elems {
             if elem.visible() {
                 elem.draw(
-                    canvas,
-                    texture_creator,
-                    font_provider,
-                    tr,
-                    view_port_in_world_space,
-                    (i as Float * x, y, w, h).into(),
+                    renderer,
+                    (i as Float * (w + margin.abs()) + x, y, w, h).into(),
                 );
                 i += 1;
             }
