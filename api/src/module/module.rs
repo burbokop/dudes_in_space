@@ -45,8 +45,8 @@ pub trait Module: Debug + DynSerialize {
     fn persons(&self) -> &[Person];
 
     /// storage
-    fn storages(&self) -> &[ItemStorage];
-    fn storages_mut(&mut self) -> &mut [ItemStorage];
+    fn storages(&self) -> Vec<&ItemStorage>;
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage>;
     fn safes(&self) -> &[ItemSafe];
     fn safes_mut(&mut self) -> &mut [ItemSafe];
 

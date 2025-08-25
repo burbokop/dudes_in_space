@@ -1,3 +1,4 @@
+use crate::CORE_PACKAGE_ID;
 use crate::modules::{
     CargoContainerFactory, CoreModule, DockyardFactory, FabricatorFactory, ModuleVisitor,
     ModuleVisitorMut, OreManifoldFactory, PlantFacilityFactory, ShuttleFactory,
@@ -34,7 +35,6 @@ use std::error::Error;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
-use crate::CORE_PACKAGE_ID;
 
 static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
@@ -478,7 +478,7 @@ impl Module for Assembler {
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
@@ -521,22 +521,22 @@ impl Module for Assembler {
     }
 
     fn persons(&self) -> &[Person] {
-        match self.operator.as_ref() {
-            None => &[],
-            Some(person) => std::slice::from_ref(person),
-        }
+        self.operator
+            .as_ref()
+            .map(std::slice::from_ref)
+            .unwrap_or(&[])
     }
 
-    fn storages(&self) -> &[ItemStorage] {
-        todo!()
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![&self.storage]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
     fn safes(&self) -> &[ItemSafe] {
-        todo!()
+        &[]
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {
@@ -544,7 +544,7 @@ impl Module for Assembler {
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -560,11 +560,11 @@ impl Module for Assembler {
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
-        todo!()
+        &[]
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        None
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {

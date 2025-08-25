@@ -115,11 +115,11 @@ impl Module for OreManifold {
         todo!()
     }
 
-    fn storages(&self) -> &[ItemStorage] {
+    fn storages(&self) -> Vec<&ItemStorage> {
         todo!()
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -172,7 +172,7 @@ impl ModuleFactory for OreManifoldFactory {
 
 impl ModuleFactoryOutputDescription for OreManifoldFactory {
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {

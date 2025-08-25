@@ -2,6 +2,9 @@ use crate::camera::Camera;
 use crate::render::font_provider::FontProvider;
 use crate::render::{RenderError, VesselRenderModel};
 use dudes_in_space_api::environment::Environment;
+use dudes_in_space_api::utils::math::Rect;
+use dudes_in_space_api::utils::utils::Float;
+use std::ops::Not;
 
 pub struct EnvironmentRenderModel {
     vessel_render_model: VesselRenderModel,
@@ -27,9 +30,20 @@ impl EnvironmentRenderModel {
 
         let tr = camera.transformation();
 
+        let (canvas_width, canvas_height) = canvas.output_size().unwrap();
+        let view_port: Rect<Float> = (0., 0., canvas_width as Float, canvas_height as Float).into();
+
+        let view_port_in_world_space = &tr.not().unwrap() * &view_port;
+
         for vessel in environment.vessels() {
-            self.vessel_render_model
-                .render(canvas, texture_creator, font_provider, camera, vessel)?;
+            self.vessel_render_model.render(
+                canvas,
+                texture_creator,
+                font_provider,
+                camera,
+                view_port_in_world_space,
+                vessel,
+            )?;
         }
 
         Ok(())

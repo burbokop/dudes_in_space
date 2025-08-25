@@ -29,9 +29,10 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::Personnel
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v,'b>)]
 pub(crate) struct PersonnelArea {
+    id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     personnel: Vec<Person>,
-    id: ModuleId,
+    capacity: usize,
 }
 
 #[derive(Clone)]
@@ -51,10 +52,11 @@ impl<'v, 'b> PersonnelAreaSeed<'v, 'b> {
 }
 
 impl PersonnelArea {
-    pub fn new(personnel: Vec<Person>) -> Box<Self> {
+    pub fn new(personnel: Vec<Person>, capacity: usize) -> Box<Self> {
         Box::new(Self {
             id: ModuleId::new_v4(),
             personnel,
+            capacity,
         })
     }
 }
@@ -70,16 +72,16 @@ impl DynSerialize for PersonnelArea {
 }
 
 impl Module for PersonnelArea {
-    fn storages(&self) -> &[ItemStorage] {
-        todo!()
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -112,7 +114,7 @@ impl Module for PersonnelArea {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
@@ -151,7 +153,7 @@ impl Module for PersonnelArea {
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        None
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
@@ -159,11 +161,12 @@ impl Module for PersonnelArea {
     }
 
     fn free_person_slots_count(&self) -> usize {
-        todo!()
+        assert!(self.personnel.len() <= self.capacity);
+        self.capacity - self.personnel.len()
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
-        todo!()
+        &[]
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
@@ -183,15 +186,15 @@ impl Module for PersonnelArea {
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn safes(&self) -> &[ItemSafe] {
-        todo!()
+        &[]
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {

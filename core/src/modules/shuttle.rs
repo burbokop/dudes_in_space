@@ -80,11 +80,11 @@ impl DynSerialize for Shuttle {
 }
 
 impl Module for Shuttle {
-    fn storages(&self) -> &[ItemStorage] {
+    fn storages(&self) -> Vec<&ItemStorage> {
         todo!()
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -295,7 +295,7 @@ impl ModuleFactory for ShuttleFactory {
 
 impl ModuleFactoryOutputDescription for ShuttleFactory {
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {

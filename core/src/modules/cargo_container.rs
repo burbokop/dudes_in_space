@@ -125,11 +125,11 @@ impl Module for CargoContainer {
         todo!()
     }
 
-    fn storages(&self) -> &[ItemStorage] {
-        std::slice::from_ref(&self.storage)
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![&self.storage]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -215,7 +215,7 @@ impl ModuleFactory for CargoContainerFactory {
 
 impl ModuleFactoryOutputDescription for CargoContainerFactory {
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {

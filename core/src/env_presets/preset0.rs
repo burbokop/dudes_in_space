@@ -23,7 +23,7 @@ fn station0<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     let person1 = Person::random(rng);
 
     let person0_id = person0.id();
-    let personnel_area = PersonnelArea::new(vec![person0, person1]);
+    let personnel_area = PersonnelArea::new(vec![person0, person1], 10);
     let assembler = Assembler::new(storage(item_vault));
 
     Vessel::new(
@@ -40,7 +40,7 @@ fn station1<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     let person2 = Person::random(rng);
 
     let person0_id = person0.id();
-    let personnel_area = PersonnelArea::new(vec![person0, person1, person2]);
+    let personnel_area = PersonnelArea::new(vec![person0, person1, person2], 6);
     let assembler = Assembler::new(storage(item_vault));
 
     Vessel::new(

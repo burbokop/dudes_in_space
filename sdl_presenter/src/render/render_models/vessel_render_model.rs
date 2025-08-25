@@ -24,6 +24,7 @@ impl VesselRenderModel {
         texture_creator: &mut sdl2::render::TextureCreator<T::Context>,
         font_provider: &FontProvider,
         camera: &Camera,
+        view_port_in_world_space: Rect<Float>,
         vessel: &Vessel,
     ) -> Result<(), RenderError> {
         let tr = camera.transformation();
@@ -75,6 +76,7 @@ impl VesselRenderModel {
                     texture_creator,
                     font_provider,
                     camera,
+                    view_port_in_world_space,
                     modules[i].deref(),
                     bounding_box,
                 )?;

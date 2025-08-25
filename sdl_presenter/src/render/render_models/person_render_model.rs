@@ -1,5 +1,7 @@
 use crate::camera::Camera;
 use crate::render::{FontProvider, RenderError};
+use dudes_in_space_api::utils::math::Rect;
+use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::Vessel;
 
 pub struct PersonRenderModel {}
@@ -15,6 +17,7 @@ impl PersonRenderModel {
         texture_creator: &mut sdl2::render::TextureCreator<T::Context>,
         font_provider: &FontProvider,
         camera: &Camera,
+        view_port_in_world_space: Rect<Float>,
         vessel: &Vessel,
     ) -> Result<(), RenderError> {
         let tr = camera.transformation();

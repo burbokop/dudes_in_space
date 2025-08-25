@@ -1,3 +1,4 @@
+use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
@@ -28,7 +29,6 @@ use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
-use crate::CORE_PACKAGE_ID;
 
 static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
@@ -272,7 +272,6 @@ impl Module for Dockyard {
 
     fn package_id(&self) -> PackageId {
         CORE_PACKAGE_ID.into()
-        
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
@@ -360,19 +359,19 @@ impl Module for Dockyard {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
@@ -416,16 +415,16 @@ impl Module for Dockyard {
         }
     }
 
-    fn storages(&self) -> &[ItemStorage] {
-        todo!()
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
     fn safes(&self) -> &[ItemSafe] {
-        todo!()
+        &[]
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {
@@ -449,11 +448,11 @@ impl Module for Dockyard {
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
-        todo!()
+        &[]
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        None
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
@@ -486,7 +485,7 @@ impl ModuleFactory for DockyardFactory {
 
 impl ModuleFactoryOutputDescription for DockyardFactory {
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {

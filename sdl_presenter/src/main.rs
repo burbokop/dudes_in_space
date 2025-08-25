@@ -116,7 +116,13 @@ fn main() {
         }
 
         render_model
-            .render(&mut canvas, &mut texture_creator, &font_provider, &camera, &environment)
+            .render(
+                &mut canvas,
+                &mut texture_creator,
+                &font_provider,
+                &camera,
+                &environment,
+            )
             .unwrap();
         canvas.present();
 

@@ -1,3 +1,4 @@
+use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, MoneyRef};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
@@ -31,7 +32,6 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::rc::Rc;
-use crate::CORE_PACKAGE_ID;
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
@@ -236,7 +236,6 @@ impl Module for VesselSellingTerminal {
 
     fn package_id(&self) -> PackageId {
         CORE_PACKAGE_ID.into()
-
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
@@ -282,19 +281,19 @@ impl Module for VesselSellingTerminal {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
@@ -329,16 +328,16 @@ impl Module for VesselSellingTerminal {
         }
     }
 
-    fn storages(&self) -> &[ItemStorage] {
-        todo!()
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
     fn safes(&self) -> &[ItemSafe] {
-        todo!()
+        &[]
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {
@@ -346,7 +345,7 @@ impl Module for VesselSellingTerminal {
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -362,7 +361,7 @@ impl Module for VesselSellingTerminal {
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {
-        todo!()
+        &[]
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
@@ -457,7 +456,7 @@ impl ModuleFactory for VesselSellingTerminalFactory {
 
 impl ModuleFactoryOutputDescription for VesselSellingTerminalFactory {
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
