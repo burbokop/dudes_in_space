@@ -1,8 +1,6 @@
-use std::ops::{Add, Sub};
-
-use serde::{Deserialize, Serialize};
-
 use super::{Vector, Zero};
+use serde::{Deserialize, Serialize};
+use std::ops::{Add, Sub};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Point<T> {

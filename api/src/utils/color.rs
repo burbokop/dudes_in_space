@@ -10,6 +10,24 @@ pub struct Color {
 }
 
 impl Color {
+    pub fn black() -> Self {
+        Self {
+            a: 1.,
+            r: 0.,
+            g: 0.,
+            b: 0.,
+        }
+    }
+
+    pub fn white() -> Self {
+        Self {
+            a: 1.,
+            r: 1.,
+            g: 1.,
+            b: 1.,
+        }
+    }
+
     pub fn with_a(self, a: Float) -> Self {
         Self {
             a,

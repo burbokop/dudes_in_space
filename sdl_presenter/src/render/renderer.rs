@@ -3,7 +3,7 @@ use crate::render::{
     FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
 };
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Matrix, Rect};
+use dudes_in_space_api::utils::math::{Matrix, Point, Rect};
 use dudes_in_space_api::utils::utils::Float;
 use std::ops::Not;
 
@@ -59,6 +59,23 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
         self.canvas.set_draw_color(color_to_sdl2_rgba_color(color));
         self.canvas
             .draw_rect(rect_to_sdl2_rect(&self.tr * &rect))
+            .unwrap();
+    }
+
+    pub fn draw_polygon(&mut self, polygon: &[Point<Float>], color: Color) {
+        if polygon.is_empty() {
+            return;
+        }
+
+        let polygon: Vec<_> = polygon
+            .iter()
+            .map(|p| point_to_sdl2_point(&self.tr * p))
+            .collect();
+        
+        self.canvas.set_draw_color(color_to_sdl2_rgba_color(color));
+        self.canvas.draw_lines(polygon.as_slice()).unwrap();
+        self.canvas
+            .draw_line(polygon[0], polygon[polygon.len() - 1])
             .unwrap();
     }
 

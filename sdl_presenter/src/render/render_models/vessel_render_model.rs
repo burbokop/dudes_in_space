@@ -1,6 +1,6 @@
-use crate::render::{RenderError, DEFAULT_MARGIN};
 use crate::render::render_models::module_render_model::ModuleRenderModel;
 use crate::render::renderer::Renderer;
+use crate::render::{DEFAULT_MARGIN, RenderError};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Rect, Vector};
 use dudes_in_space_api::utils::utils::Float;
@@ -102,9 +102,8 @@ impl VesselRenderModel {
                 let cy = (n as Float / q).sqrt().ceil() as usize;
                 let cx = (n as Float * q).sqrt().ceil() as usize;
 
-
                 let cell_width = (h / cy as Float).min(w / cx as Float);
-                
+
                 let mut i = 0;
                 for x in 0..cx {
                     for y in 0..cy {
@@ -115,7 +114,7 @@ impl VesselRenderModel {
                         let bounding_box = (
                             (
                                 x as Float * (cell_width + cell_spacing) + bounding_box.x(),
-                                y as Float * (cell_width + cell_spacing) + bounding_box.y() ,
+                                y as Float * (cell_width + cell_spacing) + bounding_box.y(),
                             )
                                 .into(),
                             (cell_width, cell_width).into(),

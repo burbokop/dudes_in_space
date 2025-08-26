@@ -91,14 +91,14 @@ fn draw_bounding_box<T: sdl2::render::RenderTarget>(
     );
 }
 
-struct DrawPerson<'a> {
-    person: Option<&'a Person>,
+struct DrawPerson<'a, 'b> {
+    person: Option<(&'a Person, &'b PersonRenderModel)>,
 }
 
-impl<'a> DrawPerson<'a> {
-    pub fn new(person: &'a Person) -> Box<Self> {
+impl<'a, 'b> DrawPerson<'a, 'b> {
+    pub fn new(person: &'a Person, person_render_model: &'b PersonRenderModel) -> Box<Self> {
         Box::new(Self {
-            person: Some(person),
+            person: Some((person, person_render_model)),
         })
     }
     pub fn new_empty() -> Box<Self> {
@@ -106,42 +106,46 @@ impl<'a> DrawPerson<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a, 'b> {
     fn visible(&self) -> bool {
         true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         match self.person {
-            None => {}
-            Some(person) => {
-                renderer.draw_confined_text(
-                    &format!("{} ({})", person.id(), person.name()),
-                    bounding_box,
-                    Color {
-                        r: 0.,
-                        g: 0.,
-                        b: 0.,
-                        a: 1.,
-                    },
-                );
+            None => renderer.draw_confined_text(
+                "Vacant",
+                bounding_box,
+                Color {
+                    r: 0.,
+                    g: 0.,
+                    b: 0.,
+                    a: 1.,
+                },
+            ),
+            Some((person, render_model)) => {
+                render_model.render(renderer, person, bounding_box).unwrap()
             }
         }
         draw_bounding_box(renderer, bounding_box)
     }
 }
 
-struct DrawPersons<'a> {
+struct DrawPersons<'a, 'b> {
     module: &'a dyn Module,
+    person_render_model: &'b PersonRenderModel,
 }
 
-impl<'a> DrawPersons<'a> {
-    pub fn new(module: &'a dyn Module) -> Box<Self> {
-        Box::new(Self { module })
+impl<'a, 'b> DrawPersons<'a, 'b> {
+    pub fn new(module: &'a dyn Module, person_render_model: &'b PersonRenderModel) -> Box<Self> {
+        Box::new(Self {
+            module,
+            person_render_model,
+        })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a, 'b> {
     fn visible(&self) -> bool {
         !(self.module.persons().is_empty() && self.module.free_person_slots_count() == 0)
     }
@@ -153,7 +157,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a> {
         let layout = RowLayout::new(
             persons
                 .iter()
-                .map(DrawPerson::new)
+                .map(|person| DrawPerson::new(person, self.person_render_model))
                 .chain((0..free_person_slots_count).map(|_| DrawPerson::new_empty()))
                 .map(|x| x as Box<dyn LayoutElement<_>>)
                 .collect(),
@@ -1004,7 +1008,7 @@ impl ModuleRenderModel {
         draw_bounding_box(renderer, bounding_box);
 
         let column = ColumnLayout::new(vec![
-            DrawPersons::new(module),
+            DrawPersons::new(module, &self.person_render_model),
             DrawRecipes::new(module),
             DrawStorages::new(module),
             DrawDockingStuff::new(module, &self.vessel_render_model),
