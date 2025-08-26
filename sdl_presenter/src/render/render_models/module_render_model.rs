@@ -1,6 +1,6 @@
 use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
-use crate::render::{ColumnLayout, LayoutElement, RenderError, RowLayout};
+use crate::render::{ColumnLayout, LayoutElement, LazyVesselRenderModel, RenderError, RowLayout};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{Module, ModuleStorage};
 use dudes_in_space_api::person::Person;
@@ -210,7 +210,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipes<'a>
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        let layout = RowLayout::new(
+        let layout = ColumnLayout::new(
             self.recipes
                 .iter()
                 .map(DrawItemRecipe::new)
@@ -269,7 +269,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        let layout = RowLayout::new(
+        let layout = ColumnLayout::new(
             self.recipes
                 .iter()
                 .map(DrawInputItemRecipe::new)
@@ -328,7 +328,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        let layout = RowLayout::new(
+        let layout = ColumnLayout::new(
             self.recipes
                 .iter()
                 .map(DrawOutputItemRecipe::new)
@@ -391,7 +391,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipes
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        let layout = RowLayout::new(
+        let layout = ColumnLayout::new(
             self.recipes
                 .iter()
                 .map(DrawAssemblyRecipe::new)
@@ -642,47 +642,60 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawStorages<'a> {
     }
 }
 
-struct DrawDockingClamp<'a> {
+struct DrawDockingClamp<'a, 'b> {
     clamp: &'a DockingClamp,
+    vessel_render_model: &'b LazyVesselRenderModel,
 }
 
-impl<'a> DrawDockingClamp<'a> {
-    pub fn new(clamp: &'a DockingClamp) -> Box<Self> {
-        Box::new(Self { clamp })
+impl<'a, 'b> DrawDockingClamp<'a, 'b> {
+    pub fn new(
+        clamp: &'a DockingClamp,
+        vessel_render_model: &'b LazyVesselRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self {
+            clamp,
+            vessel_render_model,
+        })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a, 'b> {
     fn visible(&self) -> bool {
         true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        renderer.draw_confined_text(
-            &format!("{:?}", self.clamp.connection().map(|x| x.vessel.name()),),
-            bounding_box,
-            Color {
-                r: 0.,
-                g: 0.,
-                b: 0.,
-                a: 1.,
-            },
-        );
+        match self.clamp.connection() {
+            None => todo!(),
+            Some(connection) => {
+                self.vessel_render_model
+                    .get()
+                    .render(renderer, &connection.vessel, Some(bounding_box))
+                    .unwrap();
+            }
+        }
         draw_bounding_box(renderer, bounding_box);
     }
 }
 
-struct DrawDockingClamps<'a> {
+struct DrawDockingClamps<'a, 'b> {
     clamps: &'a [DockingClamp],
+    vessel_render_model: &'b LazyVesselRenderModel,
 }
 
-impl<'a> DrawDockingClamps<'a> {
-    pub fn new(clamps: &'a [DockingClamp]) -> Box<Self> {
-        Box::new(Self { clamps })
+impl<'a, 'b> DrawDockingClamps<'a, 'b> {
+    pub fn new(
+        clamps: &'a [DockingClamp],
+        vessel_render_model: &'b LazyVesselRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self {
+            clamps,
+            vessel_render_model,
+        })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'a, 'b> {
     fn visible(&self) -> bool {
         !self.clamps.is_empty()
     }
@@ -691,7 +704,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'
         let layout = RowLayout::new(
             self.clamps
                 .iter()
-                .map(DrawDockingClamp::new)
+                .map(|clamp| DrawDockingClamp::new(clamp, self.vessel_render_model))
                 .map(|x| x as Box<dyn LayoutElement<_>>)
                 .collect(),
         );
@@ -713,7 +726,7 @@ impl<'a> DrawDockingConnector<'a> {
 
 impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnector<'a> {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
@@ -760,24 +773,31 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
     }
 }
 
-struct DrawDockingStuff<'a> {
+struct DrawDockingStuff<'a, 'b> {
     module: &'a dyn Module,
+    vessel_render_model: &'b LazyVesselRenderModel,
 }
 
-impl<'a> DrawDockingStuff<'a> {
-    pub fn new(module: &'a dyn Module) -> Box<Self> {
-        Box::new(Self { module })
+impl<'a, 'b> DrawDockingStuff<'a, 'b> {
+    pub fn new(
+        module: &'a dyn Module,
+        vessel_render_model: &'b LazyVesselRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self {
+            module,
+            vessel_render_model,
+        })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingStuff<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingStuff<'a, 'b> {
     fn visible(&self) -> bool {
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
-            DrawDockingClamps::new(self.module.docking_clamps()),
+            DrawDockingClamps::new(self.module.docking_clamps(), self.vessel_render_model),
             DrawDockingConnectors::new(self.module.docking_connectors()),
         ]);
 
@@ -958,19 +978,21 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawTradingInfo<'a>
 
 pub struct ModuleRenderModel {
     person_render_model: PersonRenderModel,
+    vessel_render_model: LazyVesselRenderModel,
 }
 
 impl ModuleRenderModel {
     pub fn new() -> Self {
         Self {
             person_render_model: PersonRenderModel::new(),
+            vessel_render_model: LazyVesselRenderModel::new(),
         }
     }
 
-    pub fn render<'m, T: sdl2::render::RenderTarget>(
+    pub fn render<T: sdl2::render::RenderTarget>(
         &self,
         renderer: &mut Renderer<T>,
-        module: &'m dyn Module,
+        module: &dyn Module,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
         if !renderer.intersects_with_view_port(&bounding_box) {
@@ -985,7 +1007,7 @@ impl ModuleRenderModel {
             DrawPersons::new(module),
             DrawRecipes::new(module),
             DrawStorages::new(module),
-            DrawDockingStuff::new(module),
+            DrawDockingStuff::new(module, &self.vessel_render_model),
             DrawTradingInfo::new(module),
         ]);
 

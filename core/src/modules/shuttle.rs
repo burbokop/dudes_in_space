@@ -1,3 +1,4 @@
+use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::BankRegistry;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
@@ -81,7 +82,7 @@ impl DynSerialize for Shuttle {
 
 impl Module for Shuttle {
     fn storages(&self) -> Vec<&ItemStorage> {
-        todo!()
+        vec![]
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
@@ -89,7 +90,7 @@ impl Module for Shuttle {
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -118,7 +119,7 @@ impl Module for Shuttle {
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
@@ -144,7 +145,7 @@ impl Module for Shuttle {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
@@ -160,7 +161,7 @@ impl Module for Shuttle {
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        None
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
@@ -181,7 +182,7 @@ impl Module for Shuttle {
     }
 
     fn persons(&self) -> &[Person] {
-        todo!()
+        self.pilot.as_ref().map(std::slice::from_ref).unwrap_or(&[])
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
@@ -193,19 +194,19 @@ impl Module for Shuttle {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn safes(&self) -> &[ItemSafe] {
-        todo!()
+        &[]
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {

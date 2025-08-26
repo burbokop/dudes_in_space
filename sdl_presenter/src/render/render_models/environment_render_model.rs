@@ -19,7 +19,7 @@ impl EnvironmentRenderModel {
         environment: &Environment,
     ) -> Result<(), RenderError> {
         for vessel in environment.vessels() {
-            self.vessel_render_model.render(renderer, vessel)?;
+            self.vessel_render_model.render(renderer, vessel, None)?;
         }
         Ok(())
     }

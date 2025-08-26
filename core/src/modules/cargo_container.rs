@@ -1,3 +1,4 @@
+use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
@@ -64,7 +65,7 @@ impl Module for CargoContainer {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.into()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
@@ -90,19 +91,19 @@ impl Module for CargoContainer {
     }
 
     fn item_recipes(&self) -> &[ItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn input_item_recipes(&self) -> &[InputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn output_item_recipes(&self) -> &[OutputItemRecipe] {
-        todo!()
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
@@ -114,7 +115,7 @@ impl Module for CargoContainer {
     }
 
     fn free_person_slots_count(&self) -> usize {
-        todo!()
+        0
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
@@ -122,7 +123,7 @@ impl Module for CargoContainer {
     }
 
     fn persons(&self) -> &[Person] {
-        todo!()
+        &[]
     }
 
     fn storages(&self) -> Vec<&ItemStorage> {
@@ -134,7 +135,7 @@ impl Module for CargoContainer {
     }
 
     fn safes(&self) -> &[ItemSafe] {
-        todo!()
+        &[]
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {
@@ -142,7 +143,7 @@ impl Module for CargoContainer {
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -162,7 +163,7 @@ impl Module for CargoContainer {
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        None
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
