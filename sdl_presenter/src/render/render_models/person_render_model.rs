@@ -7,26 +7,53 @@ use std::convert::Into;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-static POINTS: LazyLock<[Point<Float>; 16]> = LazyLock::new(|| {
-    [
-        (-1., 14.).into(),
-        (-3., 13.).into(),
-        (-4., 10.).into(),
-        (-2., 12.).into(),
-        (-2., 8.).into(),
-        (-3., 0.).into(),
-        (0., 6.).into(),
-        (3., 0.).into(),
-        (2., 8.).into(),
-        (2., 12.).into(),
-        (4., 10.).into(),
-        (3., 13.).into(),
-        (1., 14.).into(),
-        (2., 17.).into(),
-        (0., 18.).into(),
-        (-2., 17.).into(),
-    ]
-});
+fn draw_little_man<T: sdl2::render::RenderTarget>(
+    renderer: &mut Renderer<T>,
+    bounding_box: Rect<Float>,
+) {
+    static POINTS: LazyLock<[Point<Float>; 16]> = LazyLock::new(|| {
+        [
+            (0., 0.).into(),
+            (-2., 1.).into(),
+            (-1., 4.).into(),
+            (-3., 5.).into(),
+            (-4., 8.).into(),
+            (-2., 6.).into(),
+            (-2., 10.).into(),
+            (-3., 18.).into(),
+            (0., 12.).into(),
+            (3., 18.).into(),
+            (2., 10.).into(),
+            (2., 6.).into(),
+            (4., 8.).into(),
+            (3., 5.).into(),
+            (1., 4.).into(),
+            (2., 1.).into(),
+        ]
+    });
+
+    let aabb: Rect<Float> = Rect::aabb_from_points(POINTS.deref().iter().cloned()).unwrap();
+
+    let qx = bounding_box.w() / aabb.w();
+    let qy = bounding_box.h() / aabb.h();
+
+    let q = qx.min(qy);
+
+    let points: Vec<_> = POINTS
+        .iter()
+        .map(|x| bounding_box.left_top() + (*x - aabb.left_top()) * q)
+        .collect();
+
+    renderer.draw_polygon(&points, Color::black());
+
+    for p in points {
+        renderer.fill_circle(
+            p,
+            bounding_box.w().min(*bounding_box.h()) / 50.,
+            Color::black(),
+        );
+    }
+}
 
 pub struct PersonRenderModel {}
 
@@ -41,20 +68,7 @@ impl PersonRenderModel {
         person: &Person,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
-        let bb: Rect<Float> = Rect::aabb_from_points(POINTS.deref().iter().cloned()).unwrap();
-
-        let x = bounding_box.w() / bb.w();
-        let y = bounding_box.h() / bb.h();
-
-        let q = x.min(y);
-
-        let ppp: Vec<_> = POINTS
-            .iter()
-            .map(|x| bounding_box.left_top() + (*x - Point::origin()) * q)
-            .collect();
-
-        renderer.draw_polygon(&ppp, Color::black());
-
+        draw_little_man(renderer, bounding_box);
         Ok(())
     }
 }

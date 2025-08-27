@@ -5,6 +5,7 @@ use crate::render::{
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Matrix, Point, Rect};
 use dudes_in_space_api::utils::utils::Float;
+use sdl2::gfx::primitives::DrawRenderer;
 use std::ops::Not;
 
 pub struct Renderer<T: sdl2::render::RenderTarget> {
@@ -62,6 +63,32 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             .unwrap();
     }
 
+    pub fn draw_circle(&mut self, center: Point<Float>, radius: Float, color: Color) {
+        let center = point_to_sdl2_point(&self.tr * &center);
+        let radius = radius * self.tr.average_scale();
+        self.canvas
+            .circle(
+                center.x as i16,
+                center.y as i16,
+                radius as i16,
+                color_to_sdl2_rgba_color(color.clone()),
+            )
+            .unwrap();
+    }
+
+    pub fn fill_circle(&mut self, center: Point<Float>, radius: Float, color: Color) {
+        let center = point_to_sdl2_point(&self.tr * &center);
+        let radius = radius * self.tr.average_scale();
+        self.canvas
+            .filled_circle(
+                center.x as i16,
+                center.y as i16,
+                radius as i16,
+                color_to_sdl2_rgba_color(color.clone()),
+            )
+            .unwrap();
+    }
+
     pub fn draw_polygon(&mut self, polygon: &[Point<Float>], color: Color) {
         if polygon.is_empty() {
             return;
@@ -71,7 +98,7 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             .iter()
             .map(|p| point_to_sdl2_point(&self.tr * p))
             .collect();
-        
+
         self.canvas.set_draw_color(color_to_sdl2_rgba_color(color));
         self.canvas.draw_lines(polygon.as_slice()).unwrap();
         self.canvas
