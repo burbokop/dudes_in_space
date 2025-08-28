@@ -4,13 +4,14 @@
 
 use crate::camera::Camera;
 use crate::render::{EnvironmentRenderModel, FontProvider, Renderer};
-use crate::utils::{load, load_camera, save, save_camera};
+use crate::utils::{load, load_camera, load_logger, save, save_camera, save_logger};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
 use std::env::home_dir;
 use std::time::Duration;
 
 mod camera;
+mod logger;
 mod render;
 mod utils;
 
@@ -33,8 +34,10 @@ fn main() {
 
     let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
     let camera_save_path = home_dir().unwrap().join(".dudes_in_space/camera.json");
+    let logger_save_path = home_dir().unwrap().join(".dudes_in_space/logger.json");
 
     let mut camera: Camera = load_camera(camera_save_path.clone());
+    let mut logger = load_logger(logger_save_path.clone());
     let render_model = EnvironmentRenderModel::new();
     let font_provider = FontProvider::new();
     let texture_creator = canvas.texture_creator();
@@ -42,7 +45,8 @@ fn main() {
     let mut renderer = Renderer::new(canvas, texture_creator, font_provider);
 
     let components = core_components();
-    let environment = load(&components, save_path.clone());
+    let mut environment = load(&components, save_path.clone());
+    let mut turn = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -73,6 +77,23 @@ fn main() {
                     keycode: Some(Keycode::LCtrl | Keycode::RCtrl),
                     ..
                 } => control = false,
+
+                KeyUp {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => {
+                    environment.proceed(
+                        &components.process_token_context,
+                        &components.req_context,
+                        &components.objectives_decider_vault,
+                        &components.item_vault,
+                        &components.subordination_table,
+                        &components.bank_registry,
+                        &mut logger,
+                    );
+                    println!("turn: {}", turn);
+                    turn += 1;
+                }
 
                 MouseWheel {
                     mouse_x,
@@ -118,13 +139,14 @@ fn main() {
         }
 
         renderer.begin(&camera);
-
-        render_model.render(&mut renderer, &environment).unwrap();
-
+        render_model
+            .render(&mut renderer, &environment, &logger)
+            .unwrap();
         renderer.end();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
     save(environment, save_path);
     save_camera(camera, camera_save_path);
+    save_logger(logger, logger_save_path);
 }

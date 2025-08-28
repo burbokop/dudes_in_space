@@ -1,13 +1,41 @@
 use crate::render::DEFAULT_MARGIN;
 use crate::render::renderer::Renderer;
+use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
+use std::fmt::Alignment;
 
 pub trait LayoutElement<T: sdl2::render::RenderTarget> {
     fn visible(&self) -> bool;
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>);
     fn implicit_size(&self) -> Option<Size<Float>> {
         None
+    }
+}
+
+impl<T: sdl2::render::RenderTarget> LayoutElement<T> for String {
+    fn visible(&self) -> bool {
+        !self.is_empty()
+    }
+
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(&self, bounding_box, Alignment::Center, Color::black());
+    }
+}
+
+pub struct Text {
+    pub text: String,
+    pub color: Color,
+    pub alignment: Alignment,
+}
+
+impl<T: sdl2::render::RenderTarget> LayoutElement<T> for Text {
+    fn visible(&self) -> bool {
+        !self.text.is_empty()
+    }
+
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(&self.text, bounding_box, self.alignment, self.color.clone());
     }
 }
 
@@ -134,17 +162,17 @@ impl<'a, T: sdl2::render::RenderTarget> ExtRowLayout<'a, T> {
     }
 }
 
-
 impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for ExtRowLayout<'a, T> {
     fn visible(&self) -> bool {
-        todo!()
+        self.elems.iter().all(|x| x.0.visible())
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        // TODO: allow more than 2 elements
         assert_eq!(self.elems.len(), 2);
 
-        let (elem0,_) = &self.elems[0];
-        let (elem1,_) = &self.elems[1];
+        let (elem0, _) = &self.elems[0];
+        let (elem1, _) = &self.elems[1];
 
         let e0_size = elem0.implicit_size().unwrap();
 
@@ -153,17 +181,20 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for ExtRowLayout<'a, T>
 
         let q = qx.min(qy);
 
-        let e0_new_size: Size<Float> = (
-            bounding_box.w() * q,
-            bounding_box.h() * q,
-        ).into();
+        let e0_new_size: Size<Float> =
+            ((qy * e0_size.w()).min(*bounding_box.w()), *bounding_box.h()).into();
 
         let e0_bb: Rect<_> = (bounding_box.left_top(), e0_new_size).into();
 
-        let e1_bb = Rect::from_lrtb_unchecked(e0_bb.right(), bounding_box.right(), bounding_box.top(), bounding_box.bottom());
+        let e1_bb = Rect::from_lrtb_unchecked(
+            e0_bb.right(),
+            bounding_box.right(),
+            bounding_box.top(),
+            bounding_box.bottom(),
+        );
 
-        elem0.draw(renderer,e0_bb);
-        elem1.draw(renderer,e1_bb);
+        elem0.draw(renderer, e0_bb);
+        elem1.draw(renderer, e1_bb);
     }
 }
 
@@ -187,7 +218,9 @@ pub struct ExtColumnLayout<'a, T: sdl2::render::RenderTarget> {
 }
 
 impl<'a, T: sdl2::render::RenderTarget> ExtColumnLayout<'a, T> {
-    pub(crate) fn new(elems: Vec<(Box<dyn LayoutElement<T> + 'a>, ExtColumnLayoutOptions)>) -> Self {
+    pub(crate) fn new(
+        elems: Vec<(Box<dyn LayoutElement<T> + 'a>, ExtColumnLayoutOptions)>,
+    ) -> Self {
         Self { elems }
     }
 }
@@ -198,14 +231,13 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for ExtColumnLayout<'a,
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-
         let (bounding_box, margin) = bounding_box.homogeneous_mul(DEFAULT_MARGIN);
 
         if !renderer.intersects_with_view_port(&bounding_box) {
             return;
         }
 
-        let count = self.elems.iter().filter(|(x,_)| x.visible()).count();
+        let count = self.elems.iter().filter(|(x, _)| x.visible()).count();
         if count == 0 {
             return;
         }
@@ -217,25 +249,33 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for ExtColumnLayout<'a,
         let mut y = *bounding_box.y();
         let w = *bounding_box.w();
 
-        let elems_with_relative_height_count = self.elems.iter().filter(|(elem,options)|elem.visible() && options.relative_height.is_some()).count();
+        let elems_with_relative_height_count = self
+            .elems
+            .iter()
+            .filter(|(elem, options)| elem.visible() && options.relative_height.is_some())
+            .count();
         let sum_relative_height = self
             .elems
             .iter()
-            .filter_map(|(elem,options)|if elem.visible() { options.relative_height } else {None})
+            .filter_map(|(elem, options)| {
+                if elem.visible() {
+                    options.relative_height
+                } else {
+                    None
+                }
+            })
             .sum::<Float>();
         assert!(sum_relative_height >= 0.);
         assert!(sum_relative_height <= 1.);
 
-        let rest_relative_height = (1. - sum_relative_height) / (self.elems.len() - elems_with_relative_height_count) as Float;
+        let rest_relative_height = (1. - sum_relative_height)
+            / (self.elems.len() - elems_with_relative_height_count) as Float;
 
         for (elem, options) in &self.elems {
             if elem.visible() {
                 let h = options.relative_height.unwrap_or(rest_relative_height) * bounding_box.h();
 
-                elem.draw(
-                    renderer,
-                    (x, y, w, h).into(),
-                );
+                elem.draw(renderer, (x, y, w, h).into());
                 y += h;
             }
         }

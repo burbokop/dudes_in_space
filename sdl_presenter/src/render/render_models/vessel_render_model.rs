@@ -1,3 +1,4 @@
+use crate::logger::MemLogger;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::{DEFAULT_MARGIN, RenderError};
@@ -23,6 +24,7 @@ impl VesselRenderModel {
         &self,
         renderer: &mut Renderer<T>,
         vessel: &Vessel,
+        logger: &MemLogger,
         bounding_box: Option<Rect<Float>>,
     ) -> Result<(), RenderError> {
         let modules: Vec<_> = vessel.modules().collect();
@@ -80,6 +82,7 @@ impl VesselRenderModel {
                         self.module_render_model.render(
                             renderer,
                             modules[i].deref(),
+                            logger,
                             bounding_box,
                         )?;
                         i += 1;
@@ -124,6 +127,7 @@ impl VesselRenderModel {
                         self.module_render_model.render(
                             renderer,
                             modules[i].deref(),
+                            logger,
                             bounding_box,
                         )?;
                         i += 1;

@@ -1,15 +1,20 @@
-use crate::render::{ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions, LayoutElement, RenderError, Renderer};
+use crate::logger::{LogPiece, MemLogger};
+use crate::render::{
+    ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
+    LayoutElement, RenderError, Renderer, Text,
+};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Point, Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 use std::convert::Into;
+use std::fmt::Alignment;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
 struct DrawLittleMan {
     points: &'static [Point<Float>],
-    aabb: Rect<Float>
+    aabb: Rect<Float>,
 }
 
 impl DrawLittleMan {
@@ -36,24 +41,24 @@ impl DrawLittleMan {
         });
         Self {
             points: POINTS.deref(),
-            aabb:Rect::aabb_from_points(POINTS.deref().iter().cloned()).unwrap(),
+            aabb: Rect::aabb_from_points(POINTS.deref().iter().cloned()).unwrap(),
         }
     }
 }
 
 impl<T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLittleMan {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-
         let qx = bounding_box.w() / self.aabb.w();
         let qy = bounding_box.h() / self.aabb.h();
 
         let q = qx.min(qy);
 
-        let points: Vec<_> = self.points
+        let points: Vec<_> = self
+            .points
             .iter()
             .map(|x| bounding_box.left_top() + (*x - self.aabb.left_top()) * q)
             .collect();
@@ -70,82 +75,101 @@ impl<T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLittleMan {
     }
 
     fn implicit_size(&self) -> Option<Size<Float>> {
-        todo!()
+        Some(self.aabb.size())
     }
 }
 
-struct DrawLog {
-    
+struct DrawLog<'a> {
+    log: &'a [LogPiece],
 }
 
-impl DrawLog {
-    fn new() -> Self {
-        Self {}
+impl<'a> DrawLog<'a> {
+    fn new(log: &'a [LogPiece]) -> Self {
+        Self { log }
     }
 }
 
-impl<T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLog {
+impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLog<'a> {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        static MAX_LOG_SIZE: usize = 5;
+        let tail = if self.log.len() < MAX_LOG_SIZE {
+            self.log
+        } else {
+            &self.log[self.log.len() - MAX_LOG_SIZE..]
+        };
+        ColumnLayout::new(
+            tail.iter()
+                .map(|x| {
+                    Box::new(Text {
+                        text: format!("{:?}", x),
+                        color: Color::black(),
+                        alignment: Alignment::Left,
+                    }) as Box<dyn LayoutElement<T>>
+                })
+                .collect(),
+        )
+        .draw(renderer, bounding_box);
     }
 }
 
-
-
-
-
-
-struct DrawHeader {
-
+struct DrawHeader<'a> {
+    person: &'a Person,
 }
 
-impl DrawHeader {
-    fn new() -> Self {
-        Self {}
+impl<'a> DrawHeader<'a> {
+    fn new(person: &'a Person) -> Self {
+        Self { person }
     }
 }
 
-impl<T: sdl2::render::RenderTarget> LayoutElement<T> for DrawHeader {
+impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawHeader<'a> {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        ColumnLayout::new(vec![
+            Box::new(if let Some(boss) = self.person.boss() {
+                format!("{} (B: {})", self.person.name(), boss)
+            } else {
+                format!("{}", self.person.name())
+            }),
+            Box::new(format!("{:?}", self.person.wallet())),
+        ])
+        .draw(renderer, bounding_box);
     }
 }
 
-
-
-
-
-
-struct DrawFooter {
-
+struct DrawFooter<'a> {
+    person: &'a Person,
 }
 
-impl DrawFooter {
-    fn new() -> Self {
-        Self {}
+impl<'a> DrawFooter<'a> {
+    fn new(person: &'a Person) -> Self {
+        Self { person }
     }
 }
 
-impl<T: sdl2::render::RenderTarget> LayoutElement<T> for DrawFooter {
+impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawFooter<'a> {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        ColumnLayout::new(vec![Box::new(
+            if let Some(objective) = self.person.objective_type_id() {
+                format!("{}", objective)
+            } else {
+                "Idle".into()
+            },
+        )])
+        .draw(renderer, bounding_box);
     }
 }
-
-
-
 
 pub struct PersonRenderModel {}
 
@@ -158,22 +182,28 @@ impl PersonRenderModel {
         &self,
         renderer: &mut Renderer<T>,
         person: &Person,
+        logger: &MemLogger,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
-        
         let row = ExtRowLayout::new(vec![
-            (Box::new(DrawLittleMan::new()), ExtRowLayoutOptions::preserve_aspect_ratio()),
-            (Box::new(DrawLog::new()), Default::default()),
+            (
+                Box::new(DrawLittleMan::new()),
+                ExtRowLayoutOptions::preserve_aspect_ratio(),
+            ),
+            (
+                Box::new(DrawLog::new(logger.get(&person.id()))),
+                Default::default(),
+            ),
         ]);
-        
+
         let column = ExtColumnLayout::new(vec![
-            (Box::new(DrawFooter::new()), Default::default()),
+            (Box::new(DrawHeader::new(person)), Default::default()),
             (Box::new(row), ExtColumnLayoutOptions::relative_height(0.5)),
-            (Box::new(DrawHeader::new()), Default::default()),
+            (Box::new(DrawFooter::new(person)), Default::default()),
         ]);
 
         column.draw(renderer, bounding_box);
-        
+
         Ok(())
     }
 }

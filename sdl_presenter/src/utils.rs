@@ -1,4 +1,5 @@
 use crate::camera::Camera;
+use crate::logger::MemLogger;
 use dudes_in_space_api::environment::{Environment, EnvironmentSeed};
 use dudes_in_space_api::module::Module;
 use dudes_in_space_core::components::Components;
@@ -53,6 +54,19 @@ pub(crate) fn load_camera(save_path: PathBuf) -> Camera {
 }
 
 pub(crate) fn save_camera(camera: Camera, save_path: PathBuf) {
+    std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
+    std::fs::write(save_path, serde_json::to_vec(&camera).unwrap()).unwrap();
+}
+
+pub(crate) fn load_logger(save_path: PathBuf) -> MemLogger {
+    if save_path.exists() {
+        serde_json::from_slice(&std::fs::read(save_path.as_path()).unwrap()).unwrap()
+    } else {
+        MemLogger::new()
+    }
+}
+
+pub(crate) fn save_logger(camera: MemLogger, save_path: PathBuf) {
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
     std::fs::write(save_path, serde_json::to_vec(&camera).unwrap()).unwrap();
 }

@@ -19,6 +19,15 @@ impl Color {
         }
     }
 
+    pub fn green() -> Self {
+        Self {
+            a: 1.,
+            r: 0.,
+            g: 1.,
+            b: 0.,
+        }
+    }
+
     pub fn white() -> Self {
         Self {
             a: 1.,

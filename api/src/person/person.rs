@@ -1,5 +1,5 @@
 use crate::environment::EnvironmentContext;
-use crate::finance::{BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed};
+use crate::finance::{BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet};
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
@@ -247,6 +247,10 @@ impl Person {
     }
     pub fn boss(&self) -> &Option<PersonId> {
         &self.boss
+    }
+
+    pub fn wallet(&self) -> &Wallet {
+        self.finance.wallet()
     }
 
     pub fn objective_type_id(&self) -> Option<TypeId> {

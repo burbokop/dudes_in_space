@@ -6,6 +6,7 @@ use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Matrix, Point, Rect};
 use dudes_in_space_api::utils::utils::Float;
 use sdl2::gfx::primitives::DrawRenderer;
+use std::fmt::Alignment;
 use std::ops::Not;
 
 pub struct Renderer<T: sdl2::render::RenderTarget> {
@@ -66,14 +67,12 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
     pub fn draw_circle(&mut self, center: Point<Float>, radius: Float, color: Color) {
         let center = point_to_sdl2_point(&self.tr * &center);
         let radius = radius * self.tr.average_scale();
-        self.canvas
-            .circle(
-                center.x as i16,
-                center.y as i16,
-                radius as i16,
-                color_to_sdl2_rgba_color(color.clone()),
-            )
-            .unwrap();
+        let _ = self.canvas.circle(
+            center.x as i16,
+            center.y as i16,
+            radius as i16,
+            color_to_sdl2_rgba_color(color.clone()),
+        );
     }
 
     pub fn fill_circle(&mut self, center: Point<Float>, radius: Float, color: Color) {
@@ -106,7 +105,13 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             .unwrap();
     }
 
-    pub fn draw_confined_text(&mut self, text: &str, bounding_box: Rect<Float>, color: Color) {
+    pub fn draw_confined_text(
+        &mut self,
+        text: &str,
+        bounding_box: Rect<Float>,
+        alignment: Alignment,
+        color: Color,
+    ) {
         if !self.intersects_with_view_port(&bounding_box) {
             return;
         }
@@ -129,11 +134,8 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             }
 
             let point_size = point_size.unwrap() / 3;
-
             let font = self.font_provider.font(point_size);
-
             let color = color_to_sdl2_rgba_color(color);
-
             let surface = font.render(text).blended(color);
 
             self.canvas.set_draw_color(color);
@@ -154,25 +156,30 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             }
             let texture = texture.unwrap();
 
-            let sdl2::render::TextureQuery {
-                mut width,
-                mut height,
-                ..
-            } = texture.query();
+            let sdl2::render::TextureQuery { width, height, .. } = texture.query();
 
-            width = width.min(*bounding_box.w() as u32);
-            height = height.min(*bounding_box.h() as u32);
+            let mut width = width as Float;
+            let mut height = height as Float;
+
+            width = width.min(*bounding_box.w());
+            height = height.min(*bounding_box.h());
+
+            let centered_rect = Rect::from_center(bounding_box.center(), (width, height).into());
+
+            let rect = match alignment {
+                Alignment::Left => (
+                    *bounding_box.x(),
+                    *centered_rect.y(),
+                    *centered_rect.w(),
+                    *centered_rect.h(),
+                )
+                    .into(),
+                Alignment::Right => todo!(),
+                Alignment::Center => centered_rect,
+            };
 
             self.canvas
-                .copy(
-                    &texture,
-                    None,
-                    sdl2::rect::Rect::from_center(
-                        point_to_sdl2_point(bounding_box.center()),
-                        width,
-                        height,
-                    ),
-                )
+                .copy(&texture, None, rect_to_sdl2_rect(rect))
                 .unwrap();
         }
     }

@@ -1,7 +1,7 @@
 use crate::finance::{Bank, BankRegistry, Wallet};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 #[derive(Default, Debug, Serialize)]
@@ -9,6 +9,15 @@ pub struct PersonalFinancePackage {
     #[serde(with = "crate::utils::tagged_option")]
     bank: Option<Rc<RefCell<Bank>>>,
     wallet: Wallet,
+}
+
+impl PersonalFinancePackage {
+    pub fn bank(&self) -> Option<Ref<'_, Bank>> {
+        self.bank.as_ref().map(|x| x.borrow())
+    }
+    pub fn wallet(&self) -> &Wallet {
+        &self.wallet
+    }
 }
 
 #[derive(Clone)]

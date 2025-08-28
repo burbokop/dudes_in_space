@@ -1,3 +1,4 @@
+use crate::logger::MemLogger;
 use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::{ColumnLayout, LayoutElement, LazyVesselRenderModel, RenderError, RowLayout};
@@ -10,6 +11,7 @@ use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
+use std::fmt::Alignment;
 
 fn draw_top_info<T: sdl2::render::RenderTarget>(
     renderer: &mut Renderer<T>,
@@ -34,6 +36,7 @@ fn draw_top_info<T: sdl2::render::RenderTarget>(
             module.type_id()
         ),
         text_box,
+        Alignment::Center,
         Color {
             r: 0.,
             g: 0.,
@@ -66,6 +69,7 @@ fn draw_bottom_info<T: sdl2::render::RenderTarget>(
             module.primary_capabilities()
         ),
         text_box,
+        Alignment::Center,
         Color {
             r: 0.,
             g: 0.,
@@ -91,14 +95,18 @@ fn draw_bounding_box<T: sdl2::render::RenderTarget>(
     );
 }
 
-struct DrawPerson<'a, 'b> {
-    person: Option<(&'a Person, &'b PersonRenderModel)>,
+struct DrawPerson<'a, 'b, 'c> {
+    person: Option<(&'a Person, &'b MemLogger, &'c PersonRenderModel)>,
 }
 
-impl<'a, 'b> DrawPerson<'a, 'b> {
-    pub fn new(person: &'a Person, person_render_model: &'b PersonRenderModel) -> Box<Self> {
+impl<'a, 'b, 'c> DrawPerson<'a, 'b, 'c> {
+    pub fn new(
+        person: &'a Person,
+        logger: &'b MemLogger,
+        person_render_model: &'c PersonRenderModel,
+    ) -> Box<Self> {
         Box::new(Self {
-            person: Some((person, person_render_model)),
+            person: Some((person, logger, person_render_model)),
         })
     }
     pub fn new_empty() -> Box<Self> {
@@ -106,7 +114,7 @@ impl<'a, 'b> DrawPerson<'a, 'b> {
     }
 }
 
-impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a, 'b> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         true
     }
@@ -116,6 +124,7 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a, 
             None => renderer.draw_confined_text(
                 "Vacant",
                 bounding_box,
+                Alignment::Center,
                 Color {
                     r: 0.,
                     g: 0.,
@@ -123,29 +132,35 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a, 
                     a: 1.,
                 },
             ),
-            Some((person, render_model)) => {
-                render_model.render(renderer, person, bounding_box).unwrap()
-            }
+            Some((person, logger, render_model)) => render_model
+                .render(renderer, person, logger, bounding_box)
+                .unwrap(),
         }
         draw_bounding_box(renderer, bounding_box)
     }
 }
 
-struct DrawPersons<'a, 'b> {
+struct DrawPersons<'a, 'b, 'c> {
     module: &'a dyn Module,
-    person_render_model: &'b PersonRenderModel,
+    logger: &'b MemLogger,
+    person_render_model: &'c PersonRenderModel,
 }
 
-impl<'a, 'b> DrawPersons<'a, 'b> {
-    pub fn new(module: &'a dyn Module, person_render_model: &'b PersonRenderModel) -> Box<Self> {
+impl<'a, 'b, 'c> DrawPersons<'a, 'b, 'c> {
+    pub fn new(
+        module: &'a dyn Module,
+        logger: &'b MemLogger,
+        person_render_model: &'c PersonRenderModel,
+    ) -> Box<Self> {
         Box::new(Self {
             module,
+            logger,
             person_render_model,
         })
     }
 }
 
-impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a, 'b> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !(self.module.persons().is_empty() && self.module.free_person_slots_count() == 0)
     }
@@ -157,7 +172,7 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a,
         let layout = RowLayout::new(
             persons
                 .iter()
-                .map(|person| DrawPerson::new(person, self.person_render_model))
+                .map(|person| DrawPerson::new(person, self.logger, self.person_render_model))
                 .chain((0..free_person_slots_count).map(|_| DrawPerson::new_empty()))
                 .map(|x| x as Box<dyn LayoutElement<_>>)
                 .collect(),
@@ -187,6 +202,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipe<'a> 
         renderer.draw_confined_text(
             &format!("{:?} -> {:?}", self.recipe.input, self.recipe.output,),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -246,6 +262,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
         renderer.draw_confined_text(
             &format!("{:?} -> |", self.recipe,),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -305,6 +322,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
         renderer.draw_confined_text(
             &format!("| -> {:?}", self.recipe,),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -368,6 +386,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipe<
                 self.recipe.output_description().type_id(),
             ),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -458,6 +477,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorage<'a>
         renderer.draw_confined_text(
             &format!("{:?}", self.storage,),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -518,6 +538,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafe<'a> {
         renderer.draw_confined_text(
             &format!("{:?}", self.safe,),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -577,6 +598,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorage<'
         renderer.draw_confined_text(
             &format!("{:?}", self.storage,),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -646,24 +668,27 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawStorages<'a> {
     }
 }
 
-struct DrawDockingClamp<'a, 'b> {
+struct DrawDockingClamp<'a, 'b, 'c> {
     clamp: &'a DockingClamp,
-    vessel_render_model: &'b LazyVesselRenderModel,
+    logger: &'b MemLogger,
+    vessel_render_model: &'c LazyVesselRenderModel,
 }
 
-impl<'a, 'b> DrawDockingClamp<'a, 'b> {
+impl<'a, 'b, 'c> DrawDockingClamp<'a, 'b, 'c> {
     pub fn new(
         clamp: &'a DockingClamp,
-        vessel_render_model: &'b LazyVesselRenderModel,
+        logger: &'b MemLogger,
+        vessel_render_model: &'c LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             clamp,
+            logger,
             vessel_render_model,
         })
     }
 }
 
-impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a, 'b> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         true
     }
@@ -674,7 +699,12 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClam
             Some(connection) => {
                 self.vessel_render_model
                     .get()
-                    .render(renderer, &connection.vessel, Some(bounding_box))
+                    .render(
+                        renderer,
+                        &connection.vessel,
+                        self.logger,
+                        Some(bounding_box),
+                    )
                     .unwrap();
             }
         }
@@ -682,24 +712,27 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClam
     }
 }
 
-struct DrawDockingClamps<'a, 'b> {
+struct DrawDockingClamps<'a, 'b, 'c> {
     clamps: &'a [DockingClamp],
-    vessel_render_model: &'b LazyVesselRenderModel,
+    logger: &'b MemLogger,
+    vessel_render_model: &'c LazyVesselRenderModel,
 }
 
-impl<'a, 'b> DrawDockingClamps<'a, 'b> {
+impl<'a, 'b, 'c> DrawDockingClamps<'a, 'b, 'c> {
     pub fn new(
         clamps: &'a [DockingClamp],
-        vessel_render_model: &'b LazyVesselRenderModel,
+        logger: &'b MemLogger,
+        vessel_render_model: &'c LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             clamps,
+            logger,
             vessel_render_model,
         })
     }
 }
 
-impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'a, 'b> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !self.clamps.is_empty()
     }
@@ -708,7 +741,7 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClam
         let layout = RowLayout::new(
             self.clamps
                 .iter()
-                .map(|clamp| DrawDockingClamp::new(clamp, self.vessel_render_model))
+                .map(|clamp| DrawDockingClamp::new(clamp, self.logger, self.vessel_render_model))
                 .map(|x| x as Box<dyn LayoutElement<_>>)
                 .collect(),
         );
@@ -737,6 +770,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
         renderer.draw_confined_text(
             &format!("{:?}", self.connector),
             bounding_box,
+            Alignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -777,31 +811,38 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
     }
 }
 
-struct DrawDockingStuff<'a, 'b> {
+struct DrawDockingStuff<'a, 'b, 'c> {
     module: &'a dyn Module,
-    vessel_render_model: &'b LazyVesselRenderModel,
+    logger: &'b MemLogger,
+    vessel_render_model: &'c LazyVesselRenderModel,
 }
 
-impl<'a, 'b> DrawDockingStuff<'a, 'b> {
+impl<'a, 'b, 'c> DrawDockingStuff<'a, 'b, 'c> {
     pub fn new(
         module: &'a dyn Module,
-        vessel_render_model: &'b LazyVesselRenderModel,
+        logger: &'b MemLogger,
+        vessel_render_model: &'c LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             module,
+            logger,
             vessel_render_model,
         })
     }
 }
 
-impl<'a, 'b, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingStuff<'a, 'b> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingStuff<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
-            DrawDockingClamps::new(self.module.docking_clamps(), self.vessel_render_model),
+            DrawDockingClamps::new(
+                self.module.docking_clamps(),
+                self.logger,
+                self.vessel_render_model,
+            ),
             DrawDockingConnectors::new(self.module.docking_connectors()),
         ]);
 
@@ -997,6 +1038,7 @@ impl ModuleRenderModel {
         &self,
         renderer: &mut Renderer<T>,
         module: &dyn Module,
+        logger: &MemLogger,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
         if !renderer.intersects_with_view_port(&bounding_box) {
@@ -1008,10 +1050,10 @@ impl ModuleRenderModel {
         draw_bounding_box(renderer, bounding_box);
 
         let column = ColumnLayout::new(vec![
-            DrawPersons::new(module, &self.person_render_model),
+            DrawPersons::new(module, logger, &self.person_render_model),
             DrawRecipes::new(module),
             DrawStorages::new(module),
-            DrawDockingStuff::new(module, &self.vessel_render_model),
+            DrawDockingStuff::new(module, logger, &self.vessel_render_model),
             DrawTradingInfo::new(module),
         ]);
 
