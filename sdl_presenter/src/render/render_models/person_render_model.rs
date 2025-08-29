@@ -1,8 +1,4 @@
 use crate::logger::{LogPiece, MemLogger};
-use crate::render::{
-    ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
-    LayoutElement, RenderError, Renderer, Text,
-};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Point, Rect, Size};
@@ -11,6 +7,8 @@ use std::convert::Into;
 use std::fmt::Alignment;
 use std::ops::Deref;
 use std::sync::LazyLock;
+use crate::render::{RenderError, Renderer};
+use crate::render::scene_graph::{ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions, GraphicsNode, Text};
 
 struct DrawLittleMan {
     points: &'static [Point<Float>],
@@ -46,7 +44,7 @@ impl DrawLittleMan {
     }
 }
 
-impl<T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLittleMan {
+impl<T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLittleMan {
     fn visible(&self) -> bool {
         true
     }
@@ -89,7 +87,7 @@ impl<'a> DrawLog<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLog<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -108,7 +106,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawLog<'a> {
                         text: format!("{:?}", x),
                         color: Color::black(),
                         alignment: Alignment::Left,
-                    }) as Box<dyn LayoutElement<T>>
+                    }) as Box<dyn GraphicsNode<T>>
                 })
                 .collect(),
         )
@@ -126,7 +124,7 @@ impl<'a> DrawHeader<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawHeader<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawHeader<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -154,7 +152,7 @@ impl<'a> DrawFooter<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawFooter<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawFooter<'a> {
     fn visible(&self) -> bool {
         true
     }

@@ -136,51 +136,56 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             let point_size = point_size.unwrap() / 3;
             let font = self.font_provider.font(point_size);
             let color = color_to_sdl2_rgba_color(color);
-            let surface = font.render(text).blended(color);
 
             self.canvas.set_draw_color(color);
-            if surface.is_err() {
+            for (i, line) in text.lines().enumerate() {
+                let surface = font.render(line).blended(color);
+
+                if surface.is_err() {
+                    self.canvas
+                        .fill_rect(rect_to_sdl2_rect(bounding_box))
+                        .unwrap();
+                    return;
+                }
+                let surface = surface.unwrap();
+
+                let texture = self.texture_creator.create_texture_from_surface(&surface);
+                if texture.is_err() {
+                    self.canvas
+                        .fill_rect(rect_to_sdl2_rect(bounding_box))
+                        .unwrap();
+                    return;
+                }
+                let texture = texture.unwrap();
+
+                let sdl2::render::TextureQuery { width, height, .. } = texture.query();
+
+                let mut width = width as Float;
+                let mut height = height as Float;
+
+                width = width.min(*bounding_box.w());
+                height = height.min(*bounding_box.h());
+
+                let offset_y = (i as isize - lines_count  as isize /2) as Float  * font.height() as Float;
+
+                let centered_rect = Rect::from_center((*bounding_box.center().x(), *bounding_box.center().y() + offset_y).into() , (width, height).into());
+
+                let rect = match alignment {
+                    Alignment::Left => (
+                        *bounding_box.x(),
+                        *centered_rect.y(),
+                        *centered_rect.w(),
+                        *centered_rect.h(),
+                    )
+                        .into(),
+                    Alignment::Right => todo!(),
+                    Alignment::Center => centered_rect,
+                };
+
                 self.canvas
-                    .fill_rect(rect_to_sdl2_rect(bounding_box))
+                    .copy(&texture, None, rect_to_sdl2_rect(rect))
                     .unwrap();
-                return;
             }
-            let surface = surface.unwrap();
-
-            let texture = self.texture_creator.create_texture_from_surface(&surface);
-            if texture.is_err() {
-                self.canvas
-                    .fill_rect(rect_to_sdl2_rect(bounding_box))
-                    .unwrap();
-                return;
-            }
-            let texture = texture.unwrap();
-
-            let sdl2::render::TextureQuery { width, height, .. } = texture.query();
-
-            let mut width = width as Float;
-            let mut height = height as Float;
-
-            width = width.min(*bounding_box.w());
-            height = height.min(*bounding_box.h());
-
-            let centered_rect = Rect::from_center(bounding_box.center(), (width, height).into());
-
-            let rect = match alignment {
-                Alignment::Left => (
-                    *bounding_box.x(),
-                    *centered_rect.y(),
-                    *centered_rect.w(),
-                    *centered_rect.h(),
-                )
-                    .into(),
-                Alignment::Right => todo!(),
-                Alignment::Center => centered_rect,
-            };
-
-            self.canvas
-                .copy(&texture, None, rect_to_sdl2_rect(rect))
-                .unwrap();
         }
     }
 }

@@ -1,7 +1,10 @@
 use crate::logger::MemLogger;
 use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
-use crate::render::{ColumnLayout, LayoutElement, LazyVesselRenderModel, RenderError, RowLayout};
+use crate::render::{
+    ItemStorageRenderModel,
+    LazyVesselRenderModel, RenderError,
+};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{Module, ModuleStorage};
 use dudes_in_space_api::person::Person;
@@ -12,6 +15,7 @@ use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
 use std::fmt::Alignment;
+use crate::render::scene_graph::{ColumnLayout, GraphicsNode, RowLayout};
 
 fn draw_top_info<T: sdl2::render::RenderTarget>(
     renderer: &mut Renderer<T>,
@@ -114,7 +118,7 @@ impl<'a, 'b, 'c> DrawPerson<'a, 'b, 'c> {
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPerson<'a, 'b, 'c> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPerson<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         true
     }
@@ -160,7 +164,7 @@ impl<'a, 'b, 'c> DrawPersons<'a, 'b, 'c> {
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons<'a, 'b, 'c> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPersons<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !(self.module.persons().is_empty() && self.module.free_person_slots_count() == 0)
     }
@@ -174,7 +178,7 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawPersons
                 .iter()
                 .map(|person| DrawPerson::new(person, self.logger, self.person_render_model))
                 .chain((0..free_person_slots_count).map(|_| DrawPerson::new_empty()))
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -193,7 +197,7 @@ impl<'a> DrawItemRecipe<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipe<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemRecipe<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -224,7 +228,7 @@ impl<'a> DrawItemRecipes<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipes<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemRecipes<'a> {
     fn visible(&self) -> bool {
         !self.recipes.is_empty()
     }
@@ -234,7 +238,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemRecipes<'a>
             self.recipes
                 .iter()
                 .map(DrawItemRecipe::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -253,7 +257,7 @@ impl<'a> DrawInputItemRecipe<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawInputItemRecipe<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -284,7 +288,7 @@ impl<'a> DrawInputItemRecipes<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipes<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawInputItemRecipes<'a> {
     fn visible(&self) -> bool {
         !self.recipes.is_empty()
     }
@@ -294,7 +298,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawInputItemRecipe
             self.recipes
                 .iter()
                 .map(DrawInputItemRecipe::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -313,7 +317,7 @@ impl<'a> DrawOutputItemRecipe<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecipe<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawOutputItemRecipe<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -344,7 +348,7 @@ impl<'a> DrawOutputItemRecipes<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecipes<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawOutputItemRecipes<'a> {
     fn visible(&self) -> bool {
         !self.recipes.is_empty()
     }
@@ -354,7 +358,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawOutputItemRecip
             self.recipes
                 .iter()
                 .map(DrawOutputItemRecipe::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -373,7 +377,7 @@ impl<'a> DrawAssemblyRecipe<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipe<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawAssemblyRecipe<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -408,7 +412,7 @@ impl<'a> DrawAssemblyRecipes<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipes<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawAssemblyRecipes<'a> {
     fn visible(&self) -> bool {
         !self.recipes.is_empty()
     }
@@ -418,7 +422,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawAssemblyRecipes
             self.recipes
                 .iter()
                 .map(DrawAssemblyRecipe::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -437,7 +441,7 @@ impl<'a> DrawRecipes<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawRecipes<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawRecipes<'a> {
     fn visible(&self) -> bool {
         !self.module.item_recipes().is_empty()
             || !self.module.input_item_recipes().is_empty()
@@ -458,48 +462,45 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawRecipes<'a> {
     }
 }
 
-struct DrawItemStorage<'a> {
+struct DrawItemStorage<'a, 'b> {
     storage: &'a ItemStorage,
+    model: &'b ItemStorageRenderModel,
 }
 
-impl<'a> DrawItemStorage<'a> {
-    pub fn new(storage: &'a ItemStorage) -> Box<Self> {
-        Box::new(Self { storage })
+impl<'a,'b> DrawItemStorage<'a,'b> {
+    pub fn new(storage: &'a ItemStorage,    model: &'b ItemStorageRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self { storage, model })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorage<'a> {
+impl<'a,'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorage<'a,'b> {
     fn visible(&self) -> bool {
         true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        renderer.draw_confined_text(
-            &format!("{:?}", self.storage,),
+        self.model.render(
+            renderer,
+            self.storage,
             bounding_box,
-            Alignment::Center,
-            Color {
-                r: 0.,
-                g: 0.,
-                b: 0.,
-                a: 1.,
-            },
-        );
-        draw_bounding_box(renderer, bounding_box);
+        ).unwrap();
     }
 }
 
-struct DrawItemStorages<'a> {
+struct DrawItemStorages<'a, 'b> {
     storages: Vec<&'a ItemStorage>,
+    model: &'b ItemStorageRenderModel,
 }
 
-impl<'a> DrawItemStorages<'a> {
-    pub fn new(storages: Vec<&'a ItemStorage>) -> Box<Self> {
-        Box::new(Self { storages })
+impl<'a,'b> DrawItemStorages<'a,'b> {
+    pub fn new(storages: Vec<&'a ItemStorage>,     model: &'b ItemStorageRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self { storages, model })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorages<'a> {
+impl<'a,'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorages<'a,'b> {
     fn visible(&self) -> bool {
         !self.storages.is_empty()
     }
@@ -509,8 +510,8 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemStorages<'a
             self.storages
                 .iter()
                 .cloned()
-                .map(DrawItemStorage::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x|DrawItemStorage::new(x, self.model))
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -529,7 +530,7 @@ impl<'a> DrawItemSafe<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafe<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemSafe<'a> {
     fn visible(&self) -> bool {
         todo!()
     }
@@ -560,7 +561,7 @@ impl<'a> DrawItemSafes<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafes<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemSafes<'a> {
     fn visible(&self) -> bool {
         !self.safes.is_empty()
     }
@@ -570,7 +571,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawItemSafes<'a> {
             self.safes
                 .iter()
                 .map(DrawItemSafe::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -589,7 +590,7 @@ impl<'a> DrawModuleStorage<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorage<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorage<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -620,7 +621,7 @@ impl<'a> DrawModuleStorages<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorages<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorages<'a> {
     fn visible(&self) -> bool {
         !self.storages.is_empty()
     }
@@ -630,7 +631,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorages<
             self.storages
                 .iter()
                 .map(DrawModuleStorage::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -639,17 +640,19 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawModuleStorages<
     }
 }
 
-struct DrawStorages<'a> {
+struct DrawStorages<'a, 'b> {
     module: &'a dyn Module,
+    model: &'b ItemStorageRenderModel,
+
 }
 
-impl<'a> DrawStorages<'a> {
-    pub fn new(module: &'a dyn Module) -> Box<Self> {
-        Box::new(Self { module })
+impl<'a, 'b> DrawStorages<'a, 'b> {
+    pub fn new(module: &'a dyn Module, model: &'b ItemStorageRenderModel) -> Box<Self> {
+        Box::new(Self { module, model })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawStorages<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawStorages<'a, 'b> {
     fn visible(&self) -> bool {
         !self.module.storages().is_empty()
             || !self.module.safes().is_empty()
@@ -658,7 +661,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawStorages<'a> {
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
-            DrawItemStorages::new(self.module.storages()),
+            DrawItemStorages::new(self.module.storages(), self.model),
             DrawItemSafes::new(self.module.safes()),
             DrawModuleStorages::new(self.module.module_storages()),
         ]);
@@ -688,7 +691,7 @@ impl<'a, 'b, 'c> DrawDockingClamp<'a, 'b, 'c> {
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamp<'a, 'b, 'c> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingClamp<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         true
     }
@@ -732,7 +735,7 @@ impl<'a, 'b, 'c> DrawDockingClamps<'a, 'b, 'c> {
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingClamps<'a, 'b, 'c> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingClamps<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !self.clamps.is_empty()
     }
@@ -742,7 +745,7 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDocking
             self.clamps
                 .iter()
                 .map(|clamp| DrawDockingClamp::new(clamp, self.logger, self.vessel_render_model))
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -761,7 +764,7 @@ impl<'a> DrawDockingConnector<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnector<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnector<'a> {
     fn visible(&self) -> bool {
         true
     }
@@ -792,7 +795,7 @@ impl<'a> DrawDockingConnectors<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnectors<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnectors<'a> {
     fn visible(&self) -> bool {
         !self.connectors.is_empty()
     }
@@ -802,7 +805,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingConnecto
             self.connectors
                 .iter()
                 .map(DrawDockingConnector::new)
-                .map(|x| x as Box<dyn LayoutElement<_>>)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
 
@@ -831,7 +834,7 @@ impl<'a, 'b, 'c> DrawDockingStuff<'a, 'b, 'c> {
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawDockingStuff<'a, 'b, 'c> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingStuff<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
     }
@@ -861,7 +864,7 @@ impl<'a> DrawBuyOffer<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyOffer<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyOffer<'a> {
     fn visible(&self) -> bool {
         todo!()
     }
@@ -881,7 +884,7 @@ impl<'a> DrawBuyOffers<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyOffers<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyOffers<'a> {
     fn visible(&self) -> bool {
         !self.offers.is_empty()
     }
@@ -901,7 +904,7 @@ impl<'a> DrawSellOffer<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawSellOffer<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawSellOffer<'a> {
     fn visible(&self) -> bool {
         todo!()
     }
@@ -921,7 +924,7 @@ impl<'a> DrawSellOffers<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawSellOffers<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawSellOffers<'a> {
     fn visible(&self) -> bool {
         !self.offers.is_empty()
     }
@@ -941,7 +944,7 @@ impl<'a> DrawBuyVesselOffer<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyVesselOffer<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyVesselOffer<'a> {
     fn visible(&self) -> bool {
         todo!()
     }
@@ -961,7 +964,7 @@ impl<'a> DrawBuyVesselOffers<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyVesselOffers<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyVesselOffers<'a> {
     fn visible(&self) -> bool {
         !self.offers.is_empty()
     }
@@ -981,7 +984,7 @@ impl<'a> DrawBuyCustomVesselOffer<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawBuyCustomVesselOffer<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyCustomVesselOffer<'a> {
     fn visible(&self) -> bool {
         self.offer.is_some()
     }
@@ -1001,7 +1004,7 @@ impl<'a> DrawTradingInfo<'a> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawTradingInfo<'a> {
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawTradingInfo<'a> {
     fn visible(&self) -> bool {
         self.module.trading_console().is_some()
     }
@@ -1024,6 +1027,7 @@ impl<'a, T: sdl2::render::RenderTarget> LayoutElement<T> for DrawTradingInfo<'a>
 pub struct ModuleRenderModel {
     person_render_model: PersonRenderModel,
     vessel_render_model: LazyVesselRenderModel,
+    item_storage_render_model: ItemStorageRenderModel,
 }
 
 impl ModuleRenderModel {
@@ -1031,6 +1035,7 @@ impl ModuleRenderModel {
         Self {
             person_render_model: PersonRenderModel::new(),
             vessel_render_model: LazyVesselRenderModel::new(),
+            item_storage_render_model: ItemStorageRenderModel::new(),
         }
     }
 
@@ -1052,7 +1057,7 @@ impl ModuleRenderModel {
         let column = ColumnLayout::new(vec![
             DrawPersons::new(module, logger, &self.person_render_model),
             DrawRecipes::new(module),
-            DrawStorages::new(module),
+            DrawStorages::new(module, &self.item_storage_render_model),
             DrawDockingStuff::new(module, logger, &self.vessel_render_model),
             DrawTradingInfo::new(module),
         ]);
