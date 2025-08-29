@@ -43,7 +43,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemCrafting];
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(100);
 
-pub(crate) static RECIPES: LazyLock<[ItemRecipe; 10]> = LazyLock::new(|| {
+pub(crate) static RECIPES: LazyLock<[ItemRecipe; 8]> = LazyLock::new(|| {
     [
         ItemRecipe {
             input: [("ice".into(), 10)].into(),
@@ -82,19 +82,12 @@ pub(crate) static RECIPES: LazyLock<[ItemRecipe; 10]> = LazyLock::new(|| {
             input: [("steel".into(), 10)].into(),
             output: [("heat_cell".into(), 10)].into(),
         },
-        ItemRecipe {
-            input: [("steel".into(), 10)].into(),
-            output: [("heat_cell".into(), 10)].into(),
-        },
-        ItemRecipe {
-            input: [("steel".into(), 10)].into(),
-            output: [("heat_cell".into(), 10)].into(),
-        },
     ]
 });
-static INPUT_RECIPES: LazyLock<[InputItemRecipe; 10]> =
+
+static INPUT_RECIPES: LazyLock<[InputItemRecipe; 8]> =
     LazyLock::new(|| RECIPES.clone().map(|x| x.input));
-static OUTPUT_RECIPES: LazyLock<[OutputItemRecipe; 10]> =
+static OUTPUT_RECIPES: LazyLock<[OutputItemRecipe; 8]> =
     LazyLock::new(|| RECIPES.clone().map(|x| x.output));
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]

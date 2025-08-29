@@ -18,6 +18,10 @@ impl ModuleStorage {
         }
     }
 
+    pub fn content(&self) -> &[Box<dyn Module>] {
+        &self.content
+    }
+
     /// TODO: add capacity
     pub fn has_space(&self) -> bool {
         true

@@ -22,6 +22,8 @@ pub struct Environment {
     vessels: Vec<Vessel>,
     nebulae: Vec<Nebula>,
     request_storage: RequestStorage,
+    #[serde(default)]
+    iteration: u64,
 }
 
 pub struct EnvironmentSeed<'v> {
@@ -42,7 +44,12 @@ impl Environment {
             vessels,
             nebulae,
             request_storage: Default::default(),
+            iteration: 0,
         }
+    }
+
+    pub fn iteration(&self) -> u64 {
+        self.iteration
     }
 
     pub fn vessels(&self) -> &[Vessel] {
@@ -76,6 +83,7 @@ impl Environment {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
         self.process_requests(req_context, item_vault, bank_registry);
+        self.iteration += 1;
     }
 
     pub fn collect_status(&self, collector: &mut dyn StatusCollector) {

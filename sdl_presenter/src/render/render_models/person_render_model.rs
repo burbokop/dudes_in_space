@@ -1,14 +1,16 @@
 use crate::logger::{LogPiece, MemLogger};
+use crate::render::scene_graph::{
+    ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
+    GraphicsNode, Text,
+};
+use crate::render::{HorisontalAlignment, RenderError, Renderer, DEFAULT_MARGIN};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Point, Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 use std::convert::Into;
-use std::fmt::Alignment;
 use std::ops::Deref;
 use std::sync::LazyLock;
-use crate::render::{RenderError, Renderer};
-use crate::render::scene_graph::{ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions, GraphicsNode, Text};
 
 struct DrawLittleMan {
     points: &'static [Point<Float>],
@@ -99,18 +101,29 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
         } else {
             &self.log[self.log.len() - MAX_LOG_SIZE..]
         };
-        ColumnLayout::new(
-            tail.iter()
-                .map(|x| {
-                    Box::new(Text {
-                        text: format!("{:?}", x),
-                        color: Color::black(),
-                        alignment: Alignment::Left,
-                    }) as Box<dyn GraphicsNode<T>>
-                })
-                .collect(),
-        )
-        .draw(renderer, bounding_box);
+
+        Text {
+            text: tail.iter()
+                     .map(|x| {
+                         format!("{}", x)
+                     }).collect::<Vec<_>>().join("\n"),
+            
+            color: Color::black(),
+            alignment: HorisontalAlignment::Left,
+        }.draw(renderer, bounding_box.homogeneous_mul(DEFAULT_MARGIN).0);
+        
+        // ColumnLayout::new(
+        //     tail.iter()
+        //         .map(|x| {
+        //             Box::new(Text {
+        //                 text: format!("{:?}", x),
+        //                 color: Color::black(),
+        //                 alignment: HorisontalAlignment::Left,
+        //             }) as Box<dyn GraphicsNode<T>>
+        //         })
+        //         .collect(),
+        // )
+        // .draw(renderer, bounding_box);
     }
 }
 

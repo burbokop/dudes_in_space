@@ -1,6 +1,6 @@
+use crate::render::Renderer;
 use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
-use crate::render::Renderer;
 
 pub trait GraphicsNode<T: sdl2::render::RenderTarget> {
     fn visible(&self) -> bool;
@@ -10,7 +10,9 @@ pub trait GraphicsNode<T: sdl2::render::RenderTarget> {
     }
 }
 
-impl<T: sdl2::render::RenderTarget, F: Fn(&mut Renderer<T>, Rect<Float>) -> ()> GraphicsNode<T> for F {
+impl<T: sdl2::render::RenderTarget, F: Fn(&mut Renderer<T>, Rect<Float>) -> ()> GraphicsNode<T>
+    for F
+{
     fn visible(&self) -> bool {
         true
     }

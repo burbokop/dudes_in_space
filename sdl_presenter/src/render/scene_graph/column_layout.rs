@@ -1,7 +1,7 @@
+use crate::render::scene_graph::GraphicsNode;
+use crate::render::{DEFAULT_MARGIN, Renderer};
 use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
-use crate::render::{Renderer, DEFAULT_MARGIN};
-use crate::render::scene_graph::GraphicsNode;
 
 pub struct ColumnLayout<'a, T: sdl2::render::RenderTarget> {
     elems: Vec<Box<dyn GraphicsNode<T> + 'a>>,
@@ -52,8 +52,6 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for ColumnLayout<'a, T> 
     }
 }
 
-
-
 #[derive(Default)]
 pub(crate) struct ExtColumnLayoutOptions {
     preserve_aspect_ratio: bool,
@@ -74,9 +72,7 @@ pub struct ExtColumnLayout<'a, T: sdl2::render::RenderTarget> {
 }
 
 impl<'a, T: sdl2::render::RenderTarget> ExtColumnLayout<'a, T> {
-    pub(crate) fn new(
-        elems: Vec<(Box<dyn GraphicsNode<T> + 'a>, ExtColumnLayoutOptions)>,
-    ) -> Self {
+    pub(crate) fn new(elems: Vec<(Box<dyn GraphicsNode<T> + 'a>, ExtColumnLayoutOptions)>) -> Self {
         Self { elems }
     }
 }

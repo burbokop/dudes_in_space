@@ -97,7 +97,7 @@ impl ItemStorage {
             total_occupied_volume: M3(0),
         }
     }
-    
+
     pub fn content(&self) -> impl Iterator<Item = &ItemStack> {
         self.content.values()
     }

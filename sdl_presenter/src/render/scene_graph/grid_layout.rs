@@ -1,7 +1,7 @@
+use crate::render::scene_graph::GraphicsNode;
+use crate::render::{DEFAULT_MARGIN, Renderer};
 use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
-use crate::render::{Renderer, DEFAULT_MARGIN};
-use crate::render::scene_graph::{ GraphicsNode};
 
 pub struct GridLayout<'a, T: sdl2::render::RenderTarget> {
     elems: Vec<Box<dyn GraphicsNode<T> + 'a>>,
@@ -13,9 +13,16 @@ impl<'a, T: sdl2::render::RenderTarget> GridLayout<'a, T> {
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget, N: GraphicsNode<T>+'a>  FromIterator<N> for GridLayout<'a, T > {
-    fn from_iter<I: IntoIterator<Item=N>>(iter: I) -> Self {
-        Self { elems: iter.into_iter().map(|e| Box::new(e) as Box<dyn GraphicsNode<T>>).collect() }
+impl<'a, T: sdl2::render::RenderTarget, N: GraphicsNode<T> + 'a> FromIterator<N>
+    for GridLayout<'a, T>
+{
+    fn from_iter<I: IntoIterator<Item = N>>(iter: I) -> Self {
+        Self {
+            elems: iter
+                .into_iter()
+                .map(|e| Box::new(e) as Box<dyn GraphicsNode<T>>)
+                .collect(),
+        }
     }
 }
 
@@ -61,10 +68,5 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for GridLayout<'a, T> {
                 i += 1;
             }
         }
-
-
-
-
-
     }
 }

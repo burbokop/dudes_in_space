@@ -6,8 +6,64 @@ use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Matrix, Point, Rect};
 use dudes_in_space_api::utils::utils::Float;
 use sdl2::gfx::primitives::DrawRenderer;
-use std::fmt::Alignment;
 use std::ops::Not;
+
+#[derive(Clone, Copy)]
+pub enum HorisontalAlignment {
+    Left,
+    Right,
+    Center,
+}
+
+#[derive(Clone, Copy)]
+pub enum VerticalAlignment {
+    Top,
+    Bottom,
+    Center,
+}
+
+#[derive(Clone, Copy)]
+pub struct Alignment {
+    pub horisontal: HorisontalAlignment,
+    pub vertical: VerticalAlignment,
+}
+
+impl Alignment {
+    pub fn left() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Left,
+            vertical: VerticalAlignment::Center,
+        }
+    }
+
+    pub fn right() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Right,
+            vertical: VerticalAlignment::Center,
+        }
+    }
+
+    pub fn top() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Center,
+            vertical: VerticalAlignment::Top,
+        }
+    }
+
+    pub fn bottom() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Center,
+            vertical: VerticalAlignment::Bottom,
+        }
+    }
+
+    pub fn center() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Center,
+            vertical: VerticalAlignment::Center,
+        }
+    }
+}
 
 pub struct Renderer<T: sdl2::render::RenderTarget> {
     canvas: sdl2::render::Canvas<T>,
@@ -105,11 +161,74 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             .unwrap();
     }
 
+    pub fn draw_text(
+        &mut self,
+        text: &str,
+        position: Point<Float>,
+        point_size: u16,
+        alignment: Alignment,
+        color: Color,
+    ) {
+        if text.len() > 0 {
+            let font = self.font_provider.font(point_size);
+            let color = color_to_sdl2_rgba_color(color);
+            let lines_count = text.lines().count();
+
+            for (i, line) in text.lines().enumerate() {
+                let surface = font.render(line).blended(color).unwrap();
+                let texture = self
+                    .texture_creator
+                    .create_texture_from_surface(&surface)
+                    .unwrap();
+                let sdl2::render::TextureQuery { width, height, .. } = texture.query();
+
+                let width = width as Float;
+                let height = height as Float;
+
+                let offset_y =
+                    (i as isize - lines_count as isize / 2) as Float * font.height() as Float;
+
+                let centered_rect = Rect::from_center(
+                    (*position.x(), *position.y() + offset_y).into(),
+                    (width, height).into(),
+                );
+
+                let rect = match (alignment.horisontal, alignment.vertical) {
+                    (HorisontalAlignment::Left, VerticalAlignment::Top) => (
+                        *position.x(),
+                        *position.y() + offset_y,
+                        *centered_rect.w(),
+                        *centered_rect.h(),
+                    )
+                        .into(),
+                    (HorisontalAlignment::Center, VerticalAlignment::Top) => todo!(),
+                    (HorisontalAlignment::Right, VerticalAlignment::Top) => todo!(),
+                    (HorisontalAlignment::Left, VerticalAlignment::Center) => (
+                        *position.x(),
+                        *centered_rect.y() + offset_y,
+                        *centered_rect.w(),
+                        *centered_rect.h(),
+                    )
+                        .into(),
+                    (HorisontalAlignment::Center, VerticalAlignment::Center) => centered_rect,
+                    (HorisontalAlignment::Right, VerticalAlignment::Center) => todo!(),
+                    (HorisontalAlignment::Left, VerticalAlignment::Bottom) => todo!(),
+                    (HorisontalAlignment::Center, VerticalAlignment::Bottom) => todo!(),
+                    (HorisontalAlignment::Right, VerticalAlignment::Bottom) => todo!(),
+                };
+
+                self.canvas
+                    .copy(&texture, None, rect_to_sdl2_rect(rect))
+                    .unwrap();
+            }
+        }
+    }
+
     pub fn draw_confined_text(
         &mut self,
         text: &str,
         bounding_box: Rect<Float>,
-        alignment: Alignment,
+        alignment: HorisontalAlignment,
         color: Color,
     ) {
         if !self.intersects_with_view_port(&bounding_box) {
@@ -125,7 +244,7 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             let ssx = (bounding_box.w() / longest_line_len as Float) as u16;
             let ssy = (bounding_box.h() / lines_count as Float) as u16;
 
-            let point_size = ssx.min(ssy).checked_mul(4);
+            let point_size = ssx.min(ssy).checked_mul(5);
             if point_size.is_none() {
                 self.canvas
                     .fill_rect(rect_to_sdl2_rect(bounding_box))
@@ -166,20 +285,28 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
                 width = width.min(*bounding_box.w());
                 height = height.min(*bounding_box.h());
 
-                let offset_y = (i as isize - lines_count  as isize /2) as Float  * font.height() as Float;
+                let offset_y =
+                    (i as isize - lines_count as isize / 2) as Float * font.height() as Float;
 
-                let centered_rect = Rect::from_center((*bounding_box.center().x(), *bounding_box.center().y() + offset_y).into() , (width, height).into());
+                let centered_rect = Rect::from_center(
+                    (
+                        *bounding_box.center().x(),
+                        *bounding_box.center().y() + offset_y,
+                    )
+                        .into(),
+                    (width, height).into(),
+                );
 
                 let rect = match alignment {
-                    Alignment::Left => (
+                    HorisontalAlignment::Left => (
                         *bounding_box.x(),
                         *centered_rect.y(),
                         *centered_rect.w(),
                         *centered_rect.h(),
                     )
                         .into(),
-                    Alignment::Right => todo!(),
-                    Alignment::Center => centered_rect,
+                    HorisontalAlignment::Right => todo!(),
+                    HorisontalAlignment::Center => centered_rect,
                 };
 
                 self.canvas

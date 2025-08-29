@@ -13,7 +13,7 @@ impl EnvironmentRenderModel {
             vessel_render_model: VesselRenderModel::new(),
         }
     }
-
+    
     pub fn render<T: sdl2::render::RenderTarget>(
         &self,
         renderer: &mut Renderer<T>,

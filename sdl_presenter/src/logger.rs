@@ -1,11 +1,18 @@
 use dudes_in_space_api::person::{Logger, PersonId, Severity};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LogPiece {
     pub severity: Severity,
     pub message: String,
+}
+
+impl Display for LogPiece {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.severity, self.message)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

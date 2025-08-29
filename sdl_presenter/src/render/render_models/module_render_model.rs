@@ -1,9 +1,9 @@
 use crate::logger::MemLogger;
 use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
+use crate::render::scene_graph::{ColumnLayout, GraphicsNode, GridLayout, RowLayout};
 use crate::render::{
-    ItemStorageRenderModel,
-    LazyVesselRenderModel, RenderError,
+    HorisontalAlignment, ItemStorageRenderModel, LazyVesselRenderModel, RenderError,
 };
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{Module, ModuleStorage};
@@ -14,8 +14,6 @@ use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
-use std::fmt::Alignment;
-use crate::render::scene_graph::{ColumnLayout, GraphicsNode, RowLayout};
 
 fn draw_top_info<T: sdl2::render::RenderTarget>(
     renderer: &mut Renderer<T>,
@@ -40,7 +38,7 @@ fn draw_top_info<T: sdl2::render::RenderTarget>(
             module.type_id()
         ),
         text_box,
-        Alignment::Center,
+        HorisontalAlignment::Center,
         Color {
             r: 0.,
             g: 0.,
@@ -73,7 +71,7 @@ fn draw_bottom_info<T: sdl2::render::RenderTarget>(
             module.primary_capabilities()
         ),
         text_box,
-        Alignment::Center,
+        HorisontalAlignment::Center,
         Color {
             r: 0.,
             g: 0.,
@@ -128,7 +126,7 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPerson<'
             None => renderer.draw_confined_text(
                 "Vacant",
                 bounding_box,
-                Alignment::Center,
+                HorisontalAlignment::Center,
                 Color {
                     r: 0.,
                     g: 0.,
@@ -204,9 +202,9 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemRecipe<'a> {
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         renderer.draw_confined_text(
-            &format!("{:?} -> {:?}", self.recipe.input, self.recipe.output,),
+            &format!("{} -> {}", self.recipe.input, self.recipe.output),
             bounding_box,
-            Alignment::Center,
+            HorisontalAlignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -264,9 +262,9 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawInputItemRecipe<
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         renderer.draw_confined_text(
-            &format!("{:?} -> |", self.recipe,),
+            &format!("{} ->", self.recipe),
             bounding_box,
-            Alignment::Center,
+            HorisontalAlignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -324,9 +322,9 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawOutputItemRecipe
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         renderer.draw_confined_text(
-            &format!("| -> {:?}", self.recipe,),
+            &format!("-> {}", self.recipe),
             bounding_box,
-            Alignment::Center,
+            HorisontalAlignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -385,12 +383,12 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawAssemblyRecipe<'
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         renderer.draw_confined_text(
             &format!(
-                "{:?} -> {}",
+                "{} -> {}",
                 self.recipe.input(),
                 self.recipe.output_description().type_id(),
             ),
             bounding_box,
-            Alignment::Center,
+            HorisontalAlignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -467,24 +465,21 @@ struct DrawItemStorage<'a, 'b> {
     model: &'b ItemStorageRenderModel,
 }
 
-impl<'a,'b> DrawItemStorage<'a,'b> {
-    pub fn new(storage: &'a ItemStorage,    model: &'b ItemStorageRenderModel,
-    ) -> Box<Self> {
+impl<'a, 'b> DrawItemStorage<'a, 'b> {
+    pub fn new(storage: &'a ItemStorage, model: &'b ItemStorageRenderModel) -> Box<Self> {
         Box::new(Self { storage, model })
     }
 }
 
-impl<'a,'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorage<'a,'b> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorage<'a, 'b> {
     fn visible(&self) -> bool {
         true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        self.model.render(
-            renderer,
-            self.storage,
-            bounding_box,
-        ).unwrap();
+        self.model
+            .render(renderer, self.storage, bounding_box)
+            .unwrap();
     }
 }
 
@@ -493,14 +488,13 @@ struct DrawItemStorages<'a, 'b> {
     model: &'b ItemStorageRenderModel,
 }
 
-impl<'a,'b> DrawItemStorages<'a,'b> {
-    pub fn new(storages: Vec<&'a ItemStorage>,     model: &'b ItemStorageRenderModel,
-    ) -> Box<Self> {
+impl<'a, 'b> DrawItemStorages<'a, 'b> {
+    pub fn new(storages: Vec<&'a ItemStorage>, model: &'b ItemStorageRenderModel) -> Box<Self> {
         Box::new(Self { storages, model })
     }
 }
 
-impl<'a,'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorages<'a,'b> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorages<'a, 'b> {
     fn visible(&self) -> bool {
         !self.storages.is_empty()
     }
@@ -510,7 +504,7 @@ impl<'a,'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemStorages<
             self.storages
                 .iter()
                 .cloned()
-                .map(|x|DrawItemStorage::new(x, self.model))
+                .map(|x| DrawItemStorage::new(x, self.model))
                 .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
@@ -539,7 +533,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemSafe<'a> {
         renderer.draw_confined_text(
             &format!("{:?}", self.safe,),
             bounding_box,
-            Alignment::Center,
+            HorisontalAlignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -580,48 +574,69 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemSafes<'a> {
     }
 }
 
-struct DrawModuleStorage<'a> {
+struct DrawModuleStorage<'a, 'b> {
     storage: &'a ModuleStorage,
+    module_render_model: &'b ModuleRenderModel,
 }
 
-impl<'a> DrawModuleStorage<'a> {
-    pub fn new(storage: &'a ModuleStorage) -> Box<Self> {
-        Box::new(Self { storage })
+impl<'a, 'b> DrawModuleStorage<'a, 'b> {
+    pub fn new(
+        storage: &'a ModuleStorage,
+        module_render_model: &'b ModuleRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self {
+            storage,
+            module_render_model,
+        })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorage<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorage<'a, 'b> {
     fn visible(&self) -> bool {
         true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        renderer.draw_confined_text(
-            &format!("{:?}", self.storage,),
-            bounding_box,
-            Alignment::Center,
-            Color {
-                r: 0.,
-                g: 0.,
-                b: 0.,
-                a: 1.,
-            },
-        );
-        draw_bounding_box(renderer, bounding_box);
+        let layout: GridLayout<_> = self
+            .storage
+            .content()
+            .iter()
+            .map(|module| {
+                |renderer: &mut Renderer<T>, bounding_box| {
+                    renderer.draw_confined_text(
+                        &format!("{}", module.type_id()),
+                        bounding_box,
+                        HorisontalAlignment::Center,
+                        Color::black(),
+                    );
+                    renderer.draw_rect(bounding_box, Color::black());
+                }
+            })
+            .collect();
+
+        layout.draw(renderer, bounding_box);
+        renderer.draw_rect(bounding_box, Color::black());
     }
 }
 
-struct DrawModuleStorages<'a> {
+struct DrawModuleStorages<'a, 'b> {
     storages: &'a [ModuleStorage],
+    module_render_model: &'b ModuleRenderModel,
 }
 
-impl<'a> DrawModuleStorages<'a> {
-    pub fn new(storages: &'a [ModuleStorage]) -> Box<Self> {
-        Box::new(Self { storages })
+impl<'a, 'b> DrawModuleStorages<'a, 'b> {
+    pub fn new(
+        storages: &'a [ModuleStorage],
+        module_render_model: &'b ModuleRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self {
+            storages,
+            module_render_model,
+        })
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorages<'a> {
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorages<'a, 'b> {
     fn visible(&self) -> bool {
         !self.storages.is_empty()
     }
@@ -630,7 +645,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorages<'
         let layout = RowLayout::new(
             self.storages
                 .iter()
-                .map(DrawModuleStorage::new)
+                .map(|storage| DrawModuleStorage::new(storage, self.module_render_model))
                 .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
@@ -640,19 +655,27 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorages<'
     }
 }
 
-struct DrawStorages<'a, 'b> {
+struct DrawStorages<'a, 'b, 'c> {
     module: &'a dyn Module,
-    model: &'b ItemStorageRenderModel,
-
+    item_storage_render_model: &'b ItemStorageRenderModel,
+    module_render_model: &'c ModuleRenderModel,
 }
 
-impl<'a, 'b> DrawStorages<'a, 'b> {
-    pub fn new(module: &'a dyn Module, model: &'b ItemStorageRenderModel) -> Box<Self> {
-        Box::new(Self { module, model })
+impl<'a, 'b, 'c> DrawStorages<'a, 'b, 'c> {
+    pub fn new(
+        module: &'a dyn Module,
+        item_storage_render_model: &'b ItemStorageRenderModel,
+        module_render_model: &'c ModuleRenderModel,
+    ) -> Box<Self> {
+        Box::new(Self {
+            module,
+            item_storage_render_model,
+            module_render_model,
+        })
     }
 }
 
-impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawStorages<'a, 'b> {
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawStorages<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !self.module.storages().is_empty()
             || !self.module.safes().is_empty()
@@ -661,9 +684,9 @@ impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawStorages<'a,
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let layout = RowLayout::new(vec![
-            DrawItemStorages::new(self.module.storages(), self.model),
+            DrawItemStorages::new(self.module.storages(), self.item_storage_render_model),
             DrawItemSafes::new(self.module.safes()),
-            DrawModuleStorages::new(self.module.module_storages()),
+            DrawModuleStorages::new(self.module.module_storages(), self.module_render_model),
         ]);
 
         layout.draw(renderer, bounding_box);
@@ -773,7 +796,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnector
         renderer.draw_confined_text(
             &format!("{:?}", self.connector),
             bounding_box,
-            Alignment::Center,
+            HorisontalAlignment::Center,
             Color {
                 r: 0.,
                 g: 0.,
@@ -1057,7 +1080,7 @@ impl ModuleRenderModel {
         let column = ColumnLayout::new(vec![
             DrawPersons::new(module, logger, &self.person_render_model),
             DrawRecipes::new(module),
-            DrawStorages::new(module, &self.item_storage_render_model),
+            DrawStorages::new(module, &self.item_storage_render_model, self),
             DrawDockingStuff::new(module, logger, &self.vessel_render_model),
             DrawTradingInfo::new(module),
         ]);

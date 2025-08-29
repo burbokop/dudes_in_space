@@ -1,7 +1,7 @@
+use crate::render::scene_graph::GraphicsNode;
+use crate::render::{DEFAULT_MARGIN, Renderer};
 use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
-use crate::render::{Renderer, DEFAULT_MARGIN};
-use crate::render::scene_graph::GraphicsNode;
 
 pub struct RowLayout<'a, T: sdl2::render::RenderTarget> {
     elems: Vec<Box<dyn GraphicsNode<T> + 'a>>,

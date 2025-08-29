@@ -121,6 +121,19 @@ impl TryFrom<Vec<ItemRefStack>> for InputItemRecipe {
     }
 }
 
+impl Display for InputItemRecipe {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+        for (i, (id, count)) in self.input.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}:{}", id, count)?;
+        }
+        write!(f, "]")
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct OutputItemRecipe {
     #[serde(flatten)]
@@ -167,5 +180,18 @@ impl TryFrom<Vec<Item>> for OutputItemRecipe {
 
     fn try_from(_value: Vec<Item>) -> Result<Self, Self::Error> {
         todo!()
+    }
+}
+
+impl Display for OutputItemRecipe {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+        for (i, (id, count)) in self.output.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}:{}", id, count)?;
+        }
+        write!(f, "]")
     }
 }
