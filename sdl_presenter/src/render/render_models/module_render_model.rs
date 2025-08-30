@@ -1,4 +1,5 @@
 use crate::logger::MemLogger;
+use crate::person_table::PersonTable;
 use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::scene_graph::{ColumnLayout, GraphicsNode, GridLayout, RowLayout};
@@ -694,27 +695,32 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawStorages
     }
 }
 
-struct DrawDockingClamp<'a, 'b, 'c> {
+struct DrawDockingClamp<'a, 'b, 'c, 'd> {
     clamp: &'a DockingClamp,
     logger: &'b MemLogger,
-    vessel_render_model: &'c LazyVesselRenderModel,
+    person_table: &'c PersonTable,
+    vessel_render_model: &'d LazyVesselRenderModel,
 }
 
-impl<'a, 'b, 'c> DrawDockingClamp<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> DrawDockingClamp<'a, 'b, 'c, 'd> {
     pub fn new(
         clamp: &'a DockingClamp,
         logger: &'b MemLogger,
-        vessel_render_model: &'c LazyVesselRenderModel,
+        person_table: &'c PersonTable,
+        vessel_render_model: &'d LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             clamp,
             logger,
+            person_table,
             vessel_render_model,
         })
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingClamp<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingClamp<'a, 'b, 'c, 'd>
+{
     fn visible(&self) -> bool {
         true
     }
@@ -729,6 +735,7 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingC
                         renderer,
                         &connection.vessel,
                         self.logger,
+                        self.person_table,
                         Some(bounding_box),
                     )
                     .unwrap();
@@ -738,27 +745,32 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingC
     }
 }
 
-struct DrawDockingClamps<'a, 'b, 'c> {
+struct DrawDockingClamps<'a, 'b, 'c, 'd> {
     clamps: &'a [DockingClamp],
     logger: &'b MemLogger,
-    vessel_render_model: &'c LazyVesselRenderModel,
+    person_table: &'c PersonTable,
+    vessel_render_model: &'d LazyVesselRenderModel,
 }
 
-impl<'a, 'b, 'c> DrawDockingClamps<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> DrawDockingClamps<'a, 'b, 'c, 'd> {
     pub fn new(
         clamps: &'a [DockingClamp],
         logger: &'b MemLogger,
-        vessel_render_model: &'c LazyVesselRenderModel,
+        person_table: &'c PersonTable,
+        vessel_render_model: &'d LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             clamps,
             logger,
+            person_table,
             vessel_render_model,
         })
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingClamps<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingClamps<'a, 'b, 'c, 'd>
+{
     fn visible(&self) -> bool {
         !self.clamps.is_empty()
     }
@@ -767,7 +779,14 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingC
         let layout = RowLayout::new(
             self.clamps
                 .iter()
-                .map(|clamp| DrawDockingClamp::new(clamp, self.logger, self.vessel_render_model))
+                .map(|clamp| {
+                    DrawDockingClamp::new(
+                        clamp,
+                        self.logger,
+                        self.person_table,
+                        self.vessel_render_model,
+                    )
+                })
                 .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
         );
@@ -837,27 +856,32 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnector
     }
 }
 
-struct DrawDockingStuff<'a, 'b, 'c> {
+struct DrawDockingStuff<'a, 'b, 'c, 'd> {
     module: &'a dyn Module,
     logger: &'b MemLogger,
-    vessel_render_model: &'c LazyVesselRenderModel,
+    person_table: &'c PersonTable,
+    vessel_render_model: &'d LazyVesselRenderModel,
 }
 
-impl<'a, 'b, 'c> DrawDockingStuff<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> DrawDockingStuff<'a, 'b, 'c, 'd> {
     pub fn new(
         module: &'a dyn Module,
         logger: &'b MemLogger,
-        vessel_render_model: &'c LazyVesselRenderModel,
+        person_table: &'c PersonTable,
+        vessel_render_model: &'d LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             module,
             logger,
+            person_table,
             vessel_render_model,
         })
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingStuff<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingStuff<'a, 'b, 'c, 'd>
+{
     fn visible(&self) -> bool {
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
     }
@@ -867,6 +891,7 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingS
             DrawDockingClamps::new(
                 self.module.docking_clamps(),
                 self.logger,
+                self.person_table,
                 self.vessel_render_model,
             ),
             DrawDockingConnectors::new(self.module.docking_connectors()),
@@ -1013,7 +1038,12 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyCustomVesselO
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        renderer.draw_confined_text(
+            &format!("{:?}", self.offer),
+            bounding_box,
+            HorisontalAlignment::Left,
+            Color::black(),
+        )
     }
 }
 
@@ -1067,6 +1097,7 @@ impl ModuleRenderModel {
         renderer: &mut Renderer<T>,
         module: &dyn Module,
         logger: &MemLogger,
+        person_table: &PersonTable,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
         if !renderer.intersects_with_view_port(&bounding_box) {
@@ -1081,7 +1112,7 @@ impl ModuleRenderModel {
             DrawPersons::new(module, logger, &self.person_render_model),
             DrawRecipes::new(module),
             DrawStorages::new(module, &self.item_storage_render_model, self),
-            DrawDockingStuff::new(module, logger, &self.vessel_render_model),
+            DrawDockingStuff::new(module, logger, person_table, &self.vessel_render_model),
             DrawTradingInfo::new(module),
         ]);
 

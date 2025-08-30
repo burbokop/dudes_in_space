@@ -171,7 +171,7 @@ impl Objective for CraftModulesObjective {
                         *this_person.id,
                         *dst,
                     ) {
-                        Ok(_) => todo!(),
+                        Ok(_) => Ok(ObjectiveStatus::InProgress),
                         Err(MoveToModuleError::ModuleNotFound) => todo!(),
                         Err(MoveToModuleError::PermissionDenied) => {
                             Err(Self::Error::PermissionDenied)

@@ -1,12 +1,13 @@
 use crate::finance::MoneyRef;
 use crate::item::{ItemCount, ItemId};
 use crate::module::{ModuleCapability, ModuleId};
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::range::Range;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-type OfferId = u64;
+pub type OfferId = NonNilUuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BuyOffer {

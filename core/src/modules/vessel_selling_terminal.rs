@@ -14,7 +14,7 @@ use dudes_in_space_api::recipe::{
     OutputItemRecipe,
 };
 use dudes_in_space_api::trade::{
-    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, OrderHolder,
+    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder,
     OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrderEstimate, WeakBuyOrder,
     WeakBuyVesselOrder, WeakSellOrder,
 };
@@ -213,7 +213,13 @@ impl<'a> TradingAdminConsole for Console<'a> {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
     ) -> BuyCustomVesselOffer {
-        todo!()
+        let offer = BuyCustomVesselOffer {
+            id: OfferId::new_v4(),
+            available_capabilities: capabilities,
+            available_primary_capabilities: primary_capabilities,
+        };
+        *self.buy_custom_vessel_offer = Some(offer.clone());
+        offer
     }
 
     fn buy_orders(&self) -> &[BuyOrder] {
@@ -297,7 +303,16 @@ impl Module for VesselSellingTerminal {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
@@ -412,6 +427,23 @@ impl TradingConsole for VesselSellingTerminal {
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyCustomVesselOrderEstimate> {
+        /*
+
+        margin = 2.0 (min = 1.1) stored in persons objective and copied to vessel selling terminal
+            where
+                margin *= 1.1 if sold;
+                margin /= 1.1 if not sold for some time
+
+        let modules_to_craft = find_modules_to_craft(assembler, capabilities, primary_capabilities);
+
+        let ingredients = ingredients_of_modules(assembler, modules_to_craft);
+
+        let price_of_ingredients = price_of_items(trading_terminal, ingredients);
+
+        return price_of_ingredients * margin;
+
+        */
+
         todo!()
     }
 

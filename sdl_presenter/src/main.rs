@@ -4,12 +4,14 @@
 #![allow(dead_code)]
 
 use crate::camera::Camera;
+use crate::person_table::PersonTable;
 use crate::render::{
     Alignment, EnvironmentRenderModel, FontProvider, HorisontalAlignment, Renderer,
     VerticalAlignment,
 };
 use crate::utils::{load, load_camera, load_logger, save, save_camera, save_logger};
 use dudes_in_space_api::utils::color::Color;
+use dudes_in_space_api::utils::math::Matrix;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
 use std::env::home_dir;
@@ -17,6 +19,7 @@ use std::time::Duration;
 
 mod camera;
 mod logger;
+mod person_table;
 mod render;
 mod utils;
 
@@ -51,6 +54,7 @@ fn main() {
 
     let components = core_components();
     let mut environment = load(&components, save_path.clone());
+    let mut person_table = PersonTable::new(&environment);
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     'running: loop {
@@ -94,6 +98,10 @@ fn main() {
                         &components.bank_registry,
                         &mut logger,
                     );
+
+                    save(&environment, &save_path);
+                    save_logger(&logger, &logger_save_path);
+                    person_table = PersonTable::new(&environment)
                 }
 
                 MouseWheel {
@@ -139,27 +147,30 @@ fn main() {
             }
         }
 
-        renderer.begin(&camera);
+        renderer.begin();
+        renderer.set_transformation(camera.transformation());
         render_model
-            .render(&mut renderer, &environment, &logger)
+            .render(&mut renderer, &environment, &logger, &person_table)
             .unwrap();
 
-        renderer.draw_text(
-            &format!("iteration: {}", environment.iteration()),
-            (16., 16.).into(),
-            16,
-            Alignment {
-                horisontal: HorisontalAlignment::Left,
-                vertical: VerticalAlignment::Top,
-            },
-            Color::black(),
-        );
+        renderer.set_transformation(Matrix::identity());
+
+        renderer
+            .draw_text(
+                &format!("iteration: {}", environment.iteration()),
+                (16., 16.).into(),
+                16.,
+                Alignment {
+                    horisontal: HorisontalAlignment::Left,
+                    vertical: VerticalAlignment::Top,
+                },
+                Color::black(),
+            )
+            .unwrap();
 
         renderer.end();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
-    save(environment, save_path);
     save_camera(camera, camera_save_path);
-    save_logger(logger, logger_save_path);
 }

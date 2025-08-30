@@ -1,11 +1,14 @@
 use crate::logger::MemLogger;
+use crate::person_table::PersonTable;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
 use crate::render::renderer::Renderer;
-use crate::render::{DEFAULT_MARGIN, RenderError};
+use crate::render::{
+    Alignment, DEFAULT_MARGIN, HorisontalAlignment, RenderError, VerticalAlignment,
+};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Rect, Vector};
 use dudes_in_space_api::utils::utils::Float;
-use dudes_in_space_api::vessel::Vessel;
+use dudes_in_space_api::vessel::{Vessel, VesselConsole};
 use std::cell::{RefCell, RefMut};
 use std::ops::Deref;
 
@@ -25,6 +28,7 @@ impl VesselRenderModel {
         renderer: &mut Renderer<T>,
         vessel: &Vessel,
         logger: &MemLogger,
+        person_table: &PersonTable,
         bounding_box: Option<Rect<Float>>,
     ) -> Result<(), RenderError> {
         let modules: Vec<_> = vessel.modules().collect();
@@ -34,6 +38,8 @@ impl VesselRenderModel {
         if side_count == 0 {
             return Ok(());
         }
+
+        let owner_color = Color::from_uuid(vessel.owner());
 
         match bounding_box {
             None => {
@@ -52,15 +58,28 @@ impl VesselRenderModel {
                     (side_width + margin * 2., side_height + margin * 2.).into(),
                 );
 
-                renderer.draw_rect(
-                    rect,
-                    Color {
-                        r: 0.,
-                        g: 0.,
-                        b: 0.,
-                        a: 1.,
-                    },
-                );
+                renderer.draw_rect(rect, owner_color.clone());
+
+                renderer
+                    .draw_text(
+                        &format!(
+                            "name: {}\nowner: {} ({})",
+                            vessel.name(),
+                            vessel.owner(),
+                            person_table
+                                .get(&vessel.owner())
+                                .map(|x| x.name.clone())
+                                .unwrap_or_else(|| "???".to_string())
+                        ),
+                        rect.left_top(),
+                        0.25,
+                        Alignment {
+                            horisontal: HorisontalAlignment::Left,
+                            vertical: VerticalAlignment::Top,
+                        },
+                        owner_color,
+                    )
+                    .unwrap_or_default();
 
                 let mut i = 0;
                 for x in 0..side_count {
@@ -83,6 +102,7 @@ impl VesselRenderModel {
                             renderer,
                             modules[i].deref(),
                             logger,
+                            person_table,
                             bounding_box,
                         )?;
                         i += 1;
@@ -128,6 +148,7 @@ impl VesselRenderModel {
                             renderer,
                             modules[i].deref(),
                             logger,
+                            person_table,
                             bounding_box,
                         )?;
                         i += 1;

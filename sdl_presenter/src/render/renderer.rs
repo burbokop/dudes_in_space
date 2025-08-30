@@ -1,4 +1,3 @@
-use crate::camera::Camera;
 use crate::render::{
     FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
 };
@@ -6,6 +5,7 @@ use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Matrix, Point, Rect};
 use dudes_in_space_api::utils::utils::Float;
 use sdl2::gfx::primitives::DrawRenderer;
+use std::error::Error;
 use std::ops::Not;
 
 #[derive(Clone, Copy)]
@@ -88,16 +88,16 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
         }
     }
 
-    pub fn begin(&mut self, camera: &Camera) {
+    pub fn begin(&mut self) {
         self.canvas
             .set_draw_color(sdl2::pixels::Color::RGB(255, 255, 255));
         self.canvas.clear();
+    }
 
-        self.tr = camera.transformation();
-
+    pub fn set_transformation(&mut self, tr: Matrix<Float>) {
+        self.tr = tr;
         let (canvas_width, canvas_height) = self.canvas.output_size().unwrap();
         let view_port: Rect<Float> = (0., 0., canvas_width as Float, canvas_height as Float).into();
-
         self.view_port_in_world_space = &self.tr.not().unwrap() * &view_port;
     }
 
@@ -107,6 +107,10 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
 
     pub fn intersects_with_view_port(&self, rect: &Rect<Float>) -> bool {
         self.view_port_in_world_space.instersects(rect)
+    }
+
+    pub fn is_contained_in_view_port(&self, rect: &Point<Float>) -> bool {
+        self.view_port_in_world_space.contains_point(rect)
     }
 
     pub fn draw_rect(&mut self, rect: Rect<Float>, color: Color) {
@@ -165,21 +169,21 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
         &mut self,
         text: &str,
         position: Point<Float>,
-        point_size: u16,
+        point_size: Float,
         alignment: Alignment,
         color: Color,
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
+        let position = &self.tr * &position;
+        let point_size = (self.tr.average_scale() * point_size) as u16;
+
         if text.len() > 0 {
             let font = self.font_provider.font(point_size);
             let color = color_to_sdl2_rgba_color(color);
             let lines_count = text.lines().count();
 
             for (i, line) in text.lines().enumerate() {
-                let surface = font.render(line).blended(color).unwrap();
-                let texture = self
-                    .texture_creator
-                    .create_texture_from_surface(&surface)
-                    .unwrap();
+                let surface = font.render(line).blended(color)?;
+                let texture = self.texture_creator.create_texture_from_surface(&surface)?;
                 let sdl2::render::TextureQuery { width, height, .. } = texture.query();
 
                 let width = width as Float;
@@ -217,11 +221,11 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
                     (HorisontalAlignment::Right, VerticalAlignment::Bottom) => todo!(),
                 };
 
-                self.canvas
-                    .copy(&texture, None, rect_to_sdl2_rect(rect))
-                    .unwrap();
+                self.canvas.copy(&texture, None, rect_to_sdl2_rect(rect))?;
             }
         }
+
+        Ok(())
     }
 
     pub fn draw_confined_text(
@@ -244,7 +248,7 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
             let ssx = (bounding_box.w() / longest_line_len as Float) as u16;
             let ssy = (bounding_box.h() / lines_count as Float) as u16;
 
-            let point_size = ssx.min(ssy).checked_mul(5);
+            let point_size = ssx.min(ssy).checked_mul(4);
             if point_size.is_none() {
                 self.canvas
                     .fill_rect(rect_to_sdl2_rect(bounding_box))
@@ -254,6 +258,7 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
 
             let point_size = point_size.unwrap() / 3;
             let font = self.font_provider.font(point_size);
+
             let color = color_to_sdl2_rgba_color(color);
 
             self.canvas.set_draw_color(color);

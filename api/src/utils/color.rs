@@ -1,4 +1,8 @@
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
+use rand::Rng;
+use rand_pcg::Pcg64;
+use rand_seeder::Seeder;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,6 +28,15 @@ impl Color {
             a: 1.,
             r: 0.,
             g: 1.,
+            b: 0.,
+        }
+    }
+
+    pub fn red() -> Self {
+        Self {
+            a: 1.,
+            r: 1.,
+            g: 0.,
             b: 0.,
         }
     }
@@ -136,6 +149,16 @@ impl Color {
                 b: q,
             },
             _ => unreachable!(),
+        }
+    }
+
+    pub fn from_uuid(uuid: NonNilUuid) -> Self {
+        let mut rng: Pcg64 = Seeder::from(uuid.get().as_bytes()).into_rng();
+        Self {
+            a: 1.,
+            r: rng.random(),
+            g: rng.random(),
+            b: rng.random(),
         }
     }
 }

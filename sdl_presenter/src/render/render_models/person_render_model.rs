@@ -3,7 +3,7 @@ use crate::render::scene_graph::{
     ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
     GraphicsNode, Text,
 };
-use crate::render::{HorisontalAlignment, RenderError, Renderer, DEFAULT_MARGIN};
+use crate::render::{DEFAULT_MARGIN, HorisontalAlignment, RenderError, Renderer};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Point, Rect, Size};
@@ -15,10 +15,11 @@ use std::sync::LazyLock;
 struct DrawLittleMan {
     points: &'static [Point<Float>],
     aabb: Rect<Float>,
+    color: Color,
 }
 
 impl DrawLittleMan {
-    fn new() -> Self {
+    fn new(color: Color) -> Self {
         static POINTS: LazyLock<[Point<Float>; 16]> = LazyLock::new(|| {
             [
                 (0., 0.).into(),
@@ -42,6 +43,7 @@ impl DrawLittleMan {
         Self {
             points: POINTS.deref(),
             aabb: Rect::aabb_from_points(POINTS.deref().iter().cloned()).unwrap(),
+            color,
         }
     }
 }
@@ -63,13 +65,13 @@ impl<T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLittleMan {
             .map(|x| bounding_box.left_top() + (*x - self.aabb.left_top()) * q)
             .collect();
 
-        renderer.draw_polygon(&points, Color::black());
+        renderer.draw_polygon(&points, self.color.clone());
 
         for p in points {
             renderer.fill_circle(
                 p,
                 bounding_box.w().min(*bounding_box.h()) / 50.,
-                Color::black(),
+                self.color.clone(),
             );
         }
     }
@@ -103,27 +105,15 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
         };
 
         Text {
-            text: tail.iter()
-                     .map(|x| {
-                         format!("{}", x)
-                     }).collect::<Vec<_>>().join("\n"),
-            
+            text: tail
+                .iter()
+                .map(|x| format!("{}", x))
+                .collect::<Vec<_>>()
+                .join("\n"),
             color: Color::black(),
             alignment: HorisontalAlignment::Left,
-        }.draw(renderer, bounding_box.homogeneous_mul(DEFAULT_MARGIN).0);
-        
-        // ColumnLayout::new(
-        //     tail.iter()
-        //         .map(|x| {
-        //             Box::new(Text {
-        //                 text: format!("{:?}", x),
-        //                 color: Color::black(),
-        //                 alignment: HorisontalAlignment::Left,
-        //             }) as Box<dyn GraphicsNode<T>>
-        //         })
-        //         .collect(),
-        // )
-        // .draw(renderer, bounding_box);
+        }
+        .draw(renderer, bounding_box.homogeneous_mul(DEFAULT_MARGIN).0);
     }
 }
 
@@ -144,10 +134,19 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawHeader<'a> {
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         ColumnLayout::new(vec![
-            Box::new(if let Some(boss) = self.person.boss() {
-                format!("{} (B: {})", self.person.name(), boss)
-            } else {
-                format!("{}", self.person.name())
+            Box::new(Text {
+                color: Color::from_uuid(self.person.id()),
+                alignment: HorisontalAlignment::Left,
+                text: if let Some(boss) = self.person.boss() {
+                    format!("{} (B: {})", self.person.name(), boss)
+                } else {
+                    format!("{}", self.person.name())
+                },
+            }),
+            Box::new(Text {
+                color: Color::from_uuid(self.person.id()),
+                alignment: HorisontalAlignment::Left,
+                text: format!("{}", self.person.id()),
             }),
             Box::new(format!("{:?}", self.person.wallet())),
         ])
@@ -196,24 +195,42 @@ impl PersonRenderModel {
         logger: &MemLogger,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
-        let row = ExtRowLayout::new(vec![
-            (
-                Box::new(DrawLittleMan::new()),
-                ExtRowLayoutOptions::preserve_aspect_ratio(),
-            ),
-            (
-                Box::new(DrawLog::new(logger.get(&person.id()))),
-                Default::default(),
-            ),
-        ]);
+        let person_color = Color::from_uuid(person.id());
+        if bounding_box.w() > bounding_box.h() {
+            let row = ExtRowLayout::new(vec![
+                (
+                    Box::new(DrawLittleMan::new(person_color)),
+                    ExtRowLayoutOptions::preserve_aspect_ratio(),
+                ),
+                (
+                    Box::new(DrawLog::new(logger.get(&person.id()))),
+                    Default::default(),
+                ),
+            ]);
 
-        let column = ExtColumnLayout::new(vec![
-            (Box::new(DrawHeader::new(person)), Default::default()),
-            (Box::new(row), ExtColumnLayoutOptions::relative_height(0.5)),
-            (Box::new(DrawFooter::new(person)), Default::default()),
-        ]);
+            let column = ExtColumnLayout::new(vec![
+                (Box::new(DrawHeader::new(person)), Default::default()),
+                (Box::new(row), ExtColumnLayoutOptions::relative_height(0.5)),
+                (Box::new(DrawFooter::new(person)), Default::default()),
+            ]);
 
-        column.draw(renderer, bounding_box);
+            column.draw(renderer, bounding_box);
+        } else {
+            let column = ExtColumnLayout::new(vec![
+                (Box::new(DrawHeader::new(person)), Default::default()),
+                (
+                    Box::new(DrawLittleMan::new(person_color)),
+                    ExtColumnLayoutOptions::relative_height(0.2),
+                ),
+                (
+                    Box::new(DrawLog::new(logger.get(&person.id()))),
+                    ExtColumnLayoutOptions::relative_height(0.6),
+                ),
+                (Box::new(DrawFooter::new(person)), Default::default()),
+            ]);
+
+            column.draw(renderer, bounding_box);
+        }
 
         Ok(())
     }

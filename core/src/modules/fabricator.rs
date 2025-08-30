@@ -372,7 +372,10 @@ impl Module for Fabricator {
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
-        todo!()
+        self.operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
     }
 
     fn persons(&self) -> &[Person] {

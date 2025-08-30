@@ -8,7 +8,7 @@ use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
 use serde::Serialize;
 use serde::de::DeserializeSeed;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn env_from_json(
     registry: &DynDeserializeSeedVault<dyn Module>,
@@ -40,9 +40,9 @@ pub(crate) fn load(components: &Components, save_path: PathBuf) -> Environment {
     }
 }
 
-pub(crate) fn save(environment: Environment, save_path: PathBuf) {
+pub(crate) fn save(environment: &Environment, save_path: &Path) {
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
-    std::fs::write(save_path, env_to_json(&environment).unwrap()).unwrap();
+    std::fs::write(save_path, env_to_json(environment).unwrap()).unwrap();
 }
 
 pub(crate) fn load_camera(save_path: PathBuf) -> Camera {
@@ -66,7 +66,7 @@ pub(crate) fn load_logger(save_path: PathBuf) -> MemLogger {
     }
 }
 
-pub(crate) fn save_logger(camera: MemLogger, save_path: PathBuf) {
+pub(crate) fn save_logger(camera: &MemLogger, save_path: &Path) {
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
-    std::fs::write(save_path, serde_json::to_vec(&camera).unwrap()).unwrap();
+    std::fs::write(save_path, serde_json::to_vec(camera).unwrap()).unwrap();
 }
