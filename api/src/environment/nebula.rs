@@ -7,4 +7,8 @@ pub struct Nebula {
     bound: Vec<Point<Float>>,
 }
 
-impl Nebula {}
+impl Nebula {
+    pub fn new(bound: Vec<Point<Float>>) -> Self {
+        Self { bound }
+    }
+}

@@ -1,4 +1,8 @@
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
+use rand::Rng;
+use rand_pcg::Pcg64;
+use rand_seeder::Seeder;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,6 +14,42 @@ pub struct Color {
 }
 
 impl Color {
+    pub fn black() -> Self {
+        Self {
+            a: 1.,
+            r: 0.,
+            g: 0.,
+            b: 0.,
+        }
+    }
+
+    pub fn green() -> Self {
+        Self {
+            a: 1.,
+            r: 0.,
+            g: 1.,
+            b: 0.,
+        }
+    }
+
+    pub fn red() -> Self {
+        Self {
+            a: 1.,
+            r: 1.,
+            g: 0.,
+            b: 0.,
+        }
+    }
+
+    pub fn white() -> Self {
+        Self {
+            a: 1.,
+            r: 1.,
+            g: 1.,
+            b: 1.,
+        }
+    }
+
     pub fn with_a(self, a: Float) -> Self {
         Self {
             a,
@@ -19,15 +59,15 @@ impl Color {
         }
     }
 
-    pub fn with_r(self, r: Float) -> Self {
+    pub fn with_r(self, _r: Float) -> Self {
         todo!()
     }
 
-    pub fn with_g(self, g: Float) -> Self {
+    pub fn with_g(self, _g: Float) -> Self {
         todo!()
     }
 
-    pub fn with_b(self, b: Float) -> Self {
+    pub fn with_b(self, _b: Float) -> Self {
         todo!()
     }
 
@@ -40,15 +80,15 @@ impl Color {
         }
     }
 
-    pub fn map_r<F: FnOnce(Float) -> Float>(self, f: F) -> Self {
+    pub fn map_r<F: FnOnce(Float) -> Float>(self, _f: F) -> Self {
         todo!()
     }
 
-    pub fn map_g<F: FnOnce(Float) -> Float>(self, f: F) -> Self {
+    pub fn map_g<F: FnOnce(Float) -> Float>(self, _f: F) -> Self {
         todo!()
     }
 
-    pub fn map_b<F: FnOnce(Float) -> Float>(self, f: F) -> Self {
+    pub fn map_b<F: FnOnce(Float) -> Float>(self, _f: F) -> Self {
         todo!()
     }
 
@@ -109,6 +149,16 @@ impl Color {
                 b: q,
             },
             _ => unreachable!(),
+        }
+    }
+
+    pub fn from_uuid(uuid: NonNilUuid) -> Self {
+        let mut rng: Pcg64 = Seeder::from(uuid.get().as_bytes()).into_rng();
+        Self {
+            a: 1.,
+            r: rng.random(),
+            g: rng.random(),
+            b: rng.random(),
         }
     }
 }

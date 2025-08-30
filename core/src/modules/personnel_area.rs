@@ -1,50 +1,62 @@
 use crate::CORE_PACKAGE_ID;
-use crate::modules::{CoreModule, DockyardDynSeed, ModuleVisitor, ModuleVisitorMut};
-use dudes_in_space_api::item::ItemStorage;
-use dudes_in_space_api::module::{DefaultModuleConsole, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleStorageSeed, PackageId, ProcessTokenContext, TradingConsole};
-use dudes_in_space_api::person::{DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed};
-use dudes_in_space_api::recipe::{AssemblyRecipe, Recipe};
-use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingClampSeed, VesselModuleInterface};
+use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
+use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::BankRegistry;
+use dudes_in_space_api::item::{ItemSafe, ItemStorage};
+use dudes_in_space_api::module::{
+    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, PackageId,
+    TradingConsole,
+};
+use dudes_in_space_api::person::{
+    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
-use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use serde::Serialize;
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
 
 static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
+static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::personnel_area::PersonnelAreaSeed::<'v,'b>)]
 pub(crate) struct PersonnelArea {
+    id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     personnel: Vec<Person>,
-    id: ModuleId,
+    capacity: usize,
 }
 
 #[derive(Clone)]
-struct PersonnelAreaSeed<'v> {
-    person_seed: VecSeed<PersonSeed<'v>>,
+struct PersonnelAreaSeed<'v, 'b> {
+    person_seed: VecSeed<PersonSeed<'v, 'b>>,
 }
 
-impl<'v> PersonnelAreaSeed<'v> {
-    fn new(objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+impl<'v, 'b> PersonnelAreaSeed<'v, 'b> {
+    fn new(
+        objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
+    ) -> Self {
         Self {
-            person_seed: VecSeed::new(PersonSeed::new(objective_vault)),
+            person_seed: VecSeed::new(PersonSeed::new(objective_vault, bank_registry)),
         }
     }
 }
 
 impl PersonnelArea {
-    pub fn new(personnel: Vec<Person>) -> Box<Self> {
+    pub fn new(personnel: Vec<Person>, capacity: usize) -> Box<Self> {
         Box::new(Self {
-            id: PersonId::new_v4(),
+            id: ModuleId::new_v4(),
             personnel,
+            capacity,
         })
     }
 }
@@ -60,16 +72,16 @@ impl DynSerialize for PersonnelArea {
 }
 
 impl Module for PersonnelArea {
-    fn storages(&self) -> &[ItemStorage] {
-        todo!()
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
     fn module_storages(&self) -> &[ModuleStorage] {
-        todo!()
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -79,29 +91,30 @@ impl Module for PersonnelArea {
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut person_interface = DefaultModuleConsole::new(self.id);
+        let mut person_interface =
+            DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES);
         for person in &mut self.personnel {
             person.proceed(
                 &mut rng(),
                 &mut person_interface,
                 this_vessel.console(),
-                process_token_context,
+                environment_context,
                 decider_vault,
                 logger,
             )
         }
     }
 
-    fn recipes(&self) -> Vec<Recipe> {
-        vec![]
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        &[]
     }
 
     fn assembly_recipes(&self) -> &[AssemblyRecipe] {
-        todo!()
+        &[]
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
@@ -115,10 +128,6 @@ impl Module for PersonnelArea {
         todo!()
     }
 
-    fn can_insert_person(&self) -> bool {
-        todo!()
-    }
-
     fn contains_person(&self, id: PersonId) -> bool {
         self.personnel.iter().find(|p| (*p).id() == id).is_some()
     }
@@ -128,7 +137,7 @@ impl Module for PersonnelArea {
     }
 
     fn package_id(&self) -> PackageId {
-        todo!()
+        CORE_PACKAGE_ID.to_string()
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
@@ -136,18 +145,59 @@ impl Module for PersonnelArea {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn trading_console(&self) -> Option<&dyn TradingConsole> {
-        todo!()
+        None
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn free_person_slots_count(&self) -> usize {
+        assert!(self.personnel.len() <= self.capacity);
+        self.capacity - self.personnel.len()
+    }
+
+    fn docking_connectors(&self) -> &[DockingConnector] {
+        &[]
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn persons(&self) -> &[Person] {
+        &self.personnel
+    }
+
+    fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_module(self);
+        for person in &self.personnel {
+            person.collect_status(collector);
+        }
+        collector.exit_module();
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        &[]
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        &[]
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        &[]
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
         todo!()
     }
 }
@@ -164,12 +214,17 @@ impl CoreModule for PersonnelArea {
 
 pub(crate) struct PersonnelAreaDynSeed {
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+    bank_registry: Rc<BankRegistry>,
 }
 
 impl PersonnelAreaDynSeed {
-    pub fn new(objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>) -> Self {
+    pub fn new(
+        objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
+        bank_registry: Rc<BankRegistry>,
+    ) -> Self {
         Self {
             objective_seed_vault,
+            bank_registry,
         }
     }
 }
@@ -185,7 +240,7 @@ impl DynDeserializeSeed<dyn Module> for PersonnelAreaDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: PersonnelArea = from_intermediate_seed(
-            PersonnelAreaSeed::new(&self.objective_seed_vault),
+            PersonnelAreaSeed::new(&self.objective_seed_vault, &self.bank_registry),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

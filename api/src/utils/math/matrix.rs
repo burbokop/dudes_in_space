@@ -1,11 +1,11 @@
+use super::{Complex, One, Point, Rect, Size, Two, Vector, Zero};
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,
     ops::{Add, Div, Mul, Neg, Not, Sub},
 };
 
-use super::{Complex, One, Point, Rect, Size, Two, Vector, Zero};
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct Matrix<T>([T; 9]);
 
 mod indices {

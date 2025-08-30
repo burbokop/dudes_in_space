@@ -1,16 +1,17 @@
-use crate::item::ItemStorage;
-use crate::module::{ModuleCapability, ModuleStorage, ProcessTokenContext, TradingConsole};
-use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId};
-use crate::recipe::{AssemblyRecipe, Recipe};
-use crate::vessel::{DockingClamp, VesselModuleInterface};
+use crate::environment::EnvironmentContext;
+use crate::item::{ItemSafe, ItemStorage};
+use crate::module::{ModuleCapability, ModuleStorage, TradingConsole};
+use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
+use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
+use crate::utils::non_nil_uuid::NonNilUuid;
+use crate::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use std::fmt::Debug;
-use uuid::Uuid;
 
 pub type PackageId = String;
 pub type ModuleTypeId = String;
-pub type ModuleId = Uuid;
+pub type ModuleId = NonNilUuid;
 
 pub trait Module: Debug + DynSerialize {
     /// common
@@ -22,30 +23,39 @@ pub trait Module: Debug + DynSerialize {
     fn proceed(
         &mut self,
         this_vessel: &dyn VesselModuleInterface,
-        process_token_context: &ProcessTokenContext,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     );
 
+    fn collect_status(&self, collector: &mut dyn StatusCollector);
+
     /// crafting
-    fn recipes(&self) -> Vec<Recipe>;
+    fn item_recipes(&self) -> &[ItemRecipe];
+    fn input_item_recipes(&self) -> &[InputItemRecipe];
+    fn output_item_recipes(&self) -> &[OutputItemRecipe];
     /// assembly
     fn assembly_recipes(&self) -> &[AssemblyRecipe];
 
     /// persons
     fn extract_person(&mut self, id: PersonId) -> Option<Person>;
     fn insert_person(&mut self, person: Person) -> bool;
-    fn can_insert_person(&self) -> bool;
+    fn free_person_slots_count(&self) -> usize;
     fn contains_person(&self, id: PersonId) -> bool;
+    fn persons(&self) -> &[Person];
 
     /// storage
-    fn storages(&self) -> &[ItemStorage];
-    fn storages_mut(&mut self) -> &mut [ItemStorage];
+    fn storages(&self) -> Vec<&ItemStorage>;
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage>;
+    fn safes(&self) -> &[ItemSafe];
+    fn safes_mut(&mut self) -> &mut [ItemSafe];
 
     fn module_storages(&self) -> &[ModuleStorage];
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
 
     fn docking_clamps(&self) -> &[DockingClamp];
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp];
+    fn docking_connectors(&self) -> &[DockingConnector];
 
     fn trading_console(&self) -> Option<&dyn TradingConsole>;
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole>;

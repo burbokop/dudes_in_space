@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add, Mul};
 
 use super::{Abs, Angle, Atan2, Sqr, Sqrt};
 
@@ -33,6 +33,20 @@ where
         Self::Output {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+        }
+    }
+}
+
+impl<T> Mul<T> for Vector<T>
+where
+    T: Mul + Clone,
+{
+    type Output = Vector<<T as Mul>::Output>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs.clone(),
+            y: self.y * rhs,
         }
     }
 }

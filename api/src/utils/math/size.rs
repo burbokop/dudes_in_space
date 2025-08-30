@@ -1,4 +1,4 @@
-use std::ops::Div;
+use std::ops::{Div, Mul};
 
 use serde::{Deserialize, Serialize};
 
@@ -66,6 +66,20 @@ where
         Self::Output {
             w: self.w / rhs.clone(),
             h: self.h / rhs,
+        }
+    }
+}
+
+impl<T> Mul<T> for Size<T>
+where
+    T: Mul<Output = T> + Clone,
+{
+    type Output = Size<T>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        Self::Output {
+            w: self.w * rhs.clone(),
+            h: self.h * rhs,
         }
     }
 }

@@ -67,7 +67,13 @@ jobs:
       - name: Run tests (core)
         shell: bash
         run: cargo test --package dudes_in_space_core ${{steps.strings.outputs.cargo-options}}
-
+        
+      - name: Build (sdl_presenter)
+        run: cargo build --package sdl_presenter ${{steps.strings.outputs.cargo-options}}
+      - name: Run tests (sdl_presenter)
+        shell: bash
+        run: cargo test --package sdl_presenter ${{steps.strings.outputs.cargo-options}}
+        
       - name: Build (app)
         run: cargo build ${{steps.strings.outputs.cargo-options}}
       - name: Run tests (app)

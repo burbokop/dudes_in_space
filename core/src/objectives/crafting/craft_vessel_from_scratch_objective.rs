@@ -1,37 +1,36 @@
-
 use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
     CraftModulesObjectiveError,
 };
-use dudes_in_space_api::module::{
-    ModuleCapability, ModuleConsole, ModuleStorage, ProcessTokenContext,
-};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonId, PersonLogger};
-use dudes_in_space_api::vessel::VesselConsole;
+use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
-use std::cell::RefMut;
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "crafting_vessels_objective_stage")]
+#[serde(tag = "craft_vessel_from_scratch_objective_stage")]
 pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
     },
     CraftingDockyard {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         crafting_objective: CraftModulesObjective,
     },
     CraftingVesselModules {
-        this_person: PersonId,
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         crafting_objective: CraftModulesObjective,
     },
     BuildingVessel {
         needed_capabilities: Vec<ModuleCapability>,
+        needed_primary_capabilities: Vec<ModuleCapability>,
         building_objective: BuildVesselObjective,
     },
     Done,
@@ -41,22 +40,29 @@ struct DockyardRef<'x> {
     module_storages: &'x [ModuleStorage],
 }
 impl CraftVesselFromScratchObjective {
-    pub(crate) fn new(this_person: PersonId, needed_capabilities: Vec<ModuleCapability>) -> Self {
+    pub(crate) fn new(
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
+    ) -> Self {
         Self::CheckingAllPrerequisites {
-            this_person,
-            needed_capabilities,
+            needed_capabilities: needed_capabilities.into_iter().collect(),
+            needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
         }
     }
 
     fn find_dockyard_with_suitable_modules_in_storage<'a>(
         dockyards: Vec<DockyardRef<'a>>,
         needed_capabilities: &[ModuleCapability],
+        needed_primary_capabilities: &[ModuleCapability],
     ) -> Option<DockyardRef<'a>> {
-        for mut dockyard in dockyards {
+        for dockyard in dockyards {
             for storage in dockyard.module_storages {
-                if needed_capabilities
+                if needed_primary_capabilities
                     .iter()
-                    .all(|c| storage.contains_modules_with_cap(*c))
+                    .all(|c| storage.contains_modules_with_primary_capability(*c))
+                    && needed_capabilities
+                        .iter()
+                        .all(|c| storage.contains_modules_with_capability(*c))
                 {
                     return Some(dockyard);
                 }
@@ -71,45 +77,45 @@ impl Objective for CraftVesselFromScratchObjective {
 
     fn pursue(
         &mut self,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        this_vessel: &dyn VesselInternalConsole,
+        environment_context: &mut EnvironmentContext,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CheckingAllPrerequisites {
-                this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
             } => {
-                let dockyards = this_vessel.modules_with_cap(ModuleCapability::Dockyard);
+                let dockyards = this_vessel.modules_with_capability(ModuleCapability::Dockyard);
 
                 let dockyards: Vec<_> = dockyards
                     .iter()
                     .map(|x| DockyardRef {
                         module_storages: x.module_storages(),
                     })
-                    .chain(std::iter::from_fn(|| {
-                        if this_module
+                    .chain(
+                        this_module
                             .capabilities()
                             .contains(&ModuleCapability::Dockyard)
-                        {
-                            Some(DockyardRef {
+                            .then_some(DockyardRef {
                                 module_storages: this_module.module_storages(),
                             })
-                        } else {
-                            None
-                        }
-                    }))
+                            .into_iter(),
+                    )
                     .collect();
 
                 if dockyards.is_empty() {
+                    logger.info("Crafting dockyard...");
                     *self = Self::CraftingDockyard {
-                        this_person: std::mem::take(this_person),
                         needed_capabilities: std::mem::take(needed_capabilities),
+                        needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
                         crafting_objective: CraftModulesObjective::new(
-                            std::mem::take(this_person),
-                            vec![ModuleCapability::Dockyard],
+                            BTreeSet::from([ModuleCapability::Dockyard]),
+                            BTreeSet::from([]),
                             true,
+                            logger,
                         ),
                     };
                     return Ok(ObjectiveStatus::InProgress);
@@ -118,64 +124,90 @@ impl Objective for CraftVesselFromScratchObjective {
                 let dockyard = Self::find_dockyard_with_suitable_modules_in_storage(
                     dockyards,
                     &needed_capabilities,
+                    &needed_primary_capabilities,
                 );
 
                 if dockyard.is_none() {
+                    logger.info("Crafting modules for a new vessel...");
                     *self = Self::CraftingVesselModules {
-                        this_person: std::mem::take(this_person),
                         needed_capabilities: needed_capabilities.clone(),
+                        needed_primary_capabilities: needed_primary_capabilities.clone(),
                         crafting_objective: CraftModulesObjective::new(
-                            std::mem::take(this_person),
-                            std::mem::take(needed_capabilities),
+                            std::mem::take(needed_capabilities).into_iter().collect(),
+                            std::mem::take(needed_primary_capabilities)
+                                .into_iter()
+                                .collect(),
                             false,
+                            logger,
                         ),
                     };
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
+                logger.info("Beginning vessel building stage...");
                 *self = Self::BuildingVessel {
                     needed_capabilities: needed_capabilities.clone(),
+                    needed_primary_capabilities: needed_primary_capabilities.clone(),
                     building_objective: BuildVesselObjective::new(
-                        std::mem::take(this_person),
-                        std::mem::take(
-                        needed_capabilities,
-                    )),
+                        std::mem::take(needed_capabilities),
+                        std::mem::take(needed_primary_capabilities),
+                    ),
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
             Self::CraftingDockyard {
-                this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(
+                        this_person,
+                        this_module,
+                        this_vessel,
+                        environment_context,
+                        logger,
+                    )
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
+                        logger.info("CraftVesselFromScratchObjective::CraftingDockyard::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
-                            this_person: std::mem::take(this_person),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                         }
                     }
                 }
                 Ok(ObjectiveStatus::InProgress)
             }
             Self::CraftingVesselModules {
-                this_person,
                 needed_capabilities,
+                needed_primary_capabilities,
                 crafting_objective,
             } => {
                 match crafting_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(
+                        this_person,
+                        this_module,
+                        this_vessel,
+                        environment_context,
+                        logger,
+                    )
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done => {
+                        logger.info(
+                            "Checking all prerequisites for crafting a vessel from scratch...",
+                        );
                         *self = Self::CheckingAllPrerequisites {
-                            this_person: std::mem::take(this_person),
                             needed_capabilities: std::mem::take(needed_capabilities),
+                            needed_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
                         }
                     }
                 }
@@ -183,14 +215,22 @@ impl Objective for CraftVesselFromScratchObjective {
             }
             Self::BuildingVessel {
                 needed_capabilities,
+                needed_primary_capabilities,
                 building_objective,
             } => {
                 match building_objective
-                    .pursue(this_module, this_vessel, process_token_context, logger)
+                    .pursue(
+                        this_person,
+                        this_module,
+                        this_vessel,
+                        environment_context,
+                        logger,
+                    )
                     .map_err(CraftVesselFromScratchObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done => {
+                        logger.info("Done crafting a vessel from scratch.");
                         *self = Self::Done;
                         Ok(ObjectiveStatus::Done)
                     }
@@ -201,7 +241,7 @@ impl Objective for CraftVesselFromScratchObjective {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) enum CraftVesselFromScratchObjectiveError {
     CraftingDockyard(CraftModulesObjectiveError),
     CraftingVesselModules(CraftModulesObjectiveError),

@@ -1,14 +1,15 @@
-use crate::module::{ModuleConsole, ProcessTokenContext};
+use crate::environment::EnvironmentContext;
+use crate::finance::PersonalFinancePackage;
+use crate::module::ModuleConsole;
+use crate::person::logger::PersonLogger;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
-use crate::vessel::VesselConsole;
+use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use rand::Rng;
 use rand::prelude::SliceRandom;
-use std::collections::BTreeMap;
 use std::error::Error;
-use std::fmt::{Debug, Display};
-use crate::person::logger::PersonLogger;
+use std::fmt::Debug;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -16,39 +17,59 @@ pub enum ObjectiveStatus {
     Done,
 }
 
+pub struct PersonInfo<'a> {
+    pub id: &'a PersonId,
+    pub age: &'a u8,
+    pub gender: &'a Gender,
+    pub passions: &'a [Passion],
+    pub morale: &'a Morale,
+    pub boldness: &'a Boldness,
+    pub awareness: &'a Awareness,
+    pub finance: &'a PersonalFinancePackage,
+}
+
 pub trait Objective {
     type Error: Error + 'static;
     fn pursue(
         &mut self,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        this_vessel: &dyn VesselInternalConsole,
+        environment_context: &mut EnvironmentContext,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error>;
 }
 
 pub trait DynObjective: Debug + DynSerialize {
-    fn pursue(
+    fn pursue_dyn(
         &mut self,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        this_vessel: &dyn VesselInternalConsole,
+        environment_context: &mut EnvironmentContext,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>>;
 }
 
 dyn_serde_trait!(DynObjective, ObjectiveSeed);
 
 impl<T: Objective + Debug + DynSerialize> DynObjective for T {
-    fn pursue(
+    fn pursue_dyn(
         &mut self,
+        this_person: &PersonInfo,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
-        logger: PersonLogger,
+        this_vessel: &dyn VesselInternalConsole,
+        environment_context: &mut EnvironmentContext,
+        logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>> {
         Ok(self
-            .pursue(this_module, this_vessel, process_token_context, logger)
+            .pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            )
             .map_err(|e| Box::new(e))?)
     }
 }
@@ -56,13 +77,8 @@ impl<T: Objective + Debug + DynSerialize> DynObjective for T {
 pub trait ObjectiveDecider {
     fn consider(
         &self,
-        person_id: PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>>;
 }
 
@@ -79,18 +95,12 @@ impl ObjectiveDeciderVault {
     pub fn decide<R: Rng>(
         &self,
         rng: &mut R,
-        person_id: PersonId,
-        age: u8,
-        gender: Gender,
-        passions: &[Passion],
-        morale: Morale,
-        boldness: Boldness,
-        awareness: Awareness,
+        person: &PersonInfo,
+        logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         let mut data: Vec<&dyn ObjectiveDecider> = self.data.iter().map(|x| x.as_ref()).collect();
         data.shuffle(rng);
-        data.into_iter()
-            .find_map(|x| x.consider(person_id ,age, gender, passions, morale, boldness, awareness))
+        data.into_iter().find_map(|x| x.consider(person, logger))
     }
 
     pub fn with<T: ObjectiveDecider + 'static>(mut self, decider: T) -> Self {

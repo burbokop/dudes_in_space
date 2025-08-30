@@ -1,21 +1,19 @@
-use crate::module::{
-    ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ProcessTokenContext,
-};
-use crate::person::objective::{Objective, ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault};
+use crate::environment::EnvironmentContext;
+use crate::finance::{BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet};
+use crate::module::ModuleConsole;
+use crate::person::logger::{Logger, PersonLogger};
+use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
+use crate::person::{DynObjective, ObjectiveDeciderVault, PersonInfo, StatusCollector};
+use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
-use crate::vessel::VesselConsole;
-use dyn_serde::DynDeserializeSeedVault;
+use crate::vessel::VesselInternalConsole;
+use dyn_serde::{DynDeserializeSeedVault, TypeId};
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::Rng;
 use rand::distr::StandardUniform;
-use rand::prelude::{Distribution, IndexedRandom, IteratorRandom, SliceRandom};
-use serde::de::DeserializeSeed;
+use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use std::error::Error;
-use uuid::Uuid;
-use crate::person::logger::{Logger, PersonLogger};
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -78,6 +76,7 @@ pub enum Passion {
     Flying,
     Ruling,
     Money,
+    Management,
     Drugs,
     Sex,
 }
@@ -199,10 +198,10 @@ impl Distribution<Gender> for StandardUniform {
     }
 }
 
-pub type PersonId = Uuid;
+pub type PersonId = NonNilUuid;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v, 'b>)]
 pub struct Person {
     id: PersonId,
     name: String,
@@ -215,17 +214,26 @@ pub struct Person {
     #[serde(with = "crate::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.objective_seed)]
     objective: Option<Box<dyn DynObjective>>,
+    #[serde(with = "crate::utils::tagged_option")]
+    boss: Option<PersonId>,
+    #[deserialize_seed_xxx(seed = self.seed.finance_package_seed)]
+    finance: PersonalFinancePackage,
 }
 
 #[derive(Clone)]
-pub struct PersonSeed<'v> {
+pub struct PersonSeed<'v, 'b> {
     objective_seed: TaggedOptionSeed<ObjectiveSeed<'v>>,
+    finance_package_seed: PersonalFinancePackageSeed<'b>,
 }
 
-impl<'v> PersonSeed<'v> {
-    pub fn new(vault: &'v DynDeserializeSeedVault<dyn DynObjective>) -> Self {
+impl<'v, 'b> PersonSeed<'v, 'b> {
+    pub fn new(
+        vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
+        bank_registry: &'b BankRegistry,
+    ) -> Self {
         Self {
             objective_seed: TaggedOptionSeed::new(ObjectiveSeed::new(vault)),
+            finance_package_seed: PersonalFinancePackageSeed::new(bank_registry),
         }
     }
 }
@@ -234,11 +242,28 @@ impl Person {
     pub fn id(&self) -> PersonId {
         self.id
     }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn boss(&self) -> &Option<PersonId> {
+        &self.boss
+    }
+
+    pub fn wallet(&self) -> &Wallet {
+        self.finance.wallet()
+    }
+
+    pub fn objective_type_id(&self) -> Option<TypeId> {
+        self.objective.as_ref().map(|x| x.type_id().clone())
+    }
+    pub fn passions(&self) -> &[Passion] {
+        &self.passions
+    }
 
     pub fn random<R: Rng>(rng: &mut R) -> Self {
         let gender = rng.random();
         Self {
-            id: Uuid::new_v4(),
+            id: NonNilUuid::new_v4(),
             name: random_name(rng, gender),
             age: rng.random_range(15..=80),
             gender,
@@ -251,6 +276,8 @@ impl Person {
             boldness: rng.random(),
             awareness: rng.random(),
             objective: None,
+            boss: None,
+            finance: Default::default(),
         }
     }
 
@@ -258,41 +285,46 @@ impl Person {
         &mut self,
         rng: &mut R,
         this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselConsole,
-        process_token_context: &ProcessTokenContext,
+        this_vessel: &dyn VesselInternalConsole,
+        environment_context: &mut EnvironmentContext,
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
+        let info = PersonInfo {
+            id: &self.id,
+            age: &self.age,
+            gender: &self.gender,
+            passions: &self.passions,
+            morale: &self.morale,
+            boldness: &self.boldness,
+            awareness: &self.awareness,
+            finance: &self.finance,
+        };
+        let mut logger = PersonLogger::new(&self.id, &self.name, logger);
+
         match &mut self.objective {
-            None => {
-                self.objective = Some(
-                    decider_vault
-                        .decide(
-                            rng,
-                            self.id,
-                            self.age,
-                            self.gender,
-                            &self.passions,
-                            self.morale,
-                            self.boldness,
-                            self.awareness,
-                        )
-                        .unwrap(),
-                )
-            }
+            None => self.objective = decider_vault.decide(rng, &info, &mut logger),
             Some(objective) => {
-                match objective.pursue(this_module, this_vessel, process_token_context, PersonLogger::new(&self.id, logger)) {
+                match objective.pursue_dyn(
+                    &info,
+                    this_module,
+                    this_vessel,
+                    environment_context,
+                    &mut logger,
+                ) {
                     Ok(ObjectiveStatus::InProgress) => {}
                     Ok(ObjectiveStatus::Done) => self.objective = None,
                     Err(err) => {
-                        eprintln!(
-                            "Objective performed by person {} ({}) failed: {}",
-                            self.id, self.name, err
-                        );
+                        logger.err(format!("{} failed: {}", objective.type_id(), err));
                         self.objective = None
                     }
                 }
             }
         }
+    }
+
+    pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_person(self);
+        collector.exit_person();
     }
 }

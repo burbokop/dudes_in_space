@@ -1,25 +1,58 @@
 use crate::module::{Module, ModuleCapability, ModuleTypeId};
-use crate::recipe::InputRecipe;
+use crate::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
 use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
 use serde::Serialize;
+use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::rc::Rc;
+use std::sync::Arc;
 
-pub trait ModuleFactory: Debug + DynSerialize {
-    fn output_type_id(&self) -> ModuleTypeId;
-    fn create(&self, recipe: &InputRecipe) -> Box<dyn Module>;
-    fn output_capabilities(&self) -> &[ModuleCapability];
+pub trait ModuleFactoryOutputDescription {
+    fn type_id(&self) -> ModuleTypeId;
+    fn capabilities(&self) -> &[ModuleCapability];
+    fn primary_capabilities(&self) -> &[ModuleCapability];
+    fn item_recipes(&self) -> &[ItemRecipe];
+    fn input_item_recipes(&self) -> &[InputItemRecipe];
+    fn output_item_recipes(&self) -> &[OutputItemRecipe];
+    fn assembly_recipes(&self) -> &[AssemblyRecipe];
+}
+
+pub trait ModuleFactory: Debug + DynSerialize + Send + Sync {
+    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module>;
+    fn output_description(&self) -> &dyn ModuleFactoryOutputDescription;
 }
 
 dyn_serde_trait!(ModuleFactory, ModuleFactorySeed);
 
-#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[derive(Debug, Serialize, DeserializeSeedXXX, Clone)]
 #[deserialize_seed_xxx(seed = crate::recipe::AssemblyRecipeSeed::<'v>)]
 pub struct AssemblyRecipe {
-    input: InputRecipe,
+    input: InputItemRecipe,
     #[deserialize_seed_xxx(seed = self.seed.module_factory_seed)]
-    output: Rc<dyn ModuleFactory>,
+    output: Arc<dyn ModuleFactory>,
+}
+
+impl PartialEq for AssemblyRecipe {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl PartialOrd for AssemblyRecipe {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for AssemblyRecipe {}
+
+impl Ord for AssemblyRecipe {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.input
+            .cmp(&other.input)
+            .then(self.output.type_id().cmp(&other.output.type_id()))
+    }
 }
 
 #[derive(Clone)]
@@ -36,16 +69,62 @@ impl<'v> AssemblyRecipeSeed<'v> {
 }
 
 impl AssemblyRecipe {
-    pub fn new(input: InputRecipe, output: Rc<dyn ModuleFactory>) -> Self {
+    pub fn new(input: InputItemRecipe, output: Arc<dyn ModuleFactory + Sync + Send>) -> Self {
         Self { input, output }
     }
-    pub fn input(&self) -> &InputRecipe {
+
+    pub fn input(&self) -> &InputItemRecipe {
         &self.input
     }
+
     pub fn create(&self) -> Box<dyn Module> {
         self.output.create(&self.input)
     }
-    pub fn output_capabilities(&self) -> &[ModuleCapability] {
-        self.output.output_capabilities()
+
+    pub fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
+        self.output.output_description()
+    }
+}
+
+#[derive(Debug, Serialize, DeserializeSeedXXX, Clone)]
+#[deserialize_seed_xxx(seed = crate::recipe::assembly_recipe::OutputRecipeSeed::<'v>)]
+#[serde(tag = "tp")]
+pub enum OutputRecipe {
+    Item(OutputItemRecipe),
+    #[deserialize_seed_xxx(seeds = [(field_0, self.seed.seed.module_factory_seed)])]
+    Module(Rc<dyn ModuleFactory>),
+}
+
+#[derive(Clone)]
+struct OutputRecipeSeed<'v> {
+    module_factory_seed: ModuleFactorySeed<'v>,
+}
+
+impl<'v> OutputRecipeSeed<'v> {
+    pub fn new(vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>) -> Self {
+        Self {
+            module_factory_seed: ModuleFactorySeed::new(vault),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, DeserializeSeedXXX, Clone)]
+#[deserialize_seed_xxx(seed = crate::recipe::assembly_recipe::RecipeSeed::<'v>)]
+pub struct Recipe {
+    input: InputItemRecipe,
+    #[deserialize_seed_xxx(seed = self.seed.output_recipe_seed)]
+    output: OutputRecipe,
+}
+
+#[derive(Clone)]
+struct RecipeSeed<'v> {
+    output_recipe_seed: OutputRecipeSeed<'v>,
+}
+
+impl<'v> RecipeSeed<'v> {
+    pub fn new(vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>) -> Self {
+        Self {
+            output_recipe_seed: OutputRecipeSeed::new(vault),
+        }
     }
 }

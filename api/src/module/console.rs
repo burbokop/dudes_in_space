@@ -1,20 +1,25 @@
-use crate::item::{
-    BuyOffer, ItemCount, ItemId, ItemStorage, Money, SellOffer, WeakBuyOrder, WeakSellOrder,
-};
+use crate::finance::MoneyRef;
+use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
-use crate::module::{ModuleCapability, ModuleStorage, PackageId, ProcessToken};
+use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::AssemblyRecipe;
+use crate::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
+};
+use crate::trade::{
+    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder,
+    WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+};
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
 use std::collections::BTreeSet;
-use std::ops::Deref;
 
 /// interface through which a person can interact with a module
 pub trait ModuleConsole {
     /// common
     fn id(&self) -> ModuleId;
+    fn type_id(&self) -> ModuleTypeId;
     fn package_id(&self) -> PackageId;
     fn capabilities(&self) -> &[ModuleCapability];
     fn primary_capabilities(&self) -> &[ModuleCapability];
@@ -24,8 +29,8 @@ pub trait ModuleConsole {
     fn in_progress(&self) -> bool;
 
     /// consoles
-    fn assembly_console(&self) -> Option<&dyn AssemblyConsole>;
-    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole>;
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole>;
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole>;
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole>;
     fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole>;
@@ -39,6 +44,9 @@ pub trait ModuleConsole {
     fn storages(&self) -> &[ItemStorage];
     fn storages_mut(&mut self) -> &mut [ItemStorage];
 
+    fn safes(&self) -> &[ItemSafe];
+    fn safes_mut(&mut self) -> &mut [ItemSafe];
+
     fn module_storages(&self) -> &[ModuleStorage];
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage];
 
@@ -46,19 +54,33 @@ pub trait ModuleConsole {
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp];
 }
 
-pub struct DefaultModuleConsole {
+pub struct DefaultModuleConsole<'c, 'pc> {
     id: ModuleId,
+    capabilities: &'c [ModuleCapability],
+    primary_capabilities: &'pc [ModuleCapability],
 }
 
-impl DefaultModuleConsole {
-    pub fn new(id: ModuleId) -> Self {
-        Self { id }
+impl<'c, 'pc, 'd> DefaultModuleConsole<'c, 'pc> {
+    pub fn new(
+        id: ModuleId,
+        capabilities: &'c [ModuleCapability],
+        primary_capabilities: &'pc [ModuleCapability],
+    ) -> Self {
+        Self {
+            id,
+            capabilities,
+            primary_capabilities,
+        }
     }
 }
 
-impl ModuleConsole for DefaultModuleConsole {
+impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     fn id(&self) -> ModuleId {
         self.id
+    }
+
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
     }
 
     fn package_id(&self) -> PackageId {
@@ -66,11 +88,11 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        self.capabilities
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        self.primary_capabilities
     }
 
     fn interact(&mut self) -> bool {
@@ -81,12 +103,12 @@ impl ModuleConsole for DefaultModuleConsole {
         todo!()
     }
 
-    fn assembly_console(&self) -> Option<&dyn AssemblyConsole> {
-        todo!()
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
+        None
     }
 
-    fn assembly_console_mut(&mut self) -> Option<&mut dyn AssemblyConsole> {
-        todo!()
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
+        None
     }
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
@@ -121,8 +143,16 @@ impl ModuleConsole for DefaultModuleConsole {
         todo!()
     }
 
-    fn module_storages(&self) -> &[ModuleStorage] {
+    fn safes(&self) -> &[ItemSafe] {
         todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        &[]
     }
 
     fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
@@ -130,7 +160,7 @@ impl ModuleConsole for DefaultModuleConsole {
     }
 
     fn docking_clamps(&self) -> &[DockingClamp] {
-        todo!()
+        &[]
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
@@ -140,17 +170,25 @@ impl ModuleConsole for DefaultModuleConsole {
 
 pub trait ModuleInfoConsole {}
 
-pub trait AssemblyConsole {
+pub trait CraftingConsole {
     // returns index in array. TODO replace with uuid
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
-    fn recipe_output_capabilities(&self, index: usize) -> &[ModuleCapability];
+    fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
+    fn recipe_by_output_item(&self, item: ItemId) -> Option<usize>;
+
+    fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription;
+    fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
+
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;
     fn active_recipe(&self) -> Option<usize>;
     /// inputs index in array. TODO replace with uuid
     /// deploy - if true will attach the produced module to this vessel, false - will store in a nearest module storage
     fn start(&mut self, index: usize, deploy: bool) -> Option<ProcessToken>;
-    fn recipes(&self) -> &[AssemblyRecipe];
+    fn item_recipes(&self) -> &[ItemRecipe];
+    fn input_item_recipes(&self) -> &[InputItemRecipe];
+    fn output_item_recipes(&self) -> &[OutputItemRecipe];
+    fn assembly_recipes(&self) -> &[AssemblyRecipe];
 }
 
 pub trait DockyardConsole {
@@ -162,6 +200,29 @@ pub trait TradingConsole {
     fn sell_offers(&self) -> &[SellOffer];
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder>;
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
+
+    fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
+    fn place_buy_vessel_order(
+        &mut self,
+        offer: &BuyVesselOffer,
+        count: usize,
+    ) -> Option<WeakBuyVesselOrder>;
+
+    fn buy_custom_vessel_offer(&self) -> Option<&BuyCustomVesselOffer>;
+
+    fn estimate_buy_custom_vessel_order(
+        &self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyCustomVesselOrderEstimate>;
+
+    fn place_buy_custom_vessel_order(
+        &mut self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
+        count: usize,
+    ) -> Option<WeakBuyVesselOrder>;
 }
 
 pub trait TradingAdminConsole {
@@ -169,18 +230,33 @@ pub trait TradingAdminConsole {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
+    ) -> Option<&BuyOffer>;
+    fn place_buy_vessel_offer(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        price_per_unit: MoneyRef,
     ) -> Option<&BuyOffer>;
     fn place_sell_offer(
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: Money,
+        price_per_unit: MoneyRef,
     ) -> Option<&SellOffer>;
+
+    fn place_buy_custom_vessel_offer(
+        &mut self,
+        capabilities: BTreeSet<ModuleCapability>,
+        primary_capabilities: BTreeSet<ModuleCapability>,
+    ) -> BuyCustomVesselOffer;
+
+    fn buy_orders(&self) -> &[BuyOrder];
+    fn sell_orders(&self) -> &[SellOrder];
+    fn buy_vessel_orders(&self) -> &[BuyVesselOrder];
 }
 
 pub(crate) trait CaptainControlPanel {
-    fn give_command(&self, role: Role) {}
+    fn give_command(&self, _role: Role) {}
 }
 
 pub(crate) trait NavigatorControlPanel {
@@ -194,7 +270,7 @@ pub(crate) trait GunnerControlPanel {
         todo!()
     }
 
-    fn fire_at(&self, vessel_id: u32) {
+    fn fire_at(&self, _vessel_id: u32) {
         todo!()
     }
 }

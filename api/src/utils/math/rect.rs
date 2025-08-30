@@ -1,4 +1,4 @@
-use super::{NoNeg, Point, Size, Sqr, Two, Vector};
+use super::{Abs, NoNeg, Point, Size, Sqr, Two, Vector};
 use crate::utils::range::Range;
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -224,7 +224,7 @@ impl<T> Rect<T> {
             && other.bottom() <= self.bottom();
     }
 
-    pub fn contains_point(&self, other: &Point<T>) -> bool {
+    pub fn contains_point(&self, _other: &Point<T>) -> bool {
         todo!()
     }
 
@@ -297,6 +297,46 @@ impl<T> Rect<T> {
             .into()
     }
 
+    pub fn homogeneous_mul(self, rhs: T) -> (Self, T)
+    where
+        T: Two
+            + Add<Output = T>
+            + Div<Output = T>
+            + Mul<Output = T>
+            + Sub<Output = T>
+            + Clone
+            + Abs<Output = T>
+            + PartialOrd,
+    {
+        let c = self.center();
+        let s = self.size();
+        let new_s = s.clone() * rhs;
+
+        let (w, h) = s.into();
+        let (new_w, new_h) = new_s.into();
+
+        let delta_w = new_w - w.clone();
+        let delta_h = new_h - h.clone();
+
+        let min_delta = if delta_w.clone().abs() < delta_h.clone().abs() {
+            delta_w
+        } else {
+            delta_h
+        };
+
+        (
+            Self::from_center(c, (w + min_delta.clone(), h + min_delta.clone()).into()),
+            min_delta,
+        )
+    }
+
+    fn homogeneous_div(self, rhs: T) -> Self
+    where
+        T: Two + Add<Output = T> + Div<Output = T> + Sub<Output = T> + Clone,
+    {
+        todo!()
+    }
+
     pub fn size(self) -> Size<T> {
         (self.w, self.h).into()
     }
@@ -317,6 +357,19 @@ impl<T> From<(T, T, T, T)> for Rect<T> {
             w: value.2,
             h: value.3,
         }
+    }
+}
+
+impl<T> Mul<T> for Rect<T>
+where
+    T: Two + Add<Output = T> + Div<Output = T> + Mul<Output = T> + Sub<Output = T> + Clone,
+{
+    type Output = Rect<T>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let c = self.center();
+        let s = self.size();
+        Self::Output::from_center(c, s * rhs)
     }
 }
 

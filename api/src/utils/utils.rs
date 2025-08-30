@@ -88,7 +88,7 @@ pub(crate) struct RequiredToBeInRangeError<T, R> {
 }
 
 impl<T, R> Display for RequiredToBeInRangeError<T, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }

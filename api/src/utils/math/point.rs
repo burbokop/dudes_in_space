@@ -1,8 +1,6 @@
-use std::ops::Sub;
-
-use serde::{Deserialize, Serialize};
-
 use super::{Vector, Zero};
+use serde::{Deserialize, Serialize};
+use std::ops::{Add, Sub};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Point<T> {
@@ -35,6 +33,22 @@ impl<T: Sub> Sub for Point<T> {
     type Output = Vector<<T as Sub>::Output>;
     fn sub(self, rhs: Self) -> Self::Output {
         (self.x - rhs.x, self.y - rhs.y).into()
+    }
+}
+
+impl<T: Add> Add<Vector<T>> for Point<T> {
+    type Output = Point<<T as Add>::Output>;
+    fn add(self, rhs: Vector<T>) -> Self::Output {
+        let (x, y) = rhs.into();
+        (self.x + x, self.y + y).into()
+    }
+}
+
+impl<T: Sub> Sub<Vector<T>> for Point<T> {
+    type Output = Point<<T as Sub>::Output>;
+    fn sub(self, rhs: Vector<T>) -> Self::Output {
+        let (x, y) = rhs.into();
+        (self.x - x, self.y - y).into()
     }
 }
 
