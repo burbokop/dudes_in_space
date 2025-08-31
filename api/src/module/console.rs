@@ -13,7 +13,7 @@ use crate::trade::{
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// interface through which a person can interact with a module
 pub trait ModuleConsole {
@@ -246,8 +246,8 @@ pub trait TradingAdminConsole {
 
     fn place_buy_custom_vessel_offer(
         &mut self,
-        capabilities: BTreeSet<ModuleCapability>,
-        primary_capabilities: BTreeSet<ModuleCapability>,
+        capabilities: BTreeMap<ModuleCapability, MoneyRef>,
+        primary_capabilities: BTreeMap<ModuleCapability, MoneyRef>,
     ) -> BuyCustomVesselOffer;
 
     fn buy_orders(&self) -> &[BuyOrder];

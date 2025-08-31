@@ -2,6 +2,7 @@ use crate::environment::EnvironmentContext;
 use crate::finance::PersonalFinancePackage;
 use crate::module::ModuleConsole;
 use crate::person::logger::PersonLogger;
+use crate::person::personal_notes::PersonalNotes;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
@@ -26,6 +27,7 @@ pub struct PersonInfo<'a> {
     pub boldness: &'a Boldness,
     pub awareness: &'a Awareness,
     pub finance: &'a PersonalFinancePackage,
+    pub notes: &'a mut PersonalNotes,
 }
 
 pub trait Objective {

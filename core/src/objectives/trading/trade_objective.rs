@@ -6,6 +6,7 @@ use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
+    tie,
 };
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
@@ -104,24 +105,18 @@ impl Objective for TradeObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::SearchVessel => {
-                if person::utils::this_vessel_has_primary_capabilities(
-                    this_module,
-                    this_vessel,
-                    NEEDED_PRIMARY_CAPABILITIES.iter().cloned(),
-                ) && person::utils::this_vessel_has_capabilities(
-                    this_module,
-                    this_vessel,
-                    NEEDED_CAPABILITIES.iter().cloned(),
-                ) {
+                if tie(this_module, this_vessel)
+                    .has_primary_capabilities(NEEDED_PRIMARY_CAPABILITIES.iter().cloned())
+                    && tie(this_module, this_vessel)
+                        .has_capabilities(NEEDED_CAPABILITIES.iter().cloned())
+                {
                     logger.info("SearchForCockpit");
                     *self = Self::SearchForCockpit;
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-                if let Some((vessel_id, docking_port_module_id)) =
-                    person::utils::for_each_docking_clamps_with_vessel_which_has_caps(
-                        this_module,
-                        this_vessel,
+                if let Some((vessel_id, docking_port_module_id)) = tie(this_module, this_vessel)
+                    .for_each_docking_clamps_with_vessel_which_has_caps(
                         NEEDED_CAPABILITIES,
                         NEEDED_PRIMARY_CAPABILITIES,
                         |entry| {
@@ -192,10 +187,8 @@ impl Objective for TradeObjective {
                     logger.info("Already in a cockpit.");
                     *self = Self::SearchForBuyOffers {
                         future: FindBestBuyOffer {
-                            free_storage_space: person::utils::total_primary_free_space(
-                                this_module,
-                                this_vessel,
-                            ),
+                            free_storage_space: tie(this_module, this_vessel)
+                                .total_primary_free_space(),
                         }
                         .push(environment_context.request_storage_mut()),
                     };

@@ -376,6 +376,7 @@ dependencies = [
  "rand_pcg",
  "rand_seeder",
  "serde",
+ "serde-intermediate",
  "uuid",
 ]
 

@@ -1,6 +1,6 @@
 use crate::finance::{Currency, MoneyAmount, MoneyRef, Wallet};
 use crate::person::PersonId;
-use crate::utils::math::{NoNeg, noneg_float};
+use crate::utils::math::{NonNeg, noneg_float};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -10,7 +10,7 @@ pub type Cycle = u64;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BankAccount {
     pub money: MoneyAmount,
-    pub growth_rate: NoNeg<Float>,
+    pub growth_rate: NonNeg<Float>,
     pub deadline: Option<Cycle>,
 }
 
@@ -58,7 +58,7 @@ impl Bank {
         &mut self,
         customer: PersonId,
         target_wallet: &mut Wallet,
-        amount: NoNeg<MoneyAmount>,
+        amount: NonNeg<MoneyAmount>,
     ) {
         assert_ne!(amount.unwrap(), 0);
 
@@ -100,7 +100,7 @@ impl Bank {
         &mut self,
         customer: PersonId,
         source_wallet: &mut Wallet,
-        amount: NoNeg<MoneyAmount>,
+        amount: NonNeg<MoneyAmount>,
     ) {
         assert_ne!(amount.unwrap(), 0);
 
@@ -123,12 +123,12 @@ impl Bank {
     pub fn currency_price(
         &self,
         source_currency_bank: &Bank,
-        target_amount: NoNeg<MoneyAmount>,
-    ) -> NoNeg<MoneyAmount> {
+        target_amount: NonNeg<MoneyAmount>,
+    ) -> NonNeg<MoneyAmount> {
         let source_amount = (target_amount.unwrap() as Float
             * source_currency_bank.money_created as Float
             / self.money_created as Float) as MoneyAmount;
-        NoNeg::wrap(source_amount).unwrap()
+        NonNeg::new(source_amount).unwrap()
     }
 
     pub fn buy_currency(
@@ -136,7 +136,7 @@ impl Bank {
         bank_owner_wallet: &mut Wallet,
         wallet: &mut Wallet,
         source_currency_bank: &Bank,
-        target_amount: NoNeg<MoneyAmount>,
+        target_amount: NonNeg<MoneyAmount>,
     ) {
         assert_ne!(target_amount.unwrap(), 0);
         assert!(self.money_created > 0);
@@ -160,7 +160,7 @@ impl Bank {
                 bank_owner_wallet.amount(money_to_take_from_bank_owner.currency.clone());
             if owner_money < money_to_take_from_bank_owner.amount.unwrap() {
                 let delta = money_to_take_from_bank_owner.amount.unwrap() - owner_money;
-                self.withdraw(self.owner, bank_owner_wallet, NoNeg::wrap(delta).unwrap());
+                self.withdraw(self.owner, bank_owner_wallet, NonNeg::new(delta).unwrap());
             }
         }
 

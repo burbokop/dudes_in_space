@@ -1,8 +1,9 @@
 use crate::finance::Bank;
 use crate::finance::bank_registry::BankRegistry;
-use crate::utils::math::NoNeg;
+use crate::utils::math::NonNeg;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::ops::Mul;
 
 pub type Currency = String;
 pub type MoneyAmount = i64;
@@ -10,7 +11,18 @@ pub type MoneyAmount = i64;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MoneyRef {
     pub currency: Currency,
-    pub amount: NoNeg<MoneyAmount>,
+    pub amount: NonNeg<MoneyAmount>,
+}
+
+impl Mul<u32> for MoneyRef {
+    type Output = Self;
+
+    fn mul(self, rhs: u32) -> Self::Output {
+        Self {
+            currency: self.currency,
+            amount: self.amount * rhs.into(),
+        }
+    }
 }
 
 impl MoneyRef {
@@ -18,7 +30,33 @@ impl MoneyRef {
         todo!()
     }
 
+    pub fn min(self, other: MoneyRef, reg: &BankRegistry) -> MoneyRef {
+        todo!()
+    }
+
+    pub fn max(self, other: MoneyRef, reg: &BankRegistry) -> MoneyRef {
+        todo!()
+    }
+
+    pub fn min_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+        todo!()
+    }
+
+    pub fn max_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+        todo!()
+    }
+
+    pub fn add(self, other: MoneyRef, reg: &BankRegistry) -> Self {
+        todo!()
+    }
     pub fn sub(self, other: MoneyRef, reg: &BankRegistry) -> Self {
+        todo!()
+    }
+
+    pub fn add_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+        todo!()
+    }
+    pub fn sub_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
         todo!()
     }
 }
@@ -26,7 +64,7 @@ impl MoneyRef {
 #[derive(Clone)]
 pub struct MoneyRefExt<'a> {
     pub currency_owner: &'a Bank,
-    pub amount: NoNeg<MoneyAmount>,
+    pub amount: NonNeg<MoneyAmount>,
 }
 
 impl<'a> PartialEq<Self> for MoneyRefExt<'a> {

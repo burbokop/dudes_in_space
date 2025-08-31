@@ -1,8 +1,7 @@
 use crate::objectives::crafting::{CraftModulesObjective, CraftModulesObjectiveError};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
-use dudes_in_space_api::person;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger, tie};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -52,11 +51,10 @@ impl Objective for RequireModulesObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
             } => {
-                let this_caps = person::utils::this_vessel_capabilities(this_module, this_vessel);
+                let this_caps = tie(this_module, this_vessel).capabilities();
                 needed_capabilities.retain(|x| !this_caps.contains(x));
 
-                let this_primary_caps =
-                    person::utils::this_vessel_primary_capabilities(this_module, this_vessel);
+                let this_primary_caps = tie(this_module, this_vessel).primary_capabilities();
                 needed_primary_capabilities.retain(|x| !this_primary_caps.contains(x));
 
                 *self = Self::Crafting {

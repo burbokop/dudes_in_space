@@ -2,13 +2,17 @@ use crate::objectives::crafting::{CraftModulesObjectiveError, RequireModulesObje
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
+use dudes_in_space_api::finance::{MoneyAmount, MoneyRef};
+use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
-use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
+    tie,
 };
-use dudes_in_space_api::recipe::{InputItemRecipe, OutputItemRecipe};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe};
+use dudes_in_space_api::utils::math::NonNeg;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
+use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
@@ -16,7 +20,7 @@ use dyn_serde::{
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
@@ -48,16 +52,18 @@ enum ManageDockyardStationObjective {
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
     FindBestOffersAndDecideBestRecipe {
         future: ReqFuture<FindBestOffersForItemsResult>,
-        input_recipes_to_consider: BTreeSet<InputItemRecipe>,
-        output_recipes_to_consider: BTreeSet<OutputItemRecipe>,
     },
     RequireModules {
         objective: RequireModulesObjective,
+        prices_on_market: BTreeMap<ItemId, MoneyRef>,
     },
     MoveToTerminal {
         dst: ModuleId,
+        prices_on_market: BTreeMap<ItemId, MoneyRef>,
     },
-    PlaceOffers,
+    PlaceOffers {
+        prices_on_market: BTreeMap<ItemId, MoneyRef>,
+    },
     CheckOrders,
 }
 
@@ -92,48 +98,37 @@ impl Objective for ManageDockyardStationObjective {
     ) -> Result<ObjectiveStatus, Self::Error> {
         match self {
             Self::CollectAllAvailableRecipes => {
-                let input_item_recipes: BTreeSet<_> = iter::chain(
-                    person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
+                let assembly_recipes: Vec<_> = iter::chain(
+                    tie(this_module, this_vessel).assembly_recipes().into_iter(),
+                    tie(this_module, this_vessel)
+                        .potential_assembly_recipes()
                         .into_iter(),
-                    person::utils::this_vessel_potential_input_item_recipes(
-                        this_module,
-                        this_vessel,
-                    )
-                    .into_iter(),
                 )
                 .collect();
 
-                let output_item_recipes: BTreeSet<_> = iter::chain(
-                    person::utils::this_vessel_output_item_recipes(this_module, this_vessel)
-                        .into_iter(),
-                    person::utils::this_vessel_potential_output_item_recipes(
-                        this_module,
-                        this_vessel,
-                    )
-                    .into_iter(),
-                )
-                .collect();
-
-                let items: BTreeSet<_> = iter::chain(
-                    input_item_recipes.iter().map(|x| x.items()).flatten(),
-                    output_item_recipes.iter().map(|x| x.items()).flatten(),
-                )
-                .cloned()
-                .collect();
+                let items: BTreeSet<_> = assembly_recipes
+                    .iter()
+                    .map(|x| x.input().items())
+                    .flatten()
+                    .cloned()
+                    .collect();
 
                 logger.info("ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe");
                 *self = Self::FindBestOffersAndDecideBestRecipe {
                     future: FindBestOffersForItems { items }
                         .push(environment_context.request_storage_mut()),
-                    input_recipes_to_consider: input_item_recipes,
-                    output_recipes_to_consider: output_item_recipes,
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
-            Self::MoveToTerminal { dst } => {
+            Self::MoveToTerminal {
+                dst,
+                prices_on_market,
+            } => {
                 if *dst == this_module.id() {
                     logger.info("Placing capabilities in vessel selling terminal...");
-                    *self = Self::PlaceOffers;
+                    *self = Self::PlaceOffers {
+                        prices_on_market: std::mem::take(prices_on_market),
+                    };
                     Ok(ObjectiveStatus::InProgress)
                 } else {
                     logger.info("Entering vessel selling terminal module...");
@@ -158,55 +153,112 @@ impl Objective for ManageDockyardStationObjective {
                     }
                 }
             }
-            Self::PlaceOffers => {
+            Self::PlaceOffers { prices_on_market } => {
                 let assembly_recipes: Vec<_> = iter::chain(
-                    person::utils::this_vessel_assembly_recipes(this_module, this_vessel)
-                        .into_iter(),
-                    person::utils::this_vessel_potential_assembly_recipes(this_module, this_vessel)
+                    tie(this_module, this_vessel).assembly_recipes().into_iter(),
+                    tie(this_module, this_vessel)
+                        .potential_assembly_recipes()
                         .into_iter(),
                 )
                 .collect();
 
-                let console = this_module.trading_admin_console_mut().unwrap();
+                let price_of_input_recipe = |recipe: &InputItemRecipe| -> Option<MoneyRef> {
+                    let mut result = MoneyRef {
+                        currency: this_person.finance.preferred_currency(),
+                        amount: NonNeg::new(0).unwrap(),
+                    };
+                    for (item, count) in recipe {
+                        result.add_assign(
+                            prices_on_market.get(item)?.clone() * *count,
+                            environment_context.bank_registry(),
+                        );
+                    }
+                    Some(result)
+                };
 
-                console.place_buy_custom_vessel_offer(
-                    assembly_recipes
-                        .iter()
-                        .map(|x| x.output_description().capabilities().iter())
-                        .flatten()
-                        .cloned()
-                        .collect(),
-                    assembly_recipes
-                        .iter()
-                        .map(|x| x.output_description().primary_capabilities().iter())
-                        .flatten()
-                        .cloned()
-                        .collect(),
-                );
+                let prices_of_capabilities = |recipes: Vec<AssemblyRecipe>| -> Option<(
+                    BTreeMap<ModuleCapability, MoneyRef>,
+                    BTreeMap<ModuleCapability, MoneyRef>,
+                )> {
+                    let mut capabilities: BTreeMap<ModuleCapability, MoneyRef> = Default::default();
+                    let mut primary_capabilities: BTreeMap<ModuleCapability, MoneyRef> =
+                        Default::default();
 
-                *self = Self::CheckOrders;
-                Ok(ObjectiveStatus::InProgress)
+                    let insert = |caps: &mut BTreeMap<ModuleCapability, MoneyRef>,
+                                  cap: ModuleCapability,
+                                  money: MoneyRef| {
+                        caps.entry(cap)
+                            .and_modify(|m| {
+                                m.max_assign(money.clone(), environment_context.bank_registry());
+                            })
+                            .or_insert(money);
+                    };
+
+                    for recipe in &recipes {
+                        for cap in recipe.output_description().capabilities() {
+                            insert(
+                                &mut capabilities,
+                                *cap,
+                                price_of_input_recipe(recipe.input())?,
+                            );
+                        }
+
+                        for cap in recipe.output_description().primary_capabilities() {
+                            insert(
+                                &mut primary_capabilities,
+                                *cap,
+                                price_of_input_recipe(recipe.input())?,
+                            );
+                        }
+                    }
+
+                    Some((capabilities, primary_capabilities))
+                };
+
+                if let Some((mut capabilities_prices, mut primary_capabilities_prices)) =
+                    prices_of_capabilities(assembly_recipes)
+                {
+                    let console = this_module.trading_admin_console_mut().unwrap();
+
+                    for (_, price) in &mut capabilities_prices {
+                        price.amount = NonNeg::new(
+                            (price.amount.unwrap() as Float * this_person.notes.margin().unwrap())
+                                as MoneyAmount,
+                        )
+                        .unwrap();
+                    }
+
+                    for (_, price) in &mut primary_capabilities_prices {
+                        price.amount = NonNeg::new(
+                            (price.amount.unwrap() as Float * this_person.notes.margin().unwrap())
+                                as MoneyAmount,
+                        )
+                        .unwrap();
+                    }
+
+                    console.place_buy_custom_vessel_offer(
+                        capabilities_prices,
+                        primary_capabilities_prices,
+                    );
+                    *self = Self::CheckOrders;
+                    Ok(ObjectiveStatus::InProgress)
+                } else {
+                    todo!()
+                }
             }
-            Self::FindBestOffersAndDecideBestRecipe {
-                future,
-                input_recipes_to_consider,
-                output_recipes_to_consider,
-            } => match future.take() {
+            Self::FindBestOffersAndDecideBestRecipe { future } => match future.take() {
                 Ok(search_result) => {
                     let assembly_recipes: BTreeSet<_> = iter::chain(
-                        person::utils::this_vessel_assembly_recipes(this_module, this_vessel)
+                        tie(this_module, this_vessel).assembly_recipes().into_iter(),
+                        tie(this_module, this_vessel)
+                            .potential_assembly_recipes()
                             .into_iter(),
-                        person::utils::this_vessel_potential_assembly_recipes(
-                            this_module,
-                            this_vessel,
-                        )
-                        .into_iter(),
                     )
                     .collect();
 
                     println!(
                         "ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe: {:#?}",
-                        (search_result, assembly_recipes)
+                        (&search_result, assembly_recipes)
                     );
 
                     *self = Self::RequireModules {
@@ -221,13 +273,21 @@ impl Objective for ManageDockyardStationObjective {
                             BTreeSet::new(),
                             logger,
                         ),
+                        prices_on_market: search_result
+                            .max_profit_buy_offers
+                            .into_iter()
+                            .map(|(item, offer)| (item, offer.offer.price_per_unit))
+                            .collect(),
                     };
                     Ok(ObjectiveStatus::InProgress)
                 }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            ManageDockyardStationObjective::RequireModules { objective } => {
+            ManageDockyardStationObjective::RequireModules {
+                objective,
+                prices_on_market,
+            } => {
                 match objective.pursue(
                     this_person,
                     this_module,
@@ -241,7 +301,9 @@ impl Objective for ManageDockyardStationObjective {
                             .capabilities()
                             .contains(&ModuleCapability::VesselSellingTerminal)
                         {
-                            *self = Self::PlaceOffers;
+                            *self = Self::PlaceOffers {
+                                prices_on_market: std::mem::take(prices_on_market),
+                            };
                             return Ok(ObjectiveStatus::InProgress);
                         }
 
@@ -256,6 +318,7 @@ impl Objective for ManageDockyardStationObjective {
 
                         *self = Self::MoveToTerminal {
                             dst: terminals.first().unwrap().id(),
+                            prices_on_market: std::mem::take(prices_on_market),
                         };
 
                         Ok(ObjectiveStatus::InProgress)

@@ -4,6 +4,7 @@
 #![feature(box_into_inner)]
 #![feature(const_trait_impl)]
 #![feature(const_from)]
+#![feature(impl_trait_in_assoc_type)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]

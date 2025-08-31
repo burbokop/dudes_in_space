@@ -1,4 +1,4 @@
-use super::{Abs, NoNeg, Point, Size, Sqr, Two, Vector};
+use super::{Abs, NonNeg, Point, Size, Sqr, Two, Vector};
 use crate::utils::range::Range;
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -218,17 +218,17 @@ impl<T> Rect<T> {
     where
         T: PartialOrd + Add<Output = T> + Clone,
     {
-        return other.left() >= self.left()
+        other.left() >= self.left()
             && other.right() <= self.right()
             && other.top() >= self.top()
-            && other.bottom() <= self.bottom();
+            && other.bottom() <= self.bottom()
     }
 
     pub fn contains_point(&self, _other: &Point<T>) -> bool {
         todo!()
     }
 
-    pub fn instersects(&self, other: &Rect<T>) -> bool
+    pub fn intersects(&self, other: &Rect<T>) -> bool
     where
         T: PartialOrd + Add<Output = T> + Clone,
     {
@@ -238,10 +238,10 @@ impl<T> Rect<T> {
         let r = min(self.right(), other.right());
         let t = max(self.top(), other.top());
         let b = min(self.bottom(), other.bottom());
-        return l < r && t < b;
+        l < r && t < b
     }
 
-    pub(crate) fn instersects_circle(&self, center: Point<T>, radius: NoNeg<T>) -> bool
+    pub(crate) fn intersects_circle(&self, center: Point<T>, radius: NonNeg<T>) -> bool
     where
         T: Add<Output = T> + Sub<Output = T> + Clone + Sqr<Output = T> + PartialOrd,
     {
@@ -273,7 +273,7 @@ impl<T> Rect<T> {
             test_y = ry.clone() + rh.clone();
         } // bottom edge
 
-        // get distance from closest edges
+        // get distance from the closest edges
         let dist_x = cx.clone() - test_x;
         let dist_y = cy.clone() - test_y;
         let distance_sqr = dist_x.sqr() + dist_y.sqr();

@@ -1,4 +1,4 @@
-use crate::finance::{Bank, BankRegistry, Wallet};
+use crate::finance::{Bank, BankRegistry, Currency, Wallet};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell};
@@ -17,6 +17,10 @@ impl PersonalFinancePackage {
     }
     pub fn wallet(&self) -> &Wallet {
         &self.wallet
+    }
+
+    pub fn preferred_currency(&self) -> Currency {
+        todo!()
     }
 }
 

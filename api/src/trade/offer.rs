@@ -5,7 +5,7 @@ use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::range::Range;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub type OfferId = NonNilUuid;
 
@@ -28,8 +28,8 @@ pub struct BuyVesselOffer {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BuyCustomVesselOffer {
     pub id: OfferId,
-    pub available_capabilities: BTreeSet<ModuleCapability>,
-    pub available_primary_capabilities: BTreeSet<ModuleCapability>,
+    pub available_capabilities: BTreeMap<ModuleCapability, MoneyRef>,
+    pub available_primary_capabilities: BTreeMap<ModuleCapability, MoneyRef>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

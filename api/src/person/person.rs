@@ -2,8 +2,11 @@ use crate::environment::EnvironmentContext;
 use crate::finance::{BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet};
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
-use crate::person::objective::{ObjectiveSeed, ObjectiveStatus};
-use crate::person::{DynObjective, ObjectiveDeciderVault, PersonInfo, StatusCollector};
+use crate::person::objective::ObjectiveStatus;
+use crate::person::personal_notes::PersonalNotes;
+use crate::person::{
+    DynObjective, ObjectiveDeciderVault, ObjectiveSeed, PersonInfo, StatusCollector,
+};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselInternalConsole;
@@ -218,6 +221,8 @@ pub struct Person {
     boss: Option<PersonId>,
     #[deserialize_seed_xxx(seed = self.seed.finance_package_seed)]
     finance: PersonalFinancePackage,
+    #[serde(default)]
+    personal_notes: PersonalNotes,
 }
 
 #[derive(Clone)]
@@ -278,6 +283,7 @@ impl Person {
             objective: None,
             boss: None,
             finance: Default::default(),
+            personal_notes: Default::default(),
         }
     }
 
@@ -299,6 +305,7 @@ impl Person {
             boldness: &self.boldness,
             awareness: &self.awareness,
             finance: &self.finance,
+            notes: &mut self.personal_notes,
         };
         let mut logger = PersonLogger::new(&self.id, &self.name, logger);
 

@@ -56,6 +56,15 @@ pub struct InputItemRecipe {
     input: BTreeMap<ItemId, ItemCount>,
 }
 
+impl<'a> IntoIterator for &'a InputItemRecipe {
+    type Item = (&'a ItemId, &'a ItemCount);
+    type IntoIter = impl Iterator<Item = Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 impl InputItemRecipe {
     pub fn len(&self) -> usize {
         self.input.len()

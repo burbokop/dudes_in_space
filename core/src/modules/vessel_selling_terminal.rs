@@ -29,7 +29,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::rc::Rc;
 
@@ -210,8 +210,8 @@ impl<'a> TradingAdminConsole for Console<'a> {
 
     fn place_buy_custom_vessel_offer(
         &mut self,
-        capabilities: BTreeSet<ModuleCapability>,
-        primary_capabilities: BTreeSet<ModuleCapability>,
+        capabilities: BTreeMap<ModuleCapability, MoneyRef>,
+        primary_capabilities: BTreeMap<ModuleCapability, MoneyRef>,
     ) -> BuyCustomVesselOffer {
         let offer = BuyCustomVesselOffer {
             id: OfferId::new_v4(),

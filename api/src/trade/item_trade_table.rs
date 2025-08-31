@@ -2,7 +2,7 @@ use crate::finance::{BankRegistry, MoneyAmount, MoneyRef};
 use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
-use crate::utils::math::NoNeg;
+use crate::utils::math::NonNeg;
 use crate::utils::range::Range;
 use crate::vessel::Vessel;
 use std::collections::BTreeMap;
@@ -203,6 +203,6 @@ fn total_price(
 
     MoneyRef {
         currency: price_per_unit.currency,
-        amount: NoNeg::wrap(count as MoneyAmount).unwrap() * price_per_unit.amount,
+        amount: NonNeg::new(count as MoneyAmount).unwrap() * price_per_unit.amount,
     }
 }

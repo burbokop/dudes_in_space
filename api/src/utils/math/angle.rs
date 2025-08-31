@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Abs, Cos, DegToRad, IsNeg, NoNeg, Pi, RadToDeg, RemEuclid, Sin, Two, Zero};
+use super::{Abs, Cos, DegToRad, IsNeg, NonNeg, Pi, RadToDeg, RemEuclid, Sin, Two, Zero};
 use crate::utils::range::Range;
 use std::{
     fmt::Display,
@@ -155,7 +155,7 @@ impl<U: Display, T: RadToDeg<Output = U> + Clone> Display for Angle<T> {
     }
 }
 
-impl<T> DeltaAngle<NoNeg<T>> {
+impl<T> DeltaAngle<NonNeg<T>> {
     pub fn unwrap(self) -> DeltaAngle<T> {
         DeltaAngle {
             value: self.value.unwrap(),

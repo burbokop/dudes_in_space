@@ -106,7 +106,7 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
     }
 
     pub fn intersects_with_view_port(&self, rect: &Rect<Float>) -> bool {
-        self.view_port_in_world_space.instersects(rect)
+        self.view_port_in_world_space.intersects(rect)
     }
 
     pub fn is_contained_in_view_port(&self, rect: &Point<Float>) -> bool {

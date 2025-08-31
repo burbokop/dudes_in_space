@@ -5,9 +5,9 @@ use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
 use dudes_in_space_api::module::ModuleConsole;
-use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
+    tie,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
@@ -91,31 +91,30 @@ impl Objective for ManageProductionStationObjective {
         match self {
             Self::CollectAllAvailableRecipes => {
                 let item_recipes: BTreeSet<_> = iter::chain(
-                    person::utils::this_vessel_item_recipes(this_module, this_vessel).into_iter(),
-                    person::utils::this_vessel_potential_item_recipes(this_module, this_vessel)
+                    tie(this_module, this_vessel).item_recipes().into_iter(),
+                    tie(this_module, this_vessel)
+                        .potential_item_recipes()
                         .into_iter(),
                 )
                 .collect();
 
                 let input_item_recipes: BTreeSet<_> = iter::chain(
-                    person::utils::this_vessel_input_item_recipes(this_module, this_vessel)
+                    tie(this_module, this_vessel)
+                        .input_item_recipes()
                         .into_iter(),
-                    person::utils::this_vessel_potential_input_item_recipes(
-                        this_module,
-                        this_vessel,
-                    )
-                    .into_iter(),
+                    tie(this_module, this_vessel)
+                        .potential_input_item_recipes()
+                        .into_iter(),
                 )
                 .collect();
 
                 let output_item_recipes: BTreeSet<_> = iter::chain(
-                    person::utils::this_vessel_output_item_recipes(this_module, this_vessel)
+                    tie(this_module, this_vessel)
+                        .output_item_recipes()
                         .into_iter(),
-                    person::utils::this_vessel_potential_output_item_recipes(
-                        this_module,
-                        this_vessel,
-                    )
-                    .into_iter(),
+                    tie(this_module, this_vessel)
+                        .potential_output_item_recipes()
+                        .into_iter(),
                 )
                 .collect();
 

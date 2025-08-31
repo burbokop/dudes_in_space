@@ -78,6 +78,7 @@ impl Environment {
             process_token_context,
             &mut self.request_storage,
             subordination_table,
+            bank_registry,
         );
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
@@ -174,34 +175,33 @@ impl Environment {
                     return false;
                 }
 
-                if let Some((offer, _)) = trade_table
-                    .custom_offers()
-                    .filter(|(offer, _)| {
-                        req.input
-                            .required_capabilities
-                            .iter()
-                            .all(|x| offer.offer.available_capabilities.contains(x))
-                            && req
-                                .input
-                                .required_primary_capabilities
+                if let Some((offer, _)) =
+                    trade_table
+                        .custom_offers()
+                        .filter(|(offer, _)| {
+                            req.input
+                                .required_capabilities
                                 .iter()
-                                .all(|x| offer.offer.available_primary_capabilities.contains(x))
-                    })
-                    .map(|(offer, module)| {
-                        (
-                            offer,
-                            module
-                                .trading_console()
-                                .unwrap()
-                                .estimate_buy_custom_vessel_order(
-                                    req.input.required_capabilities.clone(),
-                                    req.input.required_primary_capabilities.clone(),
-                                    1,
-                                )
-                                .unwrap(),
-                        )
-                    })
-                    .min_by(|(_, a), (_, b)| a.money().cmp(&b.money(), bank_registry))
+                                .all(|x| offer.offer.available_capabilities.contains_key(x))
+                                && req.input.required_primary_capabilities.iter().all(|x| {
+                                    offer.offer.available_primary_capabilities.contains_key(x)
+                                })
+                        })
+                        .map(|(offer, module)| {
+                            (
+                                offer,
+                                module
+                                    .trading_console()
+                                    .unwrap()
+                                    .estimate_buy_custom_vessel_order(
+                                        req.input.required_capabilities.clone(),
+                                        req.input.required_primary_capabilities.clone(),
+                                        1,
+                                    )
+                                    .unwrap(),
+                            )
+                        })
+                        .min_by(|(_, a), (_, b)| a.money().cmp(&b.money(), bank_registry))
                 {
                     req.promise
                         .make_ready(

@@ -1,23 +1,27 @@
 use crate::environment::RequestStorage;
+use crate::finance::BankRegistry;
 use crate::module::ProcessTokenContext;
 use crate::person::SubordinationTable;
 
-pub struct EnvironmentContext<'ptc, 'rs, 'st> {
-    process_token_context: &'ptc ProcessTokenContext,
-    request_storage: &'rs mut RequestStorage,
-    subordination_table: &'st SubordinationTable,
+pub struct EnvironmentContext<'a, 'b, 'c, 'd> {
+    process_token_context: &'a ProcessTokenContext,
+    request_storage: &'b mut RequestStorage,
+    subordination_table: &'c SubordinationTable,
+    bank_registry: &'d BankRegistry,
 }
 
-impl<'ptc, 'rs, 'st> EnvironmentContext<'ptc, 'rs, 'st> {
+impl<'a, 'b, 'c, 'd> EnvironmentContext<'a, 'b, 'c, 'd> {
     pub fn new(
-        process_token_context: &'ptc ProcessTokenContext,
-        request_storage: &'rs mut RequestStorage,
-        subordination_table: &'st SubordinationTable,
+        process_token_context: &'a ProcessTokenContext,
+        request_storage: &'b mut RequestStorage,
+        subordination_table: &'c SubordinationTable,
+        bank_registry: &'d BankRegistry,
     ) -> Self {
         Self {
             process_token_context,
             request_storage,
             subordination_table,
+            bank_registry,
         }
     }
 
@@ -35,5 +39,9 @@ impl<'ptc, 'rs, 'st> EnvironmentContext<'ptc, 'rs, 'st> {
 
     pub fn subordination_table(&self) -> &SubordinationTable {
         &self.subordination_table
+    }
+
+    pub fn bank_registry(&self) -> &BankRegistry {
+        self.bank_registry
     }
 }

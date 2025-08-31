@@ -2,7 +2,7 @@ use crate::objectives::common::move_to_module_objective::MoveToModuleObjective;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger, tie};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -49,18 +49,16 @@ impl Objective for MoveToDockedVesselObjective {
                     return Ok(ObjectiveStatus::Done);
                 }
 
-                if let Some((module_id, connection_id)) = person::utils::find_map_docking_clamp(
-                    this_module,
-                    this_vessel,
-                    |module_id, clamp| {
+                if let Some((module_id, connection_id)) = tie(this_module, this_vessel)
+                    .find_map_docking_clamp(|module_id, clamp| {
                         if let Some(connection) = clamp.connection() {
                             if connection.vessel.id() == *vessel_id {
                                 return Some((module_id, connection.connector_id));
                             }
                         }
                         None
-                    },
-                ) {
+                    })
+                {
                     logger.info("Moving to docking clamp...");
                     *self = Self::MoveToDockingClamp {
                         vessel_id: *vessel_id,

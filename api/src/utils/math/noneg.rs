@@ -1,20 +1,20 @@
+use super::{Abs, Floor, IsNeg, Pi, Sqrt, Zero};
+use crate::utils::utils::Float;
+use serde::{Deserialize, Serialize};
+use std::ops::{DivAssign, MulAssign};
 use std::{
     error::Error,
     fmt::{Debug, Display},
     ops::{Add, AddAssign, Div, Mul, Sub},
 };
 
-use super::{Abs, Floor, IsNeg, Pi, Sqrt, Zero};
-use crate::utils::utils::Float;
-use serde::{Deserialize, Serialize};
-
 /// Can not store negative numbers
 #[derive(Clone, Copy, Debug, Ord)]
-pub struct NoNeg<T> {
+pub struct NonNeg<T> {
     value: T,
 }
 
-impl<T: Serialize> Serialize for NoNeg<T> {
+impl<T: Serialize> Serialize for NonNeg<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -23,7 +23,7 @@ impl<T: Serialize> Serialize for NoNeg<T> {
     }
 }
 
-impl<'de, T: Deserialize<'de> + IsNeg + Debug> Deserialize<'de> for NoNeg<T> {
+impl<'de, T: Deserialize<'de> + IsNeg + Debug> Deserialize<'de> for NonNeg<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -40,14 +40,14 @@ impl<'de, T: Deserialize<'de> + IsNeg + Debug> Deserialize<'de> for NoNeg<T> {
     }
 }
 
-impl<T: Display> Display for NoNeg<T> {
+impl<T: Display> Display for NonNeg<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.value.fmt(f)
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct NegError<T> {
+pub struct NegError<T> {
     original_value: T,
 }
 
@@ -73,8 +73,22 @@ impl<T> Error for NegError<T> where T: Debug {}
 //     }
 // }
 
-impl<T> NoNeg<T> {
+impl<T> NonNeg<T> {
+    #[deprecated(note = "Better use NonNeg::new")]
     pub(crate) fn wrap(value: T) -> Result<Self, NegError<T>>
+    where
+        T: IsNeg,
+    {
+        if value.is_neg() {
+            Err(NegError {
+                original_value: value,
+            })
+        } else {
+            Ok(Self { value })
+        }
+    }
+
+    pub fn new(value: T) -> Result<Self, NegError<T>>
     where
         T: IsNeg,
     {
@@ -91,44 +105,44 @@ impl<T> NoNeg<T> {
         self.value
     }
 
-    pub(crate) fn sqrt(self) -> NoNeg<<T as Sqrt>::Output>
+    pub(crate) fn sqrt(self) -> NonNeg<<T as Sqrt>::Output>
     where
         T: Sqrt,
     {
-        NoNeg {
+        NonNeg {
             value: self.value.sqrt(),
         }
     }
 
-    pub(crate) fn floor(self) -> NoNeg<<T as Floor>::Output>
+    pub(crate) fn floor(self) -> NonNeg<<T as Floor>::Output>
     where
         T: Floor,
     {
-        NoNeg {
+        NonNeg {
             value: self.value.floor(),
         }
     }
 
-    pub(crate) fn limited_sub<U>(self, rhs: NoNeg<U>) -> NoNeg<<T as Sub<U>>::Output>
+    pub(crate) fn limited_sub<U>(self, rhs: NonNeg<U>) -> NonNeg<<T as Sub<U>>::Output>
     where
         T: Sub<U>,
         <T as Sub<U>>::Output: IsNeg,
-        NoNeg<<T as Sub<U>>::Output>: Zero,
+        NonNeg<<T as Sub<U>>::Output>: Zero,
     {
-        NoNeg::wrap(self.value - rhs.value).unwrap_or(Zero::zero())
+        NonNeg::new(self.value - rhs.value).unwrap_or(Zero::zero())
     }
 }
 
-impl<T, U> PartialEq<NoNeg<U>> for NoNeg<T>
+impl<T, U> PartialEq<NonNeg<U>> for NonNeg<T>
 where
     T: PartialEq<U>,
 {
-    fn eq(&self, other: &NoNeg<U>) -> bool {
+    fn eq(&self, other: &NonNeg<U>) -> bool {
         self.value.eq(&other.value)
     }
 }
 
-impl<T> Eq for NoNeg<T>
+impl<T> Eq for NonNeg<T>
 where
     T: Eq,
 {
@@ -137,93 +151,111 @@ where
     }
 }
 
-impl<T, U> PartialOrd<NoNeg<U>> for NoNeg<T>
+impl<T, U> PartialOrd<NonNeg<U>> for NonNeg<T>
 where
     T: PartialOrd<U>,
 {
-    fn partial_cmp(&self, other: &NoNeg<U>) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &NonNeg<U>) -> Option<std::cmp::Ordering> {
         self.value.partial_cmp(&other.value)
     }
 }
 
-impl<T, U> Add<NoNeg<U>> for NoNeg<T>
+impl<T, U> Add<NonNeg<U>> for NonNeg<T>
 where
     T: Add<U>,
 {
-    type Output = NoNeg<<T as Add<U>>::Output>;
+    type Output = NonNeg<<T as Add<U>>::Output>;
 
-    fn add(self, rhs: NoNeg<U>) -> Self::Output {
+    fn add(self, rhs: NonNeg<U>) -> Self::Output {
         Self::Output {
             value: self.value + rhs.value,
         }
     }
 }
 
-impl<T, U> AddAssign<NoNeg<U>> for NoNeg<T>
+impl<T, U> AddAssign<NonNeg<U>> for NonNeg<T>
 where
     T: AddAssign<U>,
 {
-    fn add_assign(&mut self, rhs: NoNeg<U>) {
+    fn add_assign(&mut self, rhs: NonNeg<U>) {
         self.value += rhs.value
     }
 }
 
-impl<T, U> Sub<NoNeg<U>> for NoNeg<T>
+impl<T, U> Sub<NonNeg<U>> for NonNeg<T>
 where
     T: Sub<U>,
 {
     type Output = <T as Sub<U>>::Output;
 
-    fn sub(self, rhs: NoNeg<U>) -> Self::Output {
+    fn sub(self, rhs: NonNeg<U>) -> Self::Output {
         self.value - rhs.value
     }
 }
 
-impl<T, U> Mul<NoNeg<U>> for NoNeg<T>
+impl<T, U> Mul<NonNeg<U>> for NonNeg<T>
 where
     T: Mul<U>,
 {
-    type Output = NoNeg<<T as Mul<U>>::Output>;
+    type Output = NonNeg<<T as Mul<U>>::Output>;
 
-    fn mul(self, rhs: NoNeg<U>) -> Self::Output {
+    fn mul(self, rhs: NonNeg<U>) -> Self::Output {
         Self::Output {
             value: self.value * rhs.value,
         }
     }
 }
 
-impl<T, U> Div<NoNeg<U>> for NoNeg<T>
+impl<T, U> MulAssign<NonNeg<U>> for NonNeg<T>
+where
+    T: MulAssign<U>,
+{
+    fn mul_assign(&mut self, rhs: NonNeg<U>) {
+        self.value *= rhs.value;
+    }
+}
+
+impl<T, U> Div<NonNeg<U>> for NonNeg<T>
 where
     T: Div<U>,
 {
-    type Output = NoNeg<<T as Div<U>>::Output>;
+    type Output = NonNeg<<T as Div<U>>::Output>;
 
-    fn div(self, rhs: NoNeg<U>) -> Self::Output {
+    fn div(self, rhs: NonNeg<U>) -> Self::Output {
         Self::Output {
             value: self.value / rhs.value,
         }
     }
 }
 
-pub(crate) trait AbsAsNoNeg
+impl<T, U> DivAssign<NonNeg<U>> for NonNeg<T>
+where
+    T: DivAssign<U>,
+{
+    fn div_assign(&mut self, rhs: NonNeg<U>) {
+        self.value /= rhs.value;
+    }
+}
+
+pub(crate) trait AbsAsNonNeg
 where
     Self: Sized,
 {
     type Output;
-    fn abs_as_noneg(self) -> NoNeg<Self::Output>;
+    fn abs_as_non_neg(self) -> NonNeg<Self::Output>;
 }
 
-impl<T> AbsAsNoNeg for T
+impl<T> AbsAsNonNeg for T
 where
     T: Abs,
 {
     type Output = <T as Abs>::Output;
-    fn abs_as_noneg(self) -> NoNeg<Self::Output> {
-        NoNeg { value: self.abs() }
+    fn abs_as_non_neg(self) -> NonNeg<Self::Output> {
+        NonNeg { value: self.abs() }
     }
 }
 
-impl<T> Pi for NoNeg<T>
+impl<T> Pi for NonNeg<T>
 where
     T: Pi,
 {
@@ -232,25 +264,33 @@ where
     }
 }
 
-impl<T: Zero> Zero for NoNeg<T> {
+impl<T: Zero> Zero for NonNeg<T> {
     fn zero() -> Self {
         Self { value: T::zero() }
     }
 }
 
-pub(crate) const fn noneg_f32(value: f32) -> NoNeg<f32> {
-    assert!(value >= 0.);
-    NoNeg { value }
+impl From<u32> for NonNeg<i64> {
+    fn from(value: u32) -> Self {
+        Self {
+            value: value as i64,
+        }
+    }
 }
 
-pub(crate) const fn noneg_f64(value: f64) -> NoNeg<f64> {
+pub(crate) const fn noneg_f32(value: f32) -> NonNeg<f32> {
     assert!(value >= 0.);
-    NoNeg { value }
+    NonNeg { value }
 }
 
-pub const fn noneg_float(value: Float) -> NoNeg<Float> {
+pub(crate) const fn noneg_f64(value: f64) -> NonNeg<f64> {
     assert!(value >= 0.);
-    NoNeg { value }
+    NonNeg { value }
+}
+
+pub const fn noneg_float(value: Float) -> NonNeg<Float> {
+    assert!(value >= 0.);
+    NonNeg { value }
 }
 
 #[cfg(test)]

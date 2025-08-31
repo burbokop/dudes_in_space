@@ -1,4 +1,4 @@
-use crate::utils::math::NoNeg;
+use crate::utils::math::NonNeg;
 use crate::utils::range::Range;
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use std::{
@@ -26,10 +26,10 @@ pub(crate) fn normalize_opt<const SIZE: usize>(v: [Option<Float>; SIZE]) -> [Opt
 }
 
 pub(crate) fn transfer_energy(
-    source: &mut NoNeg<Float>,
-    dst: &mut NoNeg<Float>,
-    mut delta_energy: NoNeg<Float>,
-    capacity: NoNeg<Float>,
+    source: &mut NonNeg<Float>,
+    dst: &mut NonNeg<Float>,
+    mut delta_energy: NonNeg<Float>,
+    capacity: NonNeg<Float>,
 ) -> bool {
     let mut completely_drained: bool = false;
     if *source < delta_energy {
@@ -38,22 +38,22 @@ pub(crate) fn transfer_energy(
     }
 
     if (*dst + delta_energy) > capacity {
-        delta_energy = NoNeg::wrap(capacity - *dst).unwrap();
+        delta_energy = NonNeg::new(capacity - *dst).unwrap();
     }
 
-    *source = NoNeg::wrap(*source - delta_energy).unwrap();
+    *source = NonNeg::new(*source - delta_energy).unwrap();
     *dst += delta_energy;
     completely_drained
 }
 
-pub(crate) fn drain_energy(source: &mut NoNeg<Float>, mut delta_energy: NoNeg<Float>) -> bool {
+pub(crate) fn drain_energy(source: &mut NonNeg<Float>, mut delta_energy: NonNeg<Float>) -> bool {
     let mut completely_drained: bool = false;
     if *source < delta_energy {
         delta_energy = *source;
         completely_drained = true;
     }
 
-    *source = NoNeg::wrap(*source - delta_energy).unwrap();
+    *source = NonNeg::new(*source - delta_energy).unwrap();
     completely_drained
 }
 
