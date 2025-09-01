@@ -1,4 +1,4 @@
-use crate::finance::{Currency, MoneyAmount, MoneyRef, Wallet};
+use crate::finance::{Currency, Money, MoneyAmount, Wallet};
 use crate::person::PersonId;
 use crate::utils::math::{NonNeg, noneg_float};
 use crate::utils::utils::Float;
@@ -54,6 +54,10 @@ impl Bank {
         self.customers.get(&customer)
     }
 
+    pub(crate) fn customers_count(&self) -> usize {
+        self.customers.len()
+    }
+
     pub fn withdraw(
         &mut self,
         customer: PersonId,
@@ -71,7 +75,7 @@ impl Bank {
         if customer == self.owner {
             account.money -= amount.unwrap();
             self.money_created += amount.unwrap();
-            target_wallet.put(MoneyRef {
+            target_wallet.put(Money {
                 currency: self.currency.clone(),
                 amount,
             })
@@ -89,7 +93,7 @@ impl Bank {
                     self.current_cycle + 2_f64.log(1. + account.growth_rate.unwrap()) as Cycle,
                 );
             }
-            target_wallet.put(MoneyRef {
+            target_wallet.put(Money {
                 currency: self.currency.clone(),
                 amount,
             })
@@ -105,7 +109,7 @@ impl Bank {
         assert_ne!(amount.unwrap(), 0);
 
         source_wallet
-            .take(MoneyRef {
+            .take(Money {
                 currency: self.currency.clone(),
                 amount,
             })
@@ -145,12 +149,12 @@ impl Bank {
             * source_currency_bank.money_created as Float
             / self.money_created as Float) as MoneyAmount;
 
-        let money_to_take_from_bank_owner = MoneyRef {
+        let money_to_take_from_bank_owner = Money {
             currency: self.currency.clone(),
             amount: target_amount,
         };
 
-        let money_to_take_from_customer = MoneyRef {
+        let money_to_take_from_customer = Money {
             currency: self.currency.clone(),
             amount: target_amount,
         };
@@ -158,8 +162,8 @@ impl Bank {
         {
             let owner_money =
                 bank_owner_wallet.amount(money_to_take_from_bank_owner.currency.clone());
-            if owner_money < money_to_take_from_bank_owner.amount.unwrap() {
-                let delta = money_to_take_from_bank_owner.amount.unwrap() - owner_money;
+            if owner_money < money_to_take_from_bank_owner.amount {
+                let delta = money_to_take_from_bank_owner.amount - owner_money;
                 self.withdraw(self.owner, bank_owner_wallet, NonNeg::new(delta).unwrap());
             }
         }

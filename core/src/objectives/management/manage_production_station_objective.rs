@@ -260,3 +260,9 @@ impl Display for ManageProductionStationObjectiveError {
 }
 
 impl Error for ManageProductionStationObjectiveError {}
+
+impl Display for ManageProductionStationObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

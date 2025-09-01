@@ -1,4 +1,3 @@
-use crate::finance::MoneyRef;
 use crate::item::{Item, ItemRefStack};
 use crate::module::ModuleCapability;
 use crate::utils::non_nil_uuid::NonNilUuid;
@@ -8,12 +7,13 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::{Rc, Weak};
+use crate::finance::Money;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
     vessel_to_buy_from: VesselId,
     items: Vec<ItemRefStack>,
-    price: MoneyRef,
+    price: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl WeakBuyOrder {
     pub fn items(&self) -> Option<Vec<Item>> {
         todo!()
     }
-    pub fn price(&self) -> Option<MoneyRef> {
+    pub fn price(&self) -> Option<Money> {
         todo!()
     }
 }
@@ -52,7 +52,7 @@ impl BuyOrder {
     pub fn items(&self) -> Vec<Item> {
         todo!()
     }
-    pub fn price(&self) -> MoneyRef {
+    pub fn price(&self) -> Money {
         todo!()
     }
 }
@@ -61,7 +61,7 @@ impl BuyOrder {
 struct SellOrderImpl {
     vessel_to_sell_to: VesselId,
     items: Vec<ItemRefStack>,
-    price: MoneyRef,
+    price: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,7 +78,7 @@ impl WeakSellOrder {
     pub fn items(&self) -> Option<Vec<Item>> {
         todo!()
     }
-    pub fn price(&self) -> Option<MoneyRef> {
+    pub fn price(&self) -> Option<Money> {
         todo!()
     }
 }
@@ -100,7 +100,7 @@ impl SellOrder {
     pub fn items(&self) -> Vec<Item> {
         todo!()
     }
-    pub fn price(&self) -> MoneyRef {
+    pub fn price(&self) -> Money {
         todo!()
     }
 }
@@ -108,7 +108,7 @@ impl SellOrder {
 pub struct WeakBuyCustomVesselOrderEstimate {}
 
 impl WeakBuyCustomVesselOrderEstimate {
-    pub fn money(&self) -> MoneyRef {
+    pub fn money(&self) -> Money {
         todo!()
     }
 }
@@ -130,7 +130,7 @@ impl WeakBuyVesselOrder {
     pub fn primary_caps(&self) -> Option<Vec<ModuleCapability>> {
         todo!()
     }
-    pub fn price(&self) -> Option<MoneyRef> {
+    pub fn price(&self) -> Option<Money> {
         todo!()
     }
 }
@@ -284,7 +284,7 @@ impl BuyVesselOrder {
         todo!()
     }
 
-    pub fn price(&self) -> MoneyRef {
+    pub fn price(&self) -> Money {
         todo!()
     }
 }

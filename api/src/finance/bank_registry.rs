@@ -13,6 +13,10 @@ impl BankRegistry {
             data: Default::default(),
         }
     }
+    
+    pub fn contains_currency(&self, currency: &Currency) -> bool {
+        self.data.borrow().contains_key(currency)
+    }
 
     pub(crate) fn register(&self, b: Bank) -> Rc<RefCell<Bank>> {
         let currency = b.currency().clone();
@@ -24,3 +28,4 @@ impl BankRegistry {
         b
     }
 }
+

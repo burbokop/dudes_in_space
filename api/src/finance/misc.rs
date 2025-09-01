@@ -9,12 +9,12 @@ pub type Currency = String;
 pub type MoneyAmount = i64;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct MoneyRef {
+pub struct Money {
     pub currency: Currency,
     pub amount: NonNeg<MoneyAmount>,
 }
 
-impl Mul<u32> for MoneyRef {
+impl Mul<u32> for Money {
     type Output = Self;
 
     fn mul(self, rhs: u32) -> Self::Output {
@@ -25,38 +25,38 @@ impl Mul<u32> for MoneyRef {
     }
 }
 
-impl MoneyRef {
-    pub fn cmp(&self, other: &MoneyRef, reg: &BankRegistry) -> Ordering {
+impl Money {
+    pub fn cmp(&self, other: &Money, reg: &BankRegistry) -> Ordering {
         todo!()
     }
 
-    pub fn min(self, other: MoneyRef, reg: &BankRegistry) -> MoneyRef {
+    pub fn min(self, other: Money, reg: &BankRegistry) -> Money {
         todo!()
     }
 
-    pub fn max(self, other: MoneyRef, reg: &BankRegistry) -> MoneyRef {
+    pub fn max(self, other: Money, reg: &BankRegistry) -> Money {
         todo!()
     }
 
-    pub fn min_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+    pub fn min_assign(&mut self, other: Money, reg: &BankRegistry) {
         todo!()
     }
 
-    pub fn max_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+    pub fn max_assign(&mut self, other: Money, reg: &BankRegistry) {
         todo!()
     }
 
-    pub fn add(self, other: MoneyRef, reg: &BankRegistry) -> Self {
+    pub fn add(self, other: Money, reg: &BankRegistry) -> Self {
         todo!()
     }
-    pub fn sub(self, other: MoneyRef, reg: &BankRegistry) -> Self {
+    pub fn sub(self, other: Money, reg: &BankRegistry) -> Self {
         todo!()
     }
 
-    pub fn add_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+    pub fn add_assign(&mut self, other: Money, reg: &BankRegistry) {
         todo!()
     }
-    pub fn sub_assign(&mut self, other: MoneyRef, reg: &BankRegistry) {
+    pub fn sub_assign(&mut self, other: Money, reg: &BankRegistry) {
         todo!()
     }
 }

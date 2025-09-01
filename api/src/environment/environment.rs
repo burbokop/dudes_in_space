@@ -2,7 +2,7 @@ use crate::environment::{
     EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, RequestStorage,
 };
-use crate::finance::BankRegistry;
+use crate::finance::{BankRegistry, CurrencyGenerator};
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
@@ -72,6 +72,7 @@ impl Environment {
         item_vault: &ItemVault,
         subordination_table: &SubordinationTable,
         bank_registry: &BankRegistry,
+        currency_generator: & CurrencyGenerator,
         logger: &mut dyn Logger,
     ) {
         let mut environment_context = EnvironmentContext::new(
@@ -79,6 +80,7 @@ impl Environment {
             &mut self.request_storage,
             subordination_table,
             bank_registry,
+            currency_generator,
         );
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)

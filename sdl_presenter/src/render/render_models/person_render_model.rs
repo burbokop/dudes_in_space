@@ -176,6 +176,8 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawFooter<'a> {
             } else {
                 "Idle".into()
             },
+        ), Box::new(
+             self.person.objective_status().unwrap_or("".into()),
         )])
         .draw(renderer, bounding_box);
     }

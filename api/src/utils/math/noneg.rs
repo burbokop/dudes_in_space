@@ -1,7 +1,7 @@
 use super::{Abs, Floor, IsNeg, Pi, Sqrt, Zero};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
-use std::ops::{DivAssign, MulAssign};
+use std::ops::{DivAssign, MulAssign, SubAssign};
 use std::{
     error::Error,
     fmt::{Debug, Display},
@@ -130,6 +130,14 @@ impl<T> NonNeg<T> {
         NonNeg<<T as Sub<U>>::Output>: Zero,
     {
         NonNeg::new(self.value - rhs.value).unwrap_or(Zero::zero())
+    }
+
+    pub(crate) fn sub_assign(&mut self, rhs: Self) -> Result<(), Self> where T: SubAssign + PartialOrd {
+        if self.value >= rhs.value {
+            Ok(self.value -= rhs.value)
+        } else {
+            Err(rhs)
+        }
     }
 }
 
@@ -269,6 +277,8 @@ impl<T: Zero> Zero for NonNeg<T> {
         Self { value: T::zero() }
     }
 }
+
+impl<T: Zero> Default for NonNeg<T> { fn default() -> Self { Zero::zero() } }
 
 impl From<u32> for NonNeg<i64> {
     fn from(value: u32) -> Self {

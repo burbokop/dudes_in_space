@@ -10,7 +10,7 @@ use dyn_serde_macro::dyn_serde_trait;
 use rand::Rng;
 use rand::prelude::SliceRandom;
 use std::error::Error;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus {
@@ -42,7 +42,7 @@ pub trait Objective {
     ) -> Result<ObjectiveStatus, Self::Error>;
 }
 
-pub trait DynObjective: Debug + DynSerialize {
+pub trait DynObjective: Debug + Display + DynSerialize {
     fn pursue_dyn(
         &mut self,
         this_person: &PersonInfo,
@@ -55,7 +55,7 @@ pub trait DynObjective: Debug + DynSerialize {
 
 dyn_serde_trait!(DynObjective, ObjectiveSeed);
 
-impl<T: Objective + Debug + DynSerialize> DynObjective for T {
+impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
     fn pursue_dyn(
         &mut self,
         this_person: &PersonInfo,

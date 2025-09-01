@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{BankRegistry, MoneyRef};
+use dudes_in_space_api::finance::{BankRegistry, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -186,7 +186,7 @@ impl<'a> TradingAdminConsole for Console<'a> {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: MoneyRef,
+        price_per_unit: Money,
     ) -> Option<&BuyOffer> {
         todo!()
     }
@@ -194,7 +194,7 @@ impl<'a> TradingAdminConsole for Console<'a> {
     fn place_buy_vessel_offer(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
-        price_per_unit: MoneyRef,
+        price_per_unit: Money,
     ) -> Option<&BuyOffer> {
         todo!()
     }
@@ -203,15 +203,15 @@ impl<'a> TradingAdminConsole for Console<'a> {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: MoneyRef,
+        price_per_unit: Money,
     ) -> Option<&SellOffer> {
         todo!()
     }
 
     fn place_buy_custom_vessel_offer(
         &mut self,
-        capabilities: BTreeMap<ModuleCapability, MoneyRef>,
-        primary_capabilities: BTreeMap<ModuleCapability, MoneyRef>,
+        capabilities: BTreeMap<ModuleCapability, Money>,
+        primary_capabilities: BTreeMap<ModuleCapability, Money>,
     ) -> BuyCustomVesselOffer {
         let offer = BuyCustomVesselOffer {
             id: OfferId::new_v4(),

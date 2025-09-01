@@ -1,4 +1,4 @@
-use crate::finance::{BankRegistry, MoneyAmount, MoneyRef};
+use crate::finance::{BankRegistry, Money, MoneyAmount};
 use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
@@ -49,7 +49,7 @@ impl ItemRecord {
         bank_registry: &BankRegistry,
         free_storage_space: ItemVolume,
         item_vault: &ItemVault,
-    ) -> (MoneyRef, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
+    ) -> (Money, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
@@ -195,13 +195,13 @@ fn volume_range(
 fn total_price(
     item_id: &ItemId,
     free_storage_space: ItemVolume,
-    price_per_unit: MoneyRef,
+    price_per_unit: Money,
     item_vault: &ItemVault,
-) -> MoneyRef {
+) -> Money {
     let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
     let count: ItemCount = free_storage_space / item.volume;
 
-    MoneyRef {
+    Money {
         currency: price_per_unit.currency,
         amount: NonNeg::new(count as MoneyAmount).unwrap() * price_per_unit.amount,
     }

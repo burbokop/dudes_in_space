@@ -1,4 +1,3 @@
-use crate::finance::MoneyRef;
 use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
@@ -14,6 +13,7 @@ use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
 use std::collections::{BTreeMap, BTreeSet};
+use crate::finance::Money;
 
 /// interface through which a person can interact with a module
 pub trait ModuleConsole {
@@ -230,24 +230,24 @@ pub trait TradingAdminConsole {
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: MoneyRef,
+        price_per_unit: Money,
     ) -> Option<&BuyOffer>;
     fn place_buy_vessel_offer(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
-        price_per_unit: MoneyRef,
+        price_per_unit: Money,
     ) -> Option<&BuyOffer>;
     fn place_sell_offer(
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
-        price_per_unit: MoneyRef,
+        price_per_unit: Money,
     ) -> Option<&SellOffer>;
 
     fn place_buy_custom_vessel_offer(
         &mut self,
-        capabilities: BTreeMap<ModuleCapability, MoneyRef>,
-        primary_capabilities: BTreeMap<ModuleCapability, MoneyRef>,
+        capabilities: BTreeMap<ModuleCapability, Money>,
+        primary_capabilities: BTreeMap<ModuleCapability, Money>,
     ) -> BuyCustomVesselOffer;
 
     fn buy_orders(&self) -> &[BuyOrder];

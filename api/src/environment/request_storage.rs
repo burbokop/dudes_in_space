@@ -1,4 +1,3 @@
-use crate::finance::MoneyRef;
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
@@ -7,6 +6,7 @@ use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use crate::finance::Money;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {
@@ -54,7 +54,7 @@ pub struct FindBestBuyOffer {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FindBestBuyOfferResult {
-    pub max_estimated_profit: MoneyRef,
+    pub max_estimated_profit: Money,
     pub max_profit_buy_offer: OfferRef<BuyOffer>,
     pub max_profit_sell_offer: OfferRef<SellOffer>,
 }

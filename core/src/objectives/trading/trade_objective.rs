@@ -282,3 +282,9 @@ impl Display for TradeObjectiveError {
 }
 
 impl Error for TradeObjectiveError {}
+
+impl Display for TradeObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

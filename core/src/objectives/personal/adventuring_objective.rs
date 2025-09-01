@@ -259,3 +259,9 @@ impl DynSerialize for AdventuringObjective {
         to_intermediate(self).map_err(|e| e.into())
     }
 }
+
+impl Display for AdventuringObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

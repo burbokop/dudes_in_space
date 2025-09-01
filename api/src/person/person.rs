@@ -261,6 +261,11 @@ impl Person {
     pub fn objective_type_id(&self) -> Option<TypeId> {
         self.objective.as_ref().map(|x| x.type_id().clone())
     }
+
+    pub fn objective_status(&self) -> Option<String> {
+        self.objective.as_ref().map(|x| format!("{}", x))
+    }
+
     pub fn passions(&self) -> &[Passion] {
         &self.passions
     }

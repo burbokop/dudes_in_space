@@ -1,4 +1,4 @@
-use super::Angle;
+use super::{Angle};
 use crate::utils::range::RangeInclusive;
 pub trait Sqr {
     type Output;
@@ -227,6 +227,12 @@ impl Zero for f64 {
 }
 
 impl Zero for u32 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for i64 {
     fn zero() -> Self {
         0
     }

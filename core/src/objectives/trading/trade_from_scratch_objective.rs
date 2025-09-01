@@ -210,3 +210,9 @@ impl Display for TradeFromScratchObjectiveError {
 }
 
 impl Error for TradeFromScratchObjectiveError {}
+
+impl Display for TradeFromScratchObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

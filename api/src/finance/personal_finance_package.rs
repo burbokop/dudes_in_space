@@ -19,8 +19,21 @@ impl PersonalFinancePackage {
         &self.wallet
     }
 
-    pub fn preferred_currency(&self) -> Currency {
-        todo!()
+    pub fn preferred_currency(&self,bank_registry: & BankRegistry,) -> Option<Currency> {
+        match self.wallet.most_worth_currency(bank_registry) {
+            None => self.bank().map(|b|b.currency().clone()),
+            Some(c) => Some(c.currency),
+        }
+    }
+
+    pub fn preferred_currency_or_create(&self, bank_registry: &BankRegistry, new_currency_name: String) -> Currency {
+        match self.wallet.most_worth_currency(bank_registry) {
+            None => match self.bank().map(|b|b.currency().clone()) {
+                None => todo!(),
+                Some(c) => c,
+            },
+            Some(c) => c.currency,
+        }
     }
 }
 
