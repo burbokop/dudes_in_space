@@ -1,3 +1,4 @@
+use crate::finance::Money;
 use crate::item::{Item, ItemRefStack};
 use crate::module::ModuleCapability;
 use crate::utils::non_nil_uuid::NonNilUuid;
@@ -7,7 +8,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::{Rc, Weak};
-use crate::finance::Money;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
@@ -105,12 +105,8 @@ impl SellOrder {
     }
 }
 
-pub struct WeakBuyCustomVesselOrderEstimate {}
-
-impl WeakBuyCustomVesselOrderEstimate {
-    pub fn money(&self) -> Money {
-        todo!()
-    }
+pub struct WeakBuyCustomVesselOrderEstimate {
+    pub money: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

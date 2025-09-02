@@ -427,24 +427,22 @@ impl TradingConsole for VesselSellingTerminal {
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Option<WeakBuyCustomVesselOrderEstimate> {
-        /*
-
-        margin = 2.0 (min = 1.1) stored in persons objective and copied to vessel selling terminal
-            where
-                margin *= 1.1 if sold;
-                margin /= 1.1 if not sold for some time
-
-        let modules_to_craft = find_modules_to_craft(assembler, capabilities, primary_capabilities);
-
-        let ingredients = ingredients_of_modules(assembler, modules_to_craft);
-
-        let price_of_ingredients = price_of_items(trading_terminal, ingredients);
-
-        return price_of_ingredients * margin;
-
-        */
-
-        todo!()
+        let offer = self.buy_custom_vessel_offer.as_ref()?;
+        Some(WeakBuyCustomVesselOrderEstimate {
+            money: Money::sum_same_currency(std::iter::chain(
+                capabilities
+                    .into_iter()
+                    .map(|cap| offer.available_capabilities.get(&cap).unwrap().clone()),
+                primary_capabilities.into_iter().map(|cap| {
+                    offer
+                        .available_primary_capabilities
+                        .get(&cap)
+                        .unwrap()
+                        .clone()
+                }),
+            ))
+            .unwrap(),
+        })
     }
 
     fn place_buy_custom_vessel_order(

@@ -148,7 +148,12 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawHeader<'a> {
                 alignment: HorisontalAlignment::Left,
                 text: format!("{}", self.person.id()),
             }),
-            Box::new(format!("{:?}", self.person.wallet())),
+            Box::new(
+                self.person
+                    .bank()
+                    .map(|bank| format!("{} ({})", self.person.wallet(), bank))
+                    .unwrap_or_else(|| format!("{}", self.person.wallet())),
+            ),
         ])
         .draw(renderer, bounding_box);
     }
@@ -170,15 +175,14 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawFooter<'a> {
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        ColumnLayout::new(vec![Box::new(
-            if let Some(objective) = self.person.objective_type_id() {
+        ColumnLayout::new(vec![
+            Box::new(if let Some(objective) = self.person.objective_type_id() {
                 format!("{}", objective)
             } else {
                 "Idle".into()
-            },
-        ), Box::new(
-             self.person.objective_status().unwrap_or("".into()),
-        )])
+            }),
+            Box::new(self.person.objective_status().unwrap_or("".into())),
+        ])
         .draw(renderer, bounding_box);
     }
 }

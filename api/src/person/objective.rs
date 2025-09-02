@@ -26,7 +26,7 @@ pub struct PersonInfo<'a> {
     pub morale: &'a Morale,
     pub boldness: &'a Boldness,
     pub awareness: &'a Awareness,
-    pub finance: &'a PersonalFinancePackage,
+    pub finance: &'a mut PersonalFinancePackage,
     pub notes: &'a mut PersonalNotes,
 }
 
@@ -34,7 +34,7 @@ pub trait Objective {
     type Error: Error + 'static;
     fn pursue(
         &mut self,
-        this_person: &PersonInfo,
+        this_person: &mut PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -45,7 +45,7 @@ pub trait Objective {
 pub trait DynObjective: Debug + Display + DynSerialize {
     fn pursue_dyn(
         &mut self,
-        this_person: &PersonInfo,
+        this_person: &mut PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -58,7 +58,7 @@ dyn_serde_trait!(DynObjective, ObjectiveSeed);
 impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
     fn pursue_dyn(
         &mut self,
-        this_person: &PersonInfo,
+        this_person: &mut PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,

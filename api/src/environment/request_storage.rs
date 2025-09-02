@@ -1,3 +1,4 @@
+use crate::finance::Money;
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
@@ -6,7 +7,6 @@ use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use crate::finance::Money;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {

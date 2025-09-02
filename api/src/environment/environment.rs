@@ -72,7 +72,7 @@ impl Environment {
         item_vault: &ItemVault,
         subordination_table: &SubordinationTable,
         bank_registry: &BankRegistry,
-        currency_generator: & CurrencyGenerator,
+        currency_generator: &CurrencyGenerator,
         logger: &mut dyn Logger,
     ) {
         let mut environment_context = EnvironmentContext::new(
@@ -190,6 +190,10 @@ impl Environment {
                                 })
                         })
                         .map(|(offer, module)| {
+                            assert!(
+                                !req.input.required_capabilities.is_empty()
+                                    || !req.input.required_primary_capabilities.is_empty()
+                            );
                             (
                                 offer,
                                 module
@@ -203,7 +207,7 @@ impl Environment {
                                     .unwrap(),
                             )
                         })
-                        .min_by(|(_, a), (_, b)| a.money().cmp(&b.money(), bank_registry))
+                        .min_by(|(_, a), (_, b)| a.money.cmp(&b.money, bank_registry))
                 {
                     req.promise
                         .make_ready(

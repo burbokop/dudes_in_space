@@ -1,4 +1,4 @@
-use super::{Angle};
+use super::Angle;
 use crate::utils::range::RangeInclusive;
 pub trait Sqr {
     type Output;

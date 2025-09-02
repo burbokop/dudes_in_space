@@ -3,7 +3,7 @@ use crate::finance::{BankRegistry, CurrencyGenerator};
 use crate::module::ProcessTokenContext;
 use crate::person::SubordinationTable;
 
-pub struct EnvironmentContext<'a, 'b, 'c, 'd,'e> {
+pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e> {
     process_token_context: &'a ProcessTokenContext,
     request_storage: &'b mut RequestStorage,
     subordination_table: &'c SubordinationTable,
@@ -11,7 +11,7 @@ pub struct EnvironmentContext<'a, 'b, 'c, 'd,'e> {
     currency_generator: &'e CurrencyGenerator,
 }
 
-impl<'a, 'b, 'c, 'd,'e> EnvironmentContext<'a, 'b, 'c, 'd,'e> {
+impl<'a, 'b, 'c, 'd, 'e> EnvironmentContext<'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         process_token_context: &'a ProcessTokenContext,
         request_storage: &'b mut RequestStorage,
@@ -24,7 +24,7 @@ impl<'a, 'b, 'c, 'd,'e> EnvironmentContext<'a, 'b, 'c, 'd,'e> {
             request_storage,
             subordination_table,
             bank_registry,
-            currency_generator
+            currency_generator,
         }
     }
 

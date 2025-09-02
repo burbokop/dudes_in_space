@@ -82,7 +82,7 @@ impl Objective for ManageProductionStationObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonInfo,
+        this_person: &mut PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,

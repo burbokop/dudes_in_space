@@ -132,7 +132,10 @@ impl<T> NonNeg<T> {
         NonNeg::new(self.value - rhs.value).unwrap_or(Zero::zero())
     }
 
-    pub(crate) fn sub_assign(&mut self, rhs: Self) -> Result<(), Self> where T: SubAssign + PartialOrd {
+    pub(crate) fn sub_assign(&mut self, rhs: Self) -> Result<(), Self>
+    where
+        T: SubAssign + PartialOrd,
+    {
         if self.value >= rhs.value {
             Ok(self.value -= rhs.value)
         } else {
@@ -278,7 +281,11 @@ impl<T: Zero> Zero for NonNeg<T> {
     }
 }
 
-impl<T: Zero> Default for NonNeg<T> { fn default() -> Self { Zero::zero() } }
+impl<T: Zero> Default for NonNeg<T> {
+    fn default() -> Self {
+        Zero::zero()
+    }
+}
 
 impl From<u32> for NonNeg<i64> {
     fn from(value: u32) -> Self {

@@ -72,7 +72,7 @@ impl Objective for BuyVesselObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonInfo,
+        this_person: &mut PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -102,7 +102,10 @@ impl Objective for BuyVesselObjective {
             } => match future.take() {
                 Ok(result) => match result {
                     FindBestBuyVesselOfferResult::BuyVesselOffer(_) => todo!(),
-                    FindBestBuyVesselOfferResult::BuyCustomVesselOffer(_) => todo!(),
+                    FindBestBuyVesselOfferResult::BuyCustomVesselOffer(offer) => {
+                        println!("{:?}", offer);
+                        todo!()
+                    },
                     FindBestBuyVesselOfferResult::None => {
                         Err(BuyVesselObjectiveError::NoBuyOffersFound)
                     }

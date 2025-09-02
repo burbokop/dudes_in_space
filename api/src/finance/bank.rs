@@ -4,6 +4,7 @@ use crate::utils::math::{NonNeg, noneg_float};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 
 pub type Cycle = u64;
 
@@ -189,5 +190,15 @@ impl Bank {
             self.money_stored -= delta;
             self.current_cycle += 1;
         }
+    }
+}
+
+impl Display for Bank {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{}:{}",
+            self.currency, self.money_stored, self.money_created
+        )
     }
 }

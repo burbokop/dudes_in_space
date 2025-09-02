@@ -1,3 +1,4 @@
+use crate::finance::Money;
 use crate::item::{ItemCount, ItemId};
 use crate::module::{ModuleCapability, ModuleId};
 use crate::utils::non_nil_uuid::NonNilUuid;
@@ -5,7 +6,6 @@ use crate::utils::range::Range;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use crate::finance::Money;
 
 pub type OfferId = NonNilUuid;
 

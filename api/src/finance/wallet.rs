@@ -1,9 +1,9 @@
 use crate::finance::{BankRegistry, Currency, Money, MoneyAmount};
+use crate::utils::math::{NonNeg, Zero};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::utils::math::{NonNeg, Zero};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Wallet {
@@ -13,9 +13,25 @@ pub struct Wallet {
 
 impl Wallet {
     pub fn most_worth_currency(&self, bank_registry: &BankRegistry) -> Option<Money> {
-        self.content.iter().map(|(currency, amount)| {
-            Money { currency: currency.clone(), amount: *amount }
-        }).max_by(|a,b| a.cmp(b, bank_registry) )
+        self.content
+            .iter()
+            .map(|(currency, amount)| Money {
+                currency: currency.clone(),
+                amount: *amount,
+            })
+            .max_by(|a, b| a.cmp(b, bank_registry))
+    }
+
+    pub fn sum(&self, bank_registry: &BankRegistry) -> Option<Money> {
+        let currency = self.most_worth_currency(bank_registry)?.currency;
+        Money::sum_as(
+            self.content.iter().map(|(currency, amount)| Money {
+                currency: currency.clone(),
+                amount: amount.clone(),
+            }),
+            currency,
+            bank_registry,
+        )
     }
 
     pub fn transfer_to(
@@ -61,3 +77,16 @@ impl Display for NotEnoughMoneyInWallet {
 }
 
 impl Error for NotEnoughMoneyInWallet {}
+
+impl Display for Wallet {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+        for (i, (currency, count)) in self.content.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}:{}", currency, count)?;
+        }
+        write!(f, "]")
+    }
+}

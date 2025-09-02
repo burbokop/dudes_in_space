@@ -1,5 +1,7 @@
 use crate::environment::EnvironmentContext;
-use crate::finance::{BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet};
+use crate::finance::{
+    Bank, BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet,
+};
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::ObjectiveStatus;
@@ -16,6 +18,7 @@ use rand::Rng;
 use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
+use std::cell::Ref;
 use std::collections::BTreeSet;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
@@ -258,6 +261,10 @@ impl Person {
         self.finance.wallet()
     }
 
+    pub fn bank<'a>(&'a self) -> Option<Ref<'a, Bank>> {
+        self.finance.bank()
+    }
+
     pub fn objective_type_id(&self) -> Option<TypeId> {
         self.objective.as_ref().map(|x| x.type_id().clone())
     }
@@ -301,7 +308,7 @@ impl Person {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let info = PersonInfo {
+        let mut info = PersonInfo {
             id: &self.id,
             age: &self.age,
             gender: &self.gender,
@@ -309,7 +316,7 @@ impl Person {
             morale: &self.morale,
             boldness: &self.boldness,
             awareness: &self.awareness,
-            finance: &self.finance,
+            finance: &mut self.finance,
             notes: &mut self.personal_notes,
         };
         let mut logger = PersonLogger::new(&self.id, &self.name, logger);
@@ -318,7 +325,7 @@ impl Person {
             None => self.objective = decider_vault.decide(rng, &info, &mut logger),
             Some(objective) => {
                 match objective.pursue_dyn(
-                    &info,
+                    &mut info,
                     this_module,
                     this_vessel,
                     environment_context,

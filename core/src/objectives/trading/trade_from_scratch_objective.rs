@@ -71,7 +71,7 @@ impl Objective for TradeFromScratchObjective {
 
     fn pursue(
         &mut self,
-        this_person: &PersonInfo,
+        this_person: &mut PersonInfo,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -213,6 +213,9 @@ impl Error for TradeFromScratchObjectiveError {}
 
 impl Display for TradeFromScratchObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            TradeFromScratchObjective::ExecuteTrade { .. } => write!(f, "ExecuteTrade"),
+            TradeFromScratchObjective::CraftVessel { .. } => write!(f, "CraftVessel"),
+        }
     }
 }

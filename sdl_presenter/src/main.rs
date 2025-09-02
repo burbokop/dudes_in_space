@@ -96,6 +96,7 @@ fn main() {
                         &components.item_vault,
                         &components.subordination_table,
                         &components.bank_registry,
+                        &components.currency_generator,
                         &mut logger,
                     );
 

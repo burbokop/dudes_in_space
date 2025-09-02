@@ -1,5 +1,5 @@
 use crate::finance::{Bank, BankRegistry, Currency, Wallet};
-use serde::de::DeserializeSeed;
+use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
@@ -19,17 +19,25 @@ impl PersonalFinancePackage {
         &self.wallet
     }
 
-    pub fn preferred_currency(&self,bank_registry: & BankRegistry,) -> Option<Currency> {
+    pub fn preferred_currency(&self, bank_registry: &BankRegistry) -> Option<Currency> {
         match self.wallet.most_worth_currency(bank_registry) {
-            None => self.bank().map(|b|b.currency().clone()),
+            None => self.bank().map(|b| b.currency().clone()),
             Some(c) => Some(c.currency),
         }
     }
 
-    pub fn preferred_currency_or_create(&self, bank_registry: &BankRegistry, new_currency_name: String) -> Currency {
+    pub fn preferred_currency_or_create(
+        &mut self,
+        bank_registry: &BankRegistry,
+        new_bank: Bank,
+    ) -> Currency {
         match self.wallet.most_worth_currency(bank_registry) {
-            None => match self.bank().map(|b|b.currency().clone()) {
-                None => todo!(),
+            None => match self.bank().map(|b| b.currency().clone()) {
+                None => {
+                    let currency = new_bank.currency().clone();
+                    self.bank = Some(bank_registry.register(new_bank).unwrap());
+                    currency
+                }
                 Some(c) => c,
             },
             Some(c) => c.currency,
@@ -65,7 +73,10 @@ impl<'de, 'b> DeserializeSeed<'de> for PersonalFinancePackageSeed<'b> {
         let Impl { bank, wallet } = Impl::deserialize(deserializer)?;
 
         Ok(Self::Value {
-            bank: bank.map(|bank| self.bank_registry.register(bank)),
+            bank: bank
+                .map(|bank| self.bank_registry.register(bank))
+                .map_or(Ok(None), |v| v.map(Some))
+                .map_err(Error::custom)?,
             wallet,
         })
     }

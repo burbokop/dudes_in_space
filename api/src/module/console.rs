@@ -1,3 +1,4 @@
+use crate::finance::Money;
 use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
@@ -13,7 +14,6 @@ use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
 use std::collections::{BTreeMap, BTreeSet};
-use crate::finance::Money;
 
 /// interface through which a person can interact with a module
 pub trait ModuleConsole {
