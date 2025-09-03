@@ -7,8 +7,8 @@ use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
 
 pub struct ThisVessel<'a, 'b> {
-    this_module: &'a mut dyn ModuleConsole,
-    this_vessel: &'b dyn VesselInternalConsole,
+    pub(crate) this_module: &'a mut dyn ModuleConsole,
+    pub(crate) this_vessel: &'b dyn VesselInternalConsole,
 }
 
 pub fn tie<'a, 'b>(

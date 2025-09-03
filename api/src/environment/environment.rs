@@ -177,7 +177,7 @@ impl Environment {
                     return false;
                 }
 
-                if let Some((offer, _)) =
+                if let Some((offer, estimate)) =
                     trade_table
                         .custom_offers()
                         .filter(|(offer, _)| {
@@ -207,12 +207,12 @@ impl Environment {
                                     .unwrap(),
                             )
                         })
-                        .min_by(|(_, a), (_, b)| a.money.cmp(&b.money, bank_registry))
+                        .min_by(|(_, a), (_, b)| a.estimate.cmp(&b.estimate, bank_registry))
                 {
                     req.promise
                         .make_ready(
                             req_context,
-                            FindBestBuyVesselOfferResult::BuyCustomVesselOffer(offer.clone()),
+                            FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer: offer.clone(), estimate: estimate.clone()  },
                         )
                         .unwrap();
                     return false;

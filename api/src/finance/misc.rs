@@ -3,7 +3,8 @@ use crate::finance::bank_registry::BankRegistry;
 use crate::utils::math::NonNeg;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::ops::Mul;
+use std::ops::{Div, Mul};
+use crate::utils::utils::Float;
 
 pub type Currency = String;
 pub type MoneyAmount = i64;
@@ -154,5 +155,21 @@ impl<'a> Ord for MoneyRefExt<'a> {
         self.currency_owner
             .currency_price(other.currency_owner, self.amount)
             .cmp(&other.amount)
+    }
+}
+
+impl Mul<Float> for Money {
+    type Output = Self;
+
+    fn mul(self, rhs: Float) -> Self::Output {
+        Self { currency: self.currency, amount: NonNeg::new( (self.amount.unwrap() as Float * rhs) as MoneyAmount).unwrap() }
+    }
+}
+
+impl Div<Float> for Money {
+    type Output = Self;
+
+    fn div(self, rhs: Float) -> Self::Output {
+        Self { currency: self.currency, amount: NonNeg::new( (self.amount.unwrap() as Float / rhs) as MoneyAmount).unwrap() }
     }
 }

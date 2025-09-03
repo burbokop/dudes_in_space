@@ -2,7 +2,7 @@ use crate::finance::Money;
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
-use crate::trade::{BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, OfferRef, SellOffer};
+use crate::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef, SellOffer};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
@@ -84,7 +84,12 @@ pub struct FindBestBuyVesselOffer {
 #[serde(tag = "offer_type")]
 pub enum FindBestBuyVesselOfferResult {
     BuyVesselOffer(OfferRef<BuyVesselOffer>),
-    BuyCustomVesselOffer(OfferRef<BuyCustomVesselOffer>),
+    BuyCustomVesselOffer {
+        #[serde(flatten)]
+        offer: OfferRef<BuyCustomVesselOffer>,
+        #[serde(flatten)]
+        estimate: BuyCustomVesselOrderEstimate,
+    },
     None,
 }
 

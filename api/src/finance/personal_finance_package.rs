@@ -1,4 +1,4 @@
-use crate::finance::{Bank, BankRegistry, Currency, Wallet};
+use crate::finance::{Bank, BankRegistry, Currency, Money, Wallet};
 use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell};
@@ -17,6 +17,15 @@ impl PersonalFinancePackage {
     }
     pub fn wallet(&self) -> &Wallet {
         &self.wallet
+    }
+
+    /// return: false if error (must guarantee to have no side effects in that case)
+    pub fn ensure_has_money_in_wallet(&mut self, bank_registry: &BankRegistry, money: Money) -> bool {
+        if self.wallet.ensure_contains(bank_registry, money) {
+            return true;
+        }
+        
+        todo!("Take credit in bank")
     }
 
     pub fn preferred_currency(&self, bank_registry: &BankRegistry) -> Option<Currency> {

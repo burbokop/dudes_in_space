@@ -1,6 +1,9 @@
 use crate::module::{ModuleCapability, ModuleId, ModuleStorage};
 use crate::vessel::{DockingClamp, DockingConnectorId, VesselId};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+use crate::environment::EnvironmentContext;
+use crate::person::{PersonInfo, ThisVessel};
+use crate::trade::{BuyCustomVesselOffer, OfferRef, WeakBuyVesselOrder};
 
 pub fn find_docking_clamp_with_vessel_with_id(
     docking_clamps: &[DockingClamp],
@@ -120,4 +123,33 @@ pub fn are_dockyard_components_suitable(
                 needed_primary_capabilities.is_empty()
             })()
         })
+}
+
+pub fn place_buy_vessel_order(
+    buyer: &PersonInfo,
+    this_vessel: ThisVessel,
+    environment_context: &EnvironmentContext,
+    offer: OfferRef<BuyCustomVesselOffer>,
+    needed_capabilities: BTreeSet<ModuleCapability>,
+    needed_primary_capabilities: BTreeSet<ModuleCapability>,
+) -> Option<WeakBuyVesselOrder>
+{
+    if this_vessel.this_module.id() == offer.module_id {
+       return this_vessel.this_module.trading_console_mut().unwrap().place_buy_custom_vessel_order(
+            needed_capabilities, needed_primary_capabilities,
+            1,
+       );
+    }
+    
+    if this_vessel.this_vessel.id() == offer.vessel_id {
+        let mut module = this_vessel.this_vessel.modules_with_capability_mut(ModuleCapability::VesselSellingTerminal).into_iter()
+            .find(|module| module.id() == offer.module_id).unwrap();
+
+        return module.trading_console_mut().unwrap().place_buy_custom_vessel_order(
+            needed_capabilities, needed_primary_capabilities,
+            1,
+        );
+    }
+
+    todo!("Find vessel in environment_context and then find module and than place order there")
 }

@@ -13,11 +13,7 @@ use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
-use dudes_in_space_api::trade::{
-    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder,
-    OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrderEstimate, WeakBuyOrder,
-    WeakBuyVesselOrder, WeakSellOrder,
-};
+use dudes_in_space_api::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder};
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -426,22 +422,26 @@ impl TradingConsole for VesselSellingTerminal {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyCustomVesselOrderEstimate> {
+    ) -> Option<BuyCustomVesselOrderEstimate> {
         let offer = self.buy_custom_vessel_offer.as_ref()?;
-        Some(WeakBuyCustomVesselOrderEstimate {
-            money: Money::sum_same_currency(std::iter::chain(
-                capabilities
-                    .into_iter()
-                    .map(|cap| offer.available_capabilities.get(&cap).unwrap().clone()),
-                primary_capabilities.into_iter().map(|cap| {
-                    offer
-                        .available_primary_capabilities
-                        .get(&cap)
-                        .unwrap()
-                        .clone()
-                }),
-            ))
-            .unwrap(),
+
+        let estimate = Money::sum_same_currency(std::iter::chain(
+            capabilities
+                .into_iter()
+                .map(|cap| offer.available_capabilities.get(&cap).unwrap().clone()),
+            primary_capabilities.into_iter().map(|cap| {
+                offer
+                    .available_primary_capabilities
+                    .get(&cap)
+                    .unwrap()
+                    .clone()
+            }),
+        ))
+            .unwrap();
+
+        Some(BuyCustomVesselOrderEstimate {
+            estimate: estimate.clone(),
+            pledge: estimate / 2.,
         })
     }
 

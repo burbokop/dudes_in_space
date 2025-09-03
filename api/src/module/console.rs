@@ -6,10 +6,7 @@ use crate::person::Role;
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
 };
-use crate::trade::{
-    BuyCustomVesselOffer, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder,
-    WeakBuyCustomVesselOrderEstimate, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
-};
+use crate::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder};
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
@@ -215,7 +212,7 @@ pub trait TradingConsole {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyCustomVesselOrderEstimate>;
+    ) -> Option<BuyCustomVesselOrderEstimate>;
 
     fn place_buy_custom_vessel_order(
         &mut self,

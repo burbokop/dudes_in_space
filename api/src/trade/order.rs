@@ -105,8 +105,10 @@ impl SellOrder {
     }
 }
 
-pub struct WeakBuyCustomVesselOrderEstimate {
-    pub money: Money,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BuyCustomVesselOrderEstimate {
+    pub estimate: Money,
+    pub pledge: Money,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -65,6 +65,21 @@ impl Wallet {
             Err(NotEnoughMoneyInWallet)
         }
     }
+
+    /// checks whether the wallet contains money of exact currency
+    pub (crate) fn contains(&self, money: Money) -> bool {
+        todo!()
+    }
+
+    /// checks whether the wallet contains money if converted to this currency
+    pub (crate) fn contains_potential(&self, money: Money) -> bool {
+        todo!()
+    }
+
+    /// return: false if error (must guarantee to have no side effects in that case)
+    pub(crate) fn ensure_contains(&mut self, bank_registry: &BankRegistry, money: Money) -> bool {
+        todo!()
+    }
 }
 
 #[derive(Debug)]
