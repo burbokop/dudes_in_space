@@ -59,6 +59,15 @@ impl Bank {
         self.customers.len()
     }
 
+    pub fn can_withdraw(
+        &self,
+        customer: PersonId,
+        target_wallet: &Wallet,
+        amount: NonNeg<MoneyAmount>,
+    ) -> bool {
+        todo!()
+    }
+
     pub fn withdraw(
         &mut self,
         customer: PersonId,

@@ -1,4 +1,5 @@
 use crate::finance::{Bank, BankRegistry, Currency, Money, Wallet};
+use crate::person::PersonId;
 use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell};
@@ -19,13 +20,38 @@ impl PersonalFinancePackage {
         &self.wallet
     }
 
-    /// return: false if error (must guarantee to have no side effects in that case)
-    pub fn ensure_has_money_in_wallet(&mut self, bank_registry: &BankRegistry, money: Money) -> bool {
-        if self.wallet.ensure_contains(bank_registry, money) {
-            return true;
+    /// If the wallet doesn't have enough money of specific currency,
+    /// the function will try to convert from other currencies contained in the wallet
+    /// or attempt to take a credit in a bank.
+    /// Returns false if error (must guarantee to have no side effects in that case).
+    pub fn ensure_has_money_in_wallet(
+        &mut self,
+        bank_registry: &BankRegistry,
+        money: Money,
+    ) -> bool {
+        match self.wallet.ensure_contains(bank_registry, money.clone()) {
+            Ok(_) => true,
+            Err(err) => {
+                let person: PersonId = (|| todo!())();
+                let missing = Money {
+                    currency: money.currency.clone(),
+                    amount: err.missing,
+                };
+
+                let bank_registry = bank_registry.borrow();
+
+                let mut bank = bank_registry.bank_mut(&missing.currency).unwrap();
+
+                if !bank.can_withdraw(person, &self.wallet, missing.amount) {
+                    return false;
+                }
+
+                self.wallet.convert_all_into(missing.currency);
+                bank.withdraw(person, &mut self.wallet, missing.amount);
+                assert!(self.wallet.contains(money));
+                true
+            }
         }
-        
-        todo!("Take credit in bank")
     }
 
     pub fn preferred_currency(&self, bank_registry: &BankRegistry) -> Option<Currency> {

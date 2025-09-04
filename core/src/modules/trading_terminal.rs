@@ -13,7 +13,10 @@ use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
-use dudes_in_space_api::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer, OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder};
+use dudes_in_space_api::trade::{
+    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer,
+    OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{

@@ -3,7 +3,8 @@ use dudes_in_space_api::environment::{
 };
 
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
-use dudes_in_space_api::person::{tie, Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::person;
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger, tie};
 use dudes_in_space_api::trade::WeakBuyVesselOrder;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
@@ -12,7 +13,6 @@ use serde::Serialize;
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use dudes_in_space_api::person;
 
 static TYPE_ID: &str = "BuyVesselObjective";
 
@@ -106,16 +106,23 @@ impl Objective for BuyVesselObjective {
                     FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer, estimate } => {
                         println!("{:?} -> {:?}", offer, estimate);
 
-                        let ok = this_person.finance.ensure_has_money_in_wallet(environment_context.bank_registry(), estimate.pledge) ;
+                        let ok = this_person.finance.ensure_has_money_in_wallet(
+                            environment_context.bank_registry(),
+                            estimate.pledge,
+                        );
                         assert!(ok);
 
                         let order = person::utils::place_buy_vessel_order(
-                            this_person, 
-                            tie(this_module,this_vessel), 
-                            environment_context, offer);
+                            this_person,
+                            tie(this_module, this_vessel),
+                            environment_context,
+                            offer,
+                            needed_capabilities.clone(),
+                            needed_primary_capabilities.clone(),
+                        );
 
                         todo!()
-                    },
+                    }
                     FindBestBuyVesselOfferResult::None => {
                         Err(BuyVesselObjectiveError::NoBuyOffersFound)
                     }

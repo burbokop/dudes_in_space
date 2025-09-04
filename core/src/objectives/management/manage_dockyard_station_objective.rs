@@ -193,8 +193,8 @@ impl Objective for ManageDockyardStationObjective {
                     let mut result = default_price(person, environment_context);
                     for (item, count) in recipe {
                         result.add_assign(
-                            prices_on_market.get(item)?.clone() * *count,
                             environment_context.bank_registry(),
+                            prices_on_market.get(item)?.clone() * *count,
                         );
                     }
                     Some(result)
@@ -223,7 +223,7 @@ impl Objective for ManageDockyardStationObjective {
                                   money: Money| {
                         caps.entry(cap)
                             .and_modify(|m| {
-                                m.max_assign(money.clone(), environment_context.bank_registry());
+                                m.max_assign(environment_context.bank_registry(), money.clone());
                             })
                             .or_insert(money);
                     };

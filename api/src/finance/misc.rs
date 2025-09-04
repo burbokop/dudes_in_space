@@ -1,10 +1,10 @@
 use crate::finance::Bank;
 use crate::finance::bank_registry::BankRegistry;
 use crate::utils::math::NonNeg;
+use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::ops::{Div, Mul};
-use crate::utils::utils::Float;
 
 pub type Currency = String;
 pub type MoneyAmount = i64;
@@ -27,13 +27,13 @@ impl Mul<u32> for Money {
 }
 
 impl Money {
-    pub fn cmp(&self, other: &Money, bank_registry: &BankRegistry) -> Ordering {
+    pub fn cmp(&self, bank_registry: &BankRegistry, other: &Money) -> Ordering {
         if self.currency == other.currency {
             return self.amount.cmp(&other.amount);
         }
 
         let other_amount = other
-            .convert_to_currency(self.currency.clone(), bank_registry)
+            .convert_to_currency(bank_registry, self.currency.clone())
             .amount
             .unwrap();
         let self_amount = self.amount.unwrap();
@@ -41,8 +41,8 @@ impl Money {
         self_amount.cmp(&other_amount)
     }
 
-    pub fn min(self, other: Money, bank_registry: &BankRegistry) -> Money {
-        let ord = self.cmp(&other, bank_registry);
+    pub fn min(self, bank_registry: &BankRegistry, other: Money) -> Money {
+        let ord = self.cmp(bank_registry, &other);
         if ord == Ordering::Greater {
             other
         } else {
@@ -50,50 +50,50 @@ impl Money {
         }
     }
 
-    pub fn max(self, other: Money, bank_registry: &BankRegistry) -> Money {
-        let ord = self.cmp(&other, bank_registry);
+    pub fn max(self, bank_registry: &BankRegistry, other: Money) -> Money {
+        let ord = self.cmp(bank_registry, &other);
         if ord == Ordering::Less { other } else { self }
     }
 
-    pub fn min_assign(&mut self, other: Money, bank_registry: &BankRegistry) {
-        *self = self.clone().min(other, bank_registry);
+    pub fn min_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
+        *self = self.clone().min(bank_registry, other);
     }
 
-    pub fn max_assign(&mut self, other: Money, bank_registry: &BankRegistry) {
-        *self = self.clone().max(other, bank_registry);
+    pub fn max_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
+        *self = self.clone().max(bank_registry, other);
     }
 
-    pub fn add(self, other: Money, bank_registry: &BankRegistry) -> Self {
+    pub fn add(self, bank_registry: &BankRegistry, other: Money) -> Self {
         todo!()
     }
-    pub fn sub(self, other: Money, bank_registry: &BankRegistry) -> Self {
+    pub fn sub(self, bank_registry: &BankRegistry, other: Money) -> Self {
         todo!()
     }
 
-    pub fn add_assign(&mut self, other: Money, bank_registry: &BankRegistry) {
+    pub fn add_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
         todo!()
     }
-    pub fn sub_assign(&mut self, other: Money, bank_registry: &BankRegistry) {
+    pub fn sub_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
         todo!()
     }
 
     pub fn convert_to_currency(
         &self,
-        target_currency: Currency,
         bank_registry: &BankRegistry,
+        target_currency: Currency,
     ) -> Money {
         todo!()
     }
 
     pub fn sum_as(
+        bank_registry: &BankRegistry,
         iter: impl Iterator<Item = Money>,
         target_currency: Currency,
-        bank_registry: &BankRegistry,
     ) -> Option<Money> {
         let amount: Vec<MoneyAmount> = iter
             .map(|money| {
                 money
-                    .convert_to_currency(target_currency.clone(), bank_registry)
+                    .convert_to_currency(bank_registry, target_currency.clone())
                     .amount
                     .unwrap()
             })
@@ -162,7 +162,10 @@ impl Mul<Float> for Money {
     type Output = Self;
 
     fn mul(self, rhs: Float) -> Self::Output {
-        Self { currency: self.currency, amount: NonNeg::new( (self.amount.unwrap() as Float * rhs) as MoneyAmount).unwrap() }
+        Self {
+            currency: self.currency,
+            amount: NonNeg::new((self.amount.unwrap() as Float * rhs) as MoneyAmount).unwrap(),
+        }
     }
 }
 
@@ -170,6 +173,9 @@ impl Div<Float> for Money {
     type Output = Self;
 
     fn div(self, rhs: Float) -> Self::Output {
-        Self { currency: self.currency, amount: NonNeg::new( (self.amount.unwrap() as Float / rhs) as MoneyAmount).unwrap() }
+        Self {
+            currency: self.currency,
+            amount: NonNeg::new((self.amount.unwrap() as Float / rhs) as MoneyAmount).unwrap(),
+        }
     }
 }

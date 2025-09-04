@@ -29,7 +29,7 @@ impl ItemRecord {
         self.buy_offers.iter().min_by(|a, b| {
             a.offer
                 .price_per_unit
-                .cmp(&b.offer.price_per_unit, bank_registry)
+                .cmp(bank_registry, &b.offer.price_per_unit)
         })
     }
 
@@ -40,7 +40,7 @@ impl ItemRecord {
         self.sell_offers.iter().max_by(|a, b| {
             a.offer
                 .price_per_unit
-                .cmp(&b.offer.price_per_unit, bank_registry)
+                .cmp(bank_registry, &b.offer.price_per_unit)
         })
     }
 
@@ -68,7 +68,7 @@ impl ItemRecord {
                     offer,
                 )
             })
-            .min_by(|(a, _), (b, _)| a.cmp(&b, bank_registry))
+            .min_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))
             .unwrap();
 
         let (max_sell_price, max_price_sell_offer) = self
@@ -89,11 +89,11 @@ impl ItemRecord {
                     offer,
                 )
             })
-            .max_by(|(a, _), (b, _)| a.cmp(&b, bank_registry))
+            .max_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))
             .unwrap();
 
         (
-            max_sell_price.sub(min_buy_price, bank_registry),
+            max_sell_price.sub(bank_registry, min_buy_price),
             min_price_buy_offer.clone(),
             max_price_sell_offer.clone(),
         )

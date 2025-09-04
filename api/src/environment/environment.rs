@@ -124,7 +124,7 @@ impl Environment {
                             record,
                         )
                     })
-                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(b, bank_registry))
+                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(bank_registry, b))
                 {
                     req.promise
                         .make_ready(
@@ -165,7 +165,7 @@ impl Environment {
                     .min_by(|a, b| {
                         a.offer
                             .price_per_unit
-                            .cmp(&b.offer.price_per_unit, bank_registry)
+                            .cmp(bank_registry, &b.offer.price_per_unit)
                     })
                 {
                     req.promise
@@ -207,12 +207,15 @@ impl Environment {
                                     .unwrap(),
                             )
                         })
-                        .min_by(|(_, a), (_, b)| a.estimate.cmp(&b.estimate, bank_registry))
+                        .min_by(|(_, a), (_, b)| a.estimate.cmp(bank_registry, &b.estimate))
                 {
                     req.promise
                         .make_ready(
                             req_context,
-                            FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer: offer.clone(), estimate: estimate.clone()  },
+                            FindBestBuyVesselOfferResult::BuyCustomVesselOffer {
+                                offer: offer.clone(),
+                                estimate: estimate.clone(),
+                            },
                         )
                         .unwrap();
                     return false;

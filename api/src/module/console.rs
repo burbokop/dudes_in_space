@@ -6,7 +6,10 @@ use crate::person::Role;
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
 };
-use crate::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder};
+use crate::trade::{
+    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer,
+    BuyVesselOrder, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+};
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
 use crate::vessel::DockingClamp;
