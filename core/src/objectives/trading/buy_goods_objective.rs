@@ -1,7 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 
 use dudes_in_space_api::module::ModuleConsole;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::trade::WeakBuyOrder;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ impl Objective for BuyGoodsObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,

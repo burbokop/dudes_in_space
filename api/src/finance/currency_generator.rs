@@ -1,5 +1,5 @@
 use crate::finance::BankRegistry;
-use crate::person::PersonInfo;
+use crate::person::ThisPerson;
 use rand::Rng;
 use rand::seq::IndexedRandom;
 use std::collections::BTreeSet;
@@ -27,7 +27,7 @@ impl CurrencyGenerator {
         &self,
         rng: &mut R,
         bank_registry: &BankRegistry,
-        person_info: &PersonInfo,
+        person: &ThisPerson,
     ) -> String {
         let mut names: BTreeSet<_> = NAMES.iter().map(|x| x.to_string()).collect();
         loop {

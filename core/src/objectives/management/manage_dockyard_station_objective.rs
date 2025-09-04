@@ -6,7 +6,7 @@ use dudes_in_space_api::finance::{Bank, Money, MoneyAmount};
 use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{
-    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe};
@@ -92,7 +92,7 @@ impl Objective for ManageDockyardStationObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -165,7 +165,7 @@ impl Objective for ManageDockyardStationObjective {
                 .collect();
 
                 fn default_price(
-                    person: &mut PersonInfo,
+                    person: &mut ThisPerson,
                     environment_context: &EnvironmentContext,
                 ) -> Money {
                     Money {
@@ -185,7 +185,7 @@ impl Objective for ManageDockyardStationObjective {
                 }
 
                 fn price_of_input_recipe(
-                    person: &mut PersonInfo,
+                    person: &mut ThisPerson,
                     environment_context: &EnvironmentContext,
                     recipe: &InputItemRecipe,
                     prices_on_market: &BTreeMap<ItemId, Money>,
@@ -201,7 +201,7 @@ impl Objective for ManageDockyardStationObjective {
                 }
 
                 fn prices_of_capabilities(
-                    person: &mut PersonInfo,
+                    person: &mut ThisPerson,
                     environment_context: &EnvironmentContext,
                     recipes: &[AssemblyRecipe],
                     prices_on_market: &BTreeMap<ItemId, Money>,
@@ -417,7 +417,7 @@ pub(crate) struct ManageDockyardStationObjectiveDecider;
 impl ObjectiveDecider for ManageDockyardStationObjectiveDecider {
     fn consider(
         &self,
-        person: &PersonInfo,
+        person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if person.passions.contains(&Passion::Management)

@@ -2,7 +2,7 @@ use crate::objectives::common::move_to_module_objective::MoveToModuleObjective;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger, tie};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -35,7 +35,7 @@ impl Objective for MoveToDockedVesselObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,

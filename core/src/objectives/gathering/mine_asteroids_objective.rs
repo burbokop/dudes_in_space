@@ -1,7 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
-    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, PersonInfo, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, PersonLogger, ThisPerson,
 };
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{DynDeserializeSeed, DynDeserializeSeedVault, TypeId};
@@ -20,7 +20,7 @@ impl Objective for MineAsteroidsObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -35,7 +35,7 @@ pub(crate) struct MineAsteroidsObjectiveDecider;
 impl ObjectiveDecider for MineAsteroidsObjectiveDecider {
     fn consider(
         &self,
-        person: &PersonInfo,
+        person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         None

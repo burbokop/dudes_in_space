@@ -1,7 +1,7 @@
 use crate::objectives::crafting::{CraftModulesObjective, CraftModulesObjectiveError};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger, tie};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -40,7 +40,7 @@ impl Objective for RequireModulesObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,

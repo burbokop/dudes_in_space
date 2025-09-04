@@ -260,7 +260,7 @@ impl Environment {
                 false
             });
 
-        self.request_storage.find_owned_vessels.retain_mut(|req| {
+        self.request_storage.find_owned_vessels_requests.retain_mut(|req| {
             assert!(req.promise.check_pending(req_context));
 
             let mut vessels: Vec<VesselIdPath> = Default::default();
@@ -290,6 +290,11 @@ impl Environment {
             // }
             //
             // true
+        });
+
+        self.request_storage.place_buy_custom_vessel_order_requests.retain_mut(|req| {
+            assert!(req.promise.check_pending(req_context));
+            todo!()
         });
     }
 }

@@ -6,7 +6,7 @@ use dudes_in_space_api::environment::{
 };
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
-    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
@@ -82,7 +82,7 @@ impl Objective for ManageProductionStationObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -194,7 +194,7 @@ pub(crate) struct ManageProductionStationObjectiveDecider;
 impl ObjectiveDecider for ManageProductionStationObjectiveDecider {
     fn consider(
         &self,
-        person: &PersonInfo,
+        person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if person.passions.contains(&Passion::Management)

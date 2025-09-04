@@ -1,0 +1,53 @@
+use crate::finance::{BankRegistry, Money, PersonalFinancePackage};
+use crate::person::personal_notes::PersonalNotes;
+use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
+
+pub struct ThisPerson<'a> {
+    pub id: &'a PersonId,
+    pub age: &'a u8,
+    pub gender: &'a Gender,
+    pub passions: &'a [Passion],
+    pub morale: &'a Morale,
+    pub boldness: &'a Boldness,
+    pub awareness: &'a Awareness,
+    pub finance: &'a mut PersonalFinancePackage,
+    pub notes: &'a mut PersonalNotes,
+}
+
+impl<'a> ThisPerson<'a> {
+    /// If the wallet doesn't have enough money of specific currency,
+    /// the function will try to convert from other currencies contained in the wallet
+    /// or attempt to take a credit in a bank.
+    /// Returns false if error (must guarantee to have no side effects in that case).
+    pub fn ensure_has_money_in_wallet(
+        &mut self,
+        bank_registry: &BankRegistry,
+        money: Money,
+    ) -> bool {
+        match self
+            .finance
+            .wallet
+            .ensure_contains(bank_registry, money.clone())
+        {
+            Ok(_) => true,
+            Err(err) => {
+                let missing = Money {
+                    currency: money.currency.clone(),
+                    amount: err.missing,
+                };
+
+                let bank_registry = bank_registry.borrow();
+                let mut bank = bank_registry.bank_mut(&missing.currency).unwrap();
+
+                if !bank.can_withdraw(self.id.clone(), &self.finance.wallet, missing.amount) {
+                    return false;
+                }
+
+                self.finance.wallet.convert_all_into(missing.currency);
+                bank.withdraw(self.id.clone(), &mut self.finance.wallet, missing.amount);
+                assert!(self.finance.wallet.contains(money));
+                true
+            }
+        }
+    }
+}

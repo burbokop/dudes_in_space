@@ -65,7 +65,27 @@ impl Bank {
         target_wallet: &Wallet,
         amount: NonNeg<MoneyAmount>,
     ) -> bool {
-        todo!()
+        let customers_count = self.customers.len();
+        if customer == self.owner {
+            true
+        } else {
+            let customers_count = match self.customers.get(&customer) {
+                None => customers_count + 1,
+                Some(account) => {
+                    if account.deadline.is_some() {
+                        return false;
+                    }
+                    customers_count
+                }
+            };
+
+            if customers_count == 1 {
+                return true
+            }
+
+            let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
+            self.money_stored - amount.unwrap() >= stored_money_lower_limit
+        }
     }
 
     pub fn withdraw(
@@ -92,9 +112,10 @@ impl Bank {
         } else {
             account.money -= amount.unwrap();
 
-            let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
-
-            assert!(self.money_stored - amount.unwrap() >= stored_money_lower_limit);
+            if customers_count != 1 {
+                let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
+                assert!(self.money_stored - amount.unwrap() >= stored_money_lower_limit);
+            }
 
             self.money_stored -= amount.unwrap();
 

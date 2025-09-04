@@ -6,7 +6,7 @@ use crate::objectives::trading::{
 };
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::utils::request::ReqContext;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde_macro::DeserializeSeedXXX;
@@ -74,7 +74,7 @@ impl Objective for AcquireVesselObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,

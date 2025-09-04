@@ -7,7 +7,7 @@ use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::ObjectiveStatus;
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{
-    DynObjective, ObjectiveDeciderVault, ObjectiveSeed, PersonInfo, StatusCollector,
+    DynObjective, ObjectiveDeciderVault, ObjectiveSeed, StatusCollector, ThisPerson,
 };
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
@@ -308,7 +308,7 @@ impl Person {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut info = PersonInfo {
+        let mut info = ThisPerson {
             id: &self.id,
             age: &self.age,
             gender: &self.gender,

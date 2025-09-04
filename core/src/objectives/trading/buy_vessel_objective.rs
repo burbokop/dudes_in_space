@@ -4,7 +4,7 @@ use dudes_in_space_api::environment::{
 
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonInfo, PersonLogger, tie};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::trade::WeakBuyVesselOrder;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
@@ -73,7 +73,7 @@ impl Objective for BuyVesselObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -106,7 +106,7 @@ impl Objective for BuyVesselObjective {
                     FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer, estimate } => {
                         println!("{:?} -> {:?}", offer, estimate);
 
-                        let ok = this_person.finance.ensure_has_money_in_wallet(
+                        let ok = this_person.ensure_has_money_in_wallet(
                             environment_context.bank_registry(),
                             estimate.pledge,
                         );

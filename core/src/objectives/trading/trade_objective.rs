@@ -5,7 +5,7 @@ use dudes_in_space_api::environment::{
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
-    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonInfo, PersonLogger,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
 };
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
@@ -97,7 +97,7 @@ impl Objective for TradeObjective {
 
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -232,7 +232,7 @@ pub(crate) struct TradeObjectiveDecider;
 impl ObjectiveDecider for TradeObjectiveDecider {
     fn consider(
         &self,
-        person: &PersonInfo,
+        person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         if person.passions.contains(&Passion::Trade) || person.passions.contains(&Passion::Money) {

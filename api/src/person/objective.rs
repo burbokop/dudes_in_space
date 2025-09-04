@@ -1,9 +1,7 @@
 use crate::environment::EnvironmentContext;
-use crate::finance::PersonalFinancePackage;
 use crate::module::ModuleConsole;
+use crate::person::ThisPerson;
 use crate::person::logger::PersonLogger;
-use crate::person::personal_notes::PersonalNotes;
-use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
@@ -18,23 +16,11 @@ pub enum ObjectiveStatus {
     Done,
 }
 
-pub struct PersonInfo<'a> {
-    pub id: &'a PersonId,
-    pub age: &'a u8,
-    pub gender: &'a Gender,
-    pub passions: &'a [Passion],
-    pub morale: &'a Morale,
-    pub boldness: &'a Boldness,
-    pub awareness: &'a Awareness,
-    pub finance: &'a mut PersonalFinancePackage,
-    pub notes: &'a mut PersonalNotes,
-}
-
 pub trait Objective {
     type Error: Error + 'static;
     fn pursue(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -45,7 +31,7 @@ pub trait Objective {
 pub trait DynObjective: Debug + Display + DynSerialize {
     fn pursue_dyn(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -58,7 +44,7 @@ dyn_serde_trait!(DynObjective, ObjectiveSeed);
 impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
     fn pursue_dyn(
         &mut self,
-        this_person: &mut PersonInfo,
+        this_person: &mut ThisPerson,
         this_module: &mut dyn ModuleConsole,
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
@@ -79,7 +65,7 @@ impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
 pub trait ObjectiveDecider {
     fn consider(
         &self,
-        person: &PersonInfo,
+        person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>>;
 }
@@ -97,7 +83,7 @@ impl ObjectiveDeciderVault {
     pub fn decide<R: Rng>(
         &self,
         rng: &mut R,
-        person: &PersonInfo,
+        person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
         let mut data: Vec<&dyn ObjectiveDecider> = self.data.iter().map(|x| x.as_ref()).collect();

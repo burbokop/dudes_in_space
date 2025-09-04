@@ -13,17 +13,25 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {
+    #[serde(default)]
     pub(crate) find_best_buy_offer_requests:
         VecDeque<EnvironmentRequest<FindBestBuyOffer, FindBestBuyOfferResult>>,
 
+    #[serde(default)]
     pub(crate) find_best_buy_vessel_offer_requests:
         VecDeque<EnvironmentRequest<FindBestBuyVesselOffer, FindBestBuyVesselOfferResult>>,
 
+    #[serde(default)]
     pub(crate) find_best_offers_for_items_requests:
         VecDeque<EnvironmentRequest<FindBestOffersForItems, FindBestOffersForItemsResult>>,
 
-    pub(crate) find_owned_vessels:
+    #[serde(default)]
+    pub(crate) find_owned_vessels_requests:
         VecDeque<EnvironmentRequest<FindOwnedVessels, FindOwnedVesselsResult>>,
+
+    #[serde(default)]
+    pub(crate) place_buy_custom_vessel_order_requests:
+        VecDeque<EnvironmentRequest<PlaceBuyCustomVesselOrder, PlaceBuyCustomVesselOrderResult>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -136,12 +144,34 @@ pub struct FindOwnedVesselsResult {
 impl FindOwnedVessels {
     pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindOwnedVesselsResult> {
         let (promise, future) = ReqPromise::new();
-        context.find_owned_vessels.push_back(EnvironmentRequest {
+        context.find_owned_vessels_requests.push_back(EnvironmentRequest {
             promise,
             input: self,
         });
         future
     }
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlaceBuyCustomVesselOrder {
+
+}
+
+impl PlaceBuyCustomVesselOrder {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<PlaceBuyCustomVesselOrderResult> {
+        let (promise, future) = ReqPromise::new();
+        context.place_buy_custom_vessel_order_requests.push_back(EnvironmentRequest {
+            promise,
+            input: self,
+        });
+        future
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlaceBuyCustomVesselOrderResult {
+
 }
 
 #[derive(Debug, Serialize, Deserialize)]
