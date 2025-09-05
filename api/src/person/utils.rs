@@ -160,5 +160,9 @@ pub fn place_buy_vessel_order(
             .place_buy_custom_vessel_order(needed_capabilities, needed_primary_capabilities, 1).unwrap());
     }
 
-    Err(PlaceBuyCustomVesselOrder{}.push(environment_context.request_storage_mut()))
+    Err(PlaceBuyCustomVesselOrder{
+        offer,
+        needed_capabilities,
+        needed_primary_capabilities,
+    }.push(environment_context.request_storage_mut()))
 }

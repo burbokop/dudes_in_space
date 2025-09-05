@@ -2,10 +2,7 @@ use crate::finance::Money;
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
-use crate::trade::{
-    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef,
-    SellOffer,
-};
+use crate::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef, SellOffer, WeakBuyVesselOrder};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
@@ -155,7 +152,9 @@ impl FindOwnedVessels {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlaceBuyCustomVesselOrder {
-
+    pub offer: OfferRef<BuyCustomVesselOffer>,
+    pub needed_capabilities: BTreeSet<ModuleCapability>,
+    pub needed_primary_capabilities: BTreeSet<ModuleCapability>,
 }
 
 impl PlaceBuyCustomVesselOrder {
@@ -171,7 +170,7 @@ impl PlaceBuyCustomVesselOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlaceBuyCustomVesselOrderResult {
-
+    pub order: Option<WeakBuyVesselOrder>
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,7 +1,4 @@
-use dudes_in_space_api::environment::{
-    EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult,
-};
-
+use dudes_in_space_api::environment::{EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult, PlaceBuyCustomVesselOrderResult};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
@@ -24,11 +21,17 @@ pub(crate) enum BuyVesselObjective {
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
     },
-    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.find_offers_future_seed)])]
     FindOffers {
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
         future: ReqFuture<FindBestBuyVesselOfferResult>,
+    },
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.place_order_future_seed)])]
+    WaitForOrderToBeAccepted {
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
+        future: ReqFuture<PlaceBuyCustomVesselOrderResult>,
     },
     ProcessOrder {
         needed_capabilities: BTreeSet<ModuleCapability>,
@@ -39,13 +42,15 @@ pub(crate) enum BuyVesselObjective {
 
 #[derive(Clone)]
 pub(crate) struct BuyVesselObjectiveSeed<'context> {
-    req_future_seed: ReqFutureSeed<'context, FindBestBuyVesselOfferResult>,
+    find_offers_future_seed: ReqFutureSeed<'context, FindBestBuyVesselOfferResult>,
+    place_order_future_seed: ReqFutureSeed<'context, PlaceBuyCustomVesselOrderResult>,
 }
 
 impl<'context> BuyVesselObjectiveSeed<'context> {
     pub(crate) fn new(context: &'context ReqContext) -> Self {
         Self {
-            req_future_seed: ReqFutureSeed::new(context),
+            find_offers_future_seed: ReqFutureSeed::new(context),
+            place_order_future_seed: ReqFutureSeed::new(context),
         }
     }
 }
@@ -112,16 +117,23 @@ impl Objective for BuyVesselObjective {
                         );
                         assert!(ok);
 
-                        let order = person::utils::place_buy_vessel_order(
+                        match person::utils::place_buy_vessel_order(
                             this_person,
                             tie(this_module, this_vessel),
                             environment_context,
                             offer,
                             needed_capabilities.clone(),
                             needed_primary_capabilities.clone(),
-                        );
-
-                        todo!()
+                        ) {
+                            Ok(order) => todo!(),
+                            Err(future) => {
+                                *self = Self::WaitForOrderToBeAccepted {
+                                    needed_capabilities: std::mem::take( needed_capabilities),
+                                    needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                    future,
+                                };
+                                Ok(ObjectiveStatus::InProgress)},
+                        }
                     }
                     FindBestBuyVesselOfferResult::None => {
                         Err(BuyVesselObjectiveError::NoBuyOffersFound)
@@ -130,6 +142,7 @@ impl Objective for BuyVesselObjective {
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
+            Self::WaitForOrderToBeAccepted { future, needed_capabilities, needed_primary_capabilities } => todo!(),
             Self::ProcessOrder { .. } => todo!(),
         }
     }

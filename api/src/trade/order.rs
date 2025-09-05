@@ -1,4 +1,4 @@
-use crate::finance::Money;
+use crate::finance::{Money, Wallet};
 use crate::item::{Item, ItemRefStack};
 use crate::module::ModuleCapability;
 use crate::utils::non_nil_uuid::NonNilUuid;
@@ -112,7 +112,9 @@ pub struct BuyCustomVesselOrderEstimate {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct BuyVesselOrderImpl {}
+pub struct BuyVesselOrderImpl {
+    pledge_wallet: Wallet
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyVesselOrder {
@@ -284,6 +286,14 @@ impl BuyVesselOrder {
 
     pub fn price(&self) -> Money {
         todo!()
+    }
+
+    pub fn pledge_wallet(&self)-> &Wallet {
+        &self.data.pledge_wallet
+    }
+
+    pub fn pledge_wallet_mut(&mut self)-> &mut Wallet {
+        &mut self.data.pledge_wallet
     }
 }
 

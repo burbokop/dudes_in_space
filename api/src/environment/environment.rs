@@ -1,7 +1,4 @@
-use crate::environment::{
-    EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
-    FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, RequestStorage,
-};
+use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult, FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult, RequestStorage};
 use crate::finance::{BankRegistry, CurrencyGenerator};
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
@@ -294,7 +291,37 @@ impl Environment {
 
         self.request_storage.place_buy_custom_vessel_order_requests.retain_mut(|req| {
             assert!(req.promise.check_pending(req_context));
-            todo!()
+
+            for vessel in &self.vessels {
+                let flow: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                    if vessel.id() == req.input.offer.vessel_id {
+
+                        if let Some( mut module) = vessel.module_by_id_mut(req.input.offer.module_id) {
+
+                            
+
+                            let order = module.trading_console_mut().unwrap()
+                                .place_buy_custom_vessel_order(req.input.needed_capabilities.clone(), req.input.needed_primary_capabilities.clone(), 1).unwrap();
+
+                            req.promise
+                                .make_ready(req_context, PlaceBuyCustomVesselOrderResult { order: Some(order) })
+                                .unwrap();
+                            return ControlFlow::Break(());
+                        }
+                    }
+
+                    ControlFlow::Continue(())
+                });
+
+                if flow.is_break() {
+                    return false;
+                }
+            }
+
+            req.promise
+                .make_ready(req_context, PlaceBuyCustomVesselOrderResult { order: None })
+                .unwrap();
+            return false;
         });
     }
 }
