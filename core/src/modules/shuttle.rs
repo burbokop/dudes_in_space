@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::BankRegistry;
+use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
@@ -45,7 +45,7 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
 ];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::shuttle::ShuttleSeed::<'v,'b>)]
+#[deserialize_seed_xxx(seed = crate::modules::shuttle::ShuttleSeed::<'v,'a,'b>)]
 struct Shuttle {
     id: ModuleId,
     docking_connector: DockingConnector,
@@ -55,17 +55,22 @@ struct Shuttle {
 }
 
 #[derive(Clone)]
-struct ShuttleSeed<'v, 'b> {
-    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
+struct ShuttleSeed<'v, 'a, 'b> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
 }
 
-impl<'v, 'b> ShuttleSeed<'v, 'b> {
+impl<'v, 'a, 'b> ShuttleSeed<'v, 'a, 'b> {
     fn new(
         vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry: &'b BankRegistry,
+        bank_registry: &'a BankRegistry,
+        wallet_registry: &'b WalletRegistry,
     ) -> Self {
         ShuttleSeed {
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(vault, bank_registry)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(
+                vault,
+                bank_registry,
+                wallet_registry,
+            )),
         }
     }
 }
@@ -217,16 +222,19 @@ impl Module for Shuttle {
 pub(crate) struct ShuttleDynSeed {
     vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
+    wallet_registry: Rc<WalletRegistry>,
 }
 
 impl ShuttleDynSeed {
     pub(crate) fn new(
         vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,
+        wallet_registry: Rc<WalletRegistry>,
     ) -> Self {
         Self {
             vault,
             bank_registry,
+            wallet_registry,
         }
     }
 }
@@ -242,7 +250,7 @@ impl DynDeserializeSeed<dyn Module> for ShuttleDynSeed {
         _: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: Shuttle = from_intermediate_seed(
-            ShuttleSeed::new(&self.vault, &self.bank_registry),
+            ShuttleSeed::new(&self.vault, &self.bank_registry, &self.wallet_registry),
             &intermediate,
         )
         .map_err(|e| e.to_string())?;

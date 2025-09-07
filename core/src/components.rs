@@ -1,4 +1,4 @@
-use dudes_in_space_api::finance::{BankRegistry, CurrencyGenerator};
+use dudes_in_space_api::finance::{BankRegistry, CurrencyGenerator, WalletRegistry};
 use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::{ObjectiveDeciderVault, SubordinationTable};
@@ -16,6 +16,7 @@ pub struct Components {
     pub module_seed_vault: Rc<DynDeserializeSeedVault<dyn Module>>,
     pub subordination_table: Rc<SubordinationTable>,
     pub bank_registry: Rc<BankRegistry>,
+    pub wallet_registry: Rc<WalletRegistry>,
     pub currency_generator: Rc<CurrencyGenerator>,
 }
 
@@ -26,6 +27,7 @@ pub fn core_components() -> Components {
     let order_holder = Rc::new(OrderHolder::new());
     let subordination_table = Rc::new(SubordinationTable::new());
     let bank_registry = Rc::new(BankRegistry::new());
+    let wallet_registry = Rc::new(WalletRegistry::default());
     let currency_generator = Rc::new(CurrencyGenerator::new());
 
     let objectives_seed_vault = crate::register_objectives(Default::default(), req_context.clone());
@@ -38,6 +40,7 @@ pub fn core_components() -> Components {
         module_factory_seed_vault,
         objectives_seed_vault.into_rc(),
         bank_registry.clone(),
+        wallet_registry.clone(),
         item_vault.clone(),
         order_holder.clone(),
         process_token_context.clone(),
@@ -53,6 +56,7 @@ pub fn core_components() -> Components {
         module_seed_vault,
         subordination_table,
         bank_registry,
+        wallet_registry,
         currency_generator,
     }
 }

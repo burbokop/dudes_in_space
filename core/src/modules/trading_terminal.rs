@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::BankRegistry;
+use dudes_in_space_api::finance::{BankRegistry, Wallet, WalletRegistry};
 use dudes_in_space_api::item::{ItemCount, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -15,7 +15,8 @@ use dudes_in_space_api::recipe::{
 };
 use dudes_in_space_api::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer,
-    OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+    OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -38,7 +39,7 @@ static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::TradingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'h,'b,'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::trading_terminal::TradingTerminalSeed::<'h,'a,'b,'v>)]
 pub(crate) struct TradingTerminal {
     id: ModuleId,
     buy_offers: Vec<BuyOffer>,
@@ -52,22 +53,27 @@ pub(crate) struct TradingTerminal {
     operator: Option<Person>,
 }
 
-struct TradingTerminalSeed<'h, 'b, 'v> {
+struct TradingTerminalSeed<'h, 'a, 'b, 'v> {
     buy_order_seed: VecSeed<OrderSeed<'h, BuyOrder>>,
     sell_order_seed: VecSeed<OrderSeed<'h, SellOrder>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
 }
 
-impl<'h, 'b, 'v> TradingTerminalSeed<'h, 'b, 'v> {
+impl<'h, 'a, 'b, 'v> TradingTerminalSeed<'h, 'a, 'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry: &'b BankRegistry,
+        bank_registry: &'a BankRegistry,
+        wallet_registry: &'b WalletRegistry,
     ) -> Self {
         Self {
             buy_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
             sell_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(
+                objective_vault,
+                bank_registry,
+                wallet_registry,
+            )),
         }
     }
 }
@@ -371,10 +377,11 @@ impl TradingConsole for TradingTerminal {
 
     fn place_buy_custom_vessel_order(
         &mut self,
+        customer_wallet: &mut Wallet,
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyVesselOrder> {
+    ) -> Option<WeakBuyCustomVesselOrder> {
         todo!()
     }
 }
@@ -383,6 +390,7 @@ pub(crate) struct TradingTerminalDynSeed {
     order_holder: Rc<OrderHolder>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
+    wallet_registry: Rc<WalletRegistry>,
 }
 
 impl TradingTerminalDynSeed {
@@ -390,11 +398,13 @@ impl TradingTerminalDynSeed {
         order_holder: Rc<OrderHolder>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,
+        wallet_registry: Rc<WalletRegistry>,
     ) -> Self {
         Self {
             order_holder,
             objective_vault,
             bank_registry,
+            wallet_registry,
         }
     }
 }
@@ -414,6 +424,7 @@ impl DynDeserializeSeed<dyn Module> for TradingTerminalDynSeed {
                 &self.order_holder,
                 &self.objective_vault,
                 &self.bank_registry,
+                &self.wallet_registry,
             ),
             &intermediate,
         )

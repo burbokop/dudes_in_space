@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{BankRegistry, Money, Wallet};
+use dudes_in_space_api::finance::{BankRegistry, Money, Wallet, WalletRegistry};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -14,9 +14,9 @@ use dudes_in_space_api::recipe::{
     OutputItemRecipe,
 };
 use dudes_in_space_api::trade::{
-    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer,
-    BuyVesselOrder, OfferId, OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyOrder,
-    WeakBuyVesselOrder, WeakSellOrder,
+    BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
+    BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder, OrderSeed, SellOffer, SellOrder,
+    WeakBuyCustomVesselOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
@@ -39,7 +39,7 @@ static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerm
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h,'b, 'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h,'a,'b, 'v>)]
 struct VesselSellingTerminal {
     id: ModuleId,
     offers: Vec<BuyVesselOffer>,
@@ -47,25 +47,35 @@ struct VesselSellingTerminal {
     buy_custom_vessel_offer: Option<BuyCustomVesselOffer>,
     #[deserialize_seed_xxx(seed = self.seed.order_seed)]
     orders: Vec<BuyVesselOrder>,
+    #[deserialize_seed_xxx(seed = self.seed.custom_order_seed)]
+    #[serde(default)]
+    custom_orders: Vec<BuyCustomVesselOrder>,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
 }
 
-struct VesselSellingTerminalSeed<'h, 'b, 'v> {
+struct VesselSellingTerminalSeed<'h, 'a, 'b, 'v> {
     order_seed: VecSeed<OrderSeed<'h, BuyVesselOrder>>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
+    custom_order_seed: VecSeed<OrderSeed<'h, BuyCustomVesselOrder>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
 }
 
-impl<'h, 'b, 'v> VesselSellingTerminalSeed<'h, 'b, 'v> {
+impl<'h, 'a, 'b, 'v> VesselSellingTerminalSeed<'h, 'a, 'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry: &'b BankRegistry,
+        bank_registry: &'a BankRegistry,
+        wallet_registry: &'b WalletRegistry,
     ) -> Self {
         Self {
             order_seed: VecSeed::new(OrderSeed::new(order_holder)),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
+            custom_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(
+                objective_vault,
+                bank_registry,
+                wallet_registry,
+            )),
         }
     }
 }
@@ -85,6 +95,7 @@ struct Console<'a> {
     offers: &'a [BuyVesselOffer],
     buy_custom_vessel_offer: &'a mut Option<BuyCustomVesselOffer>,
     orders: &'a [BuyVesselOrder],
+    custom_orders: &'a [BuyCustomVesselOrder],
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -233,6 +244,10 @@ impl<'a> TradingAdminConsole for Console<'a> {
     fn buy_vessel_orders(&self) -> &[BuyVesselOrder] {
         self.orders
     }
+
+    fn buy_custom_vessel_orders(&self) -> &[BuyCustomVesselOrder] {
+        self.custom_orders
+    }
 }
 
 impl Module for VesselSellingTerminal {
@@ -264,6 +279,7 @@ impl Module for VesselSellingTerminal {
             offers: &self.offers,
             buy_custom_vessel_offer: &mut self.buy_custom_vessel_offer,
             orders: &self.orders,
+            custom_orders: &self.custom_orders,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -451,33 +467,35 @@ impl TradingConsole for VesselSellingTerminal {
 
     fn place_buy_custom_vessel_order(
         &mut self,
+        customer_wallet: &mut Wallet,
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyVesselOrder> {
-        let estimate = self.estimate_buy_custom_vessel_order(
-            capabilities,
-            primary_capabilities,
-            count,
-        ).unwrap();
+    ) -> Option<WeakBuyCustomVesselOrder> {
+        let estimate = self
+            .estimate_buy_custom_vessel_order(
+                capabilities.clone(),
+                primary_capabilities.clone(),
+                count,
+            )
+            .unwrap();
 
         let x = estimate.pledge;
 
+        let mut pledge_wallet = Wallet::new();
 
-       let (mut order, weak_order) = BuyVesselOrder::new();
+        customer_wallet.transfer_to(&mut pledge_wallet, x).unwrap();
 
+        let (weak_order, order) = BuyCustomVesselOrder::new(
+            pledge_wallet,
+            customer_wallet.id().clone(),
+            capabilities,
+            primary_capabilities,
+            count,
+        );
 
-        let customer_wallet: &Wallet = todo!();
-        let owner_wallet: &Wallet = todo!();
-        let pledge_wallet =  Wallet::default();
-
-        customer_wallet.transfer_to(order.pledge_wallet())
-
-
-
-            // self.orders.push();
-
-        todo!()
+        self.custom_orders.push(order);
+        Some(weak_order)
     }
 }
 
@@ -501,6 +519,7 @@ impl ModuleFactory for VesselSellingTerminalFactory {
             offers: vec![],
             buy_custom_vessel_offer: None,
             orders: vec![],
+            custom_orders: vec![],
             operator: None,
         })
     }
@@ -560,6 +579,7 @@ pub(crate) struct VesselSellingTerminalDynSeed {
     order_holder: Rc<OrderHolder>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
+    wallet_registry: Rc<WalletRegistry>,
 }
 
 impl VesselSellingTerminalDynSeed {
@@ -567,11 +587,13 @@ impl VesselSellingTerminalDynSeed {
         order_holder: Rc<OrderHolder>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,
+        wallet_registry: Rc<WalletRegistry>,
     ) -> Self {
         Self {
             order_holder,
             objective_vault,
             bank_registry,
+            wallet_registry,
         }
     }
 }
@@ -591,6 +613,7 @@ impl DynDeserializeSeed<dyn Module> for VesselSellingTerminalDynSeed {
                 &self.order_holder,
                 &self.objective_vault,
                 &self.bank_registry,
+                &self.wallet_registry,
             ),
             &intermediate,
         )

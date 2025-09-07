@@ -1,8 +1,11 @@
-use crate::finance::Money;
+use crate::finance::{Money, WalletId};
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
-use crate::trade::{BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef, SellOffer, WeakBuyVesselOrder};
+use crate::trade::{
+    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef,
+    SellOffer, WeakBuyCustomVesselOrder,
+};
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
@@ -141,36 +144,40 @@ pub struct FindOwnedVesselsResult {
 impl FindOwnedVessels {
     pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindOwnedVesselsResult> {
         let (promise, future) = ReqPromise::new();
-        context.find_owned_vessels_requests.push_back(EnvironmentRequest {
-            promise,
-            input: self,
-        });
+        context
+            .find_owned_vessels_requests
+            .push_back(EnvironmentRequest {
+                promise,
+                input: self,
+            });
         future
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlaceBuyCustomVesselOrder {
     pub offer: OfferRef<BuyCustomVesselOffer>,
     pub needed_capabilities: BTreeSet<ModuleCapability>,
     pub needed_primary_capabilities: BTreeSet<ModuleCapability>,
+    pub buyer_wallet: WalletId,
 }
 
 impl PlaceBuyCustomVesselOrder {
     pub fn push(self, context: &mut RequestStorage) -> ReqFuture<PlaceBuyCustomVesselOrderResult> {
         let (promise, future) = ReqPromise::new();
-        context.place_buy_custom_vessel_order_requests.push_back(EnvironmentRequest {
-            promise,
-            input: self,
-        });
+        context
+            .place_buy_custom_vessel_order_requests
+            .push_back(EnvironmentRequest {
+                promise,
+                input: self,
+            });
         future
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlaceBuyCustomVesselOrderResult {
-    pub order: Option<WeakBuyVesselOrder>
+    pub order: Option<WeakBuyCustomVesselOrder>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

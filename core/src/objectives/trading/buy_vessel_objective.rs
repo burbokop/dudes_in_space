@@ -1,8 +1,11 @@
-use dudes_in_space_api::environment::{EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult, PlaceBuyCustomVesselOrderResult};
+use dudes_in_space_api::environment::{
+    EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult,
+    PlaceBuyCustomVesselOrderResult,
+};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
-use dudes_in_space_api::trade::WeakBuyVesselOrder;
+use dudes_in_space_api::trade::WeakBuyCustomVesselOrder;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde_macro::DeserializeSeedXXX;
@@ -36,7 +39,7 @@ pub(crate) enum BuyVesselObjective {
     ProcessOrder {
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        order: WeakBuyVesselOrder,
+        order: WeakBuyCustomVesselOrder,
     },
 }
 
@@ -128,11 +131,14 @@ impl Objective for BuyVesselObjective {
                             Ok(order) => todo!(),
                             Err(future) => {
                                 *self = Self::WaitForOrderToBeAccepted {
-                                    needed_capabilities: std::mem::take( needed_capabilities),
-                                    needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                    needed_capabilities: std::mem::take(needed_capabilities),
+                                    needed_primary_capabilities: std::mem::take(
+                                        needed_primary_capabilities,
+                                    ),
                                     future,
                                 };
-                                Ok(ObjectiveStatus::InProgress)},
+                                Ok(ObjectiveStatus::InProgress)
+                            }
                         }
                     }
                     FindBestBuyVesselOfferResult::None => {
@@ -142,7 +148,22 @@ impl Objective for BuyVesselObjective {
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::WaitForOrderToBeAccepted { future, needed_capabilities, needed_primary_capabilities } => todo!(),
+            Self::WaitForOrderToBeAccepted {
+                future,
+                needed_capabilities,
+                needed_primary_capabilities,
+            } => match future.take() {
+                Ok(result) => {
+                    *self = Self::ProcessOrder {
+                        needed_capabilities: std::mem::take(needed_capabilities),
+                        needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                        order: result.order.unwrap(),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
+                Err(ReqTakeError::AlreadyTaken) => unreachable!(),
+            },
             Self::ProcessOrder { .. } => todo!(),
         }
     }

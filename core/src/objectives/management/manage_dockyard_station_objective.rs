@@ -379,19 +379,25 @@ impl Objective for ManageDockyardStationObjective {
             ManageDockyardStationObjective::CheckOrders => {
                 let console = this_module.trading_admin_console_mut().unwrap();
 
-                let orders = console.buy_vessel_orders();
-                if orders.is_empty() {
-                    return Ok(ObjectiveStatus::InProgress);
+                if let Some(current_order) = console.buy_vessel_orders().first() {
+                    // - find recipes for caps
+                    // - make a list of all input ingredients
+                    // - place sell offers for all input ingredients
+
+                    todo!()
                 }
 
-                let current_order = &orders[0];
-                let caps = current_order.primary_caps();
+                if let Some(current_order) = console.buy_custom_vessel_orders().first() {
+                    let caps = current_order.primary_capabilities();
 
-                // - find recipes for caps
-                // - make a list of all input ingredients
-                // - place sell offers for all input ingredients
+                    // - find recipes for caps
+                    // - make a list of all input ingredients
+                    // - place sell offers for all input ingredients
 
-                todo!()
+                    todo!()
+                }
+
+                Ok(ObjectiveStatus::InProgress)
             }
         }
     }

@@ -7,8 +7,9 @@ use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
 };
 use crate::trade::{
-    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer,
-    BuyVesselOrder, SellOffer, SellOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+    BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
+    BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
@@ -223,7 +224,7 @@ pub trait TradingConsole {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyVesselOrder>;
+    ) -> Option<WeakBuyCustomVesselOrder>;
 }
 
 pub trait TradingAdminConsole {
@@ -254,6 +255,7 @@ pub trait TradingAdminConsole {
     fn buy_orders(&self) -> &[BuyOrder];
     fn sell_orders(&self) -> &[SellOrder];
     fn buy_vessel_orders(&self) -> &[BuyVesselOrder];
+    fn buy_custom_vessel_orders(&self) -> &[BuyCustomVesselOrder];
 }
 
 pub(crate) trait CaptainControlPanel {

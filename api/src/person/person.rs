@@ -1,6 +1,6 @@
 use crate::environment::EnvironmentContext;
 use crate::finance::{
-    Bank, BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet,
+    Bank, BankRegistry, PersonalFinancePackage, PersonalFinancePackageSeed, Wallet, WalletRegistry,
 };
 use crate::module::ModuleConsole;
 use crate::person::logger::{Logger, PersonLogger};
@@ -207,7 +207,7 @@ impl Distribution<Gender> for StandardUniform {
 pub type PersonId = NonNilUuid;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v, 'b>)]
+#[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v, 'a, 'b>)]
 pub struct Person {
     id: PersonId,
     name: String,
@@ -229,19 +229,20 @@ pub struct Person {
 }
 
 #[derive(Clone)]
-pub struct PersonSeed<'v, 'b> {
+pub struct PersonSeed<'v, 'a, 'b> {
     objective_seed: TaggedOptionSeed<ObjectiveSeed<'v>>,
-    finance_package_seed: PersonalFinancePackageSeed<'b>,
+    finance_package_seed: PersonalFinancePackageSeed<'a, 'b>,
 }
 
-impl<'v, 'b> PersonSeed<'v, 'b> {
+impl<'v, 'a, 'b> PersonSeed<'v, 'a, 'b> {
     pub fn new(
         vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry: &'b BankRegistry,
+        bank_registry: &'a BankRegistry,
+        wallet_registry: &'b WalletRegistry,
     ) -> Self {
         Self {
             objective_seed: TaggedOptionSeed::new(ObjectiveSeed::new(vault)),
-            finance_package_seed: PersonalFinancePackageSeed::new(bank_registry),
+            finance_package_seed: PersonalFinancePackageSeed::new(bank_registry, wallet_registry),
         }
     }
 }
@@ -257,7 +258,7 @@ impl Person {
         &self.boss
     }
 
-    pub fn wallet(&self) -> &Wallet {
+    pub fn wallet<'a>(&'a self) -> Ref<'a, Wallet> {
         self.finance.wallet()
     }
 

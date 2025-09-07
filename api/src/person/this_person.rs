@@ -24,13 +24,14 @@ impl<'a> ThisPerson<'a> {
         bank_registry: &BankRegistry,
         money: Money,
     ) -> bool {
-        match self
-            .finance
-            .wallet
-            .ensure_contains(bank_registry, money.clone())
-        {
+        assert_ne!(money.amount.unwrap(), 0);
+
+        let mut wallet = self.finance.wallet_mut();
+
+        match wallet.ensure_contains(bank_registry, money.clone()) {
             Ok(_) => true,
             Err(err) => {
+                drop(wallet);
                 let missing = Money {
                     currency: money.currency.clone(),
                     amount: err.missing,
@@ -39,13 +40,17 @@ impl<'a> ThisPerson<'a> {
                 let bank_registry = bank_registry.borrow();
                 let mut bank = bank_registry.bank_mut(&missing.currency).unwrap();
 
-                if !bank.can_withdraw(self.id.clone(), &self.finance.wallet, missing.amount) {
+                if !bank.can_withdraw(self.id.clone(), &self.finance.wallet(), missing.amount) {
                     return false;
                 }
 
-                self.finance.wallet.convert_all_into(missing.currency);
-                bank.withdraw(self.id.clone(), &mut self.finance.wallet, missing.amount);
-                assert!(self.finance.wallet.contains(money));
+                self.finance.wallet_mut().convert_all_into(missing.currency);
+                bank.withdraw(
+                    self.id.clone(),
+                    &mut self.finance.wallet_mut(),
+                    missing.amount,
+                );
+                assert!(self.finance.wallet().contains(money));
                 true
             }
         }

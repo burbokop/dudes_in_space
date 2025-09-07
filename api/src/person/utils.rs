@@ -1,10 +1,12 @@
-use crate::environment::{EnvironmentContext, PlaceBuyCustomVesselOrder, PlaceBuyCustomVesselOrderResult};
+use crate::environment::{
+    EnvironmentContext, PlaceBuyCustomVesselOrder, PlaceBuyCustomVesselOrderResult,
+};
 use crate::module::{ModuleCapability, ModuleId, ModuleStorage};
 use crate::person::{ThisPerson, ThisVessel};
-use crate::trade::{BuyCustomVesselOffer, OfferRef, WeakBuyVesselOrder};
+use crate::trade::{BuyCustomVesselOffer, OfferRef, WeakBuyCustomVesselOrder};
+use crate::utils::request::ReqFuture;
 use crate::vessel::{DockingClamp, DockingConnectorId, VesselId};
 use std::collections::BTreeSet;
-use crate::utils::request::ReqFuture;
 
 pub fn find_docking_clamp_with_vessel_with_id(
     docking_clamps: &[DockingClamp],
@@ -126,8 +128,6 @@ pub fn are_dockyard_components_suitable(
         })
 }
 
-
-
 pub fn place_buy_vessel_order(
     buyer: &ThisPerson,
     this_vessel: ThisVessel,
@@ -135,15 +135,19 @@ pub fn place_buy_vessel_order(
     offer: OfferRef<BuyCustomVesselOffer>,
     needed_capabilities: BTreeSet<ModuleCapability>,
     needed_primary_capabilities: BTreeSet<ModuleCapability>,
-) -> Result<
-    WeakBuyVesselOrder,
-    ReqFuture<PlaceBuyCustomVesselOrderResult>> {
+) -> Result<WeakBuyCustomVesselOrder, ReqFuture<PlaceBuyCustomVesselOrderResult>> {
     if this_vessel.this_module.id() == offer.module_id {
-        return Ok( this_vessel
+        return Ok(this_vessel
             .this_module
             .trading_console_mut()
             .unwrap()
-            .place_buy_custom_vessel_order(needed_capabilities, needed_primary_capabilities, 1).unwrap());
+            .place_buy_custom_vessel_order(
+                &mut buyer.finance.wallet_mut(),
+                needed_capabilities,
+                needed_primary_capabilities,
+                1,
+            )
+            .unwrap());
     }
 
     if this_vessel.this_vessel.id() == offer.vessel_id {
@@ -157,12 +161,20 @@ pub fn place_buy_vessel_order(
         return Ok(module
             .trading_console_mut()
             .unwrap()
-            .place_buy_custom_vessel_order(needed_capabilities, needed_primary_capabilities, 1).unwrap());
+            .place_buy_custom_vessel_order(
+                &mut buyer.finance.wallet_mut(),
+                needed_capabilities,
+                needed_primary_capabilities,
+                1,
+            )
+            .unwrap());
     }
 
-    Err(PlaceBuyCustomVesselOrder{
+    Err(PlaceBuyCustomVesselOrder {
         offer,
         needed_capabilities,
         needed_primary_capabilities,
-    }.push(environment_context.request_storage_mut()))
+        buyer_wallet: buyer.finance.wallet().id().clone(),
+    }
+    .push(environment_context.request_storage_mut()))
 }

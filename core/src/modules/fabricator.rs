@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::BankRegistry;
+use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -116,7 +116,7 @@ impl<'context> FabricatorStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v,'b, 'sv, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v,'a,'b, 'sv, 'context>)]
 struct Fabricator {
     id: ModuleId,
     // recipes: Vec<ItemRecipe>,
@@ -131,16 +131,17 @@ struct Fabricator {
     operator: Option<Person>,
 }
 
-struct FabricatorSeed<'v, 'b, 'sv, 'context> {
-    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
+struct FabricatorSeed<'v, 'a, 'b, 'sv, 'context> {
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
     item_storage_seed: ItemStorageSeed<'sv>,
     state_seed: FabricatorStateSeed<'context>,
 }
 
-impl<'v, 'b, 'sv, 'context> FabricatorSeed<'v, 'b, 'sv, 'context> {
+impl<'v, 'a, 'b, 'sv, 'context> FabricatorSeed<'v, 'a, 'b, 'sv, 'context> {
     fn new(
         objective_seed_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry: &'b BankRegistry,
+        bank_registry: &'a BankRegistry,
+        wallet_registry: &'b WalletRegistry,
         item_vault: &'sv ItemVault,
         context: &'context ProcessTokenContext,
     ) -> Self {
@@ -148,6 +149,7 @@ impl<'v, 'b, 'sv, 'context> FabricatorSeed<'v, 'b, 'sv, 'context> {
             person_seed: TaggedOptionSeed::new(PersonSeed::new(
                 objective_seed_vault,
                 bank_registry,
+                wallet_registry,
             )),
             item_storage_seed: ItemStorageSeed::new(item_vault),
             state_seed: FabricatorStateSeed::new(context),
@@ -433,6 +435,7 @@ impl Module for Fabricator {
 pub(crate) struct FabricatorDynSeed {
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
+    wallet_registry: Rc<WalletRegistry>,
     item_vault: Rc<ItemVault>,
     context: Rc<ProcessTokenContext>,
 }
@@ -441,12 +444,14 @@ impl FabricatorDynSeed {
     pub(crate) fn new(
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,
+        wallet_registry: Rc<WalletRegistry>,
         item_vault: Rc<ItemVault>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             objective_seed_vault,
             bank_registry,
+            wallet_registry,
             item_vault,
             context,
         }
@@ -467,6 +472,7 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
             FabricatorSeed::new(
                 &self.objective_seed_vault,
                 &self.bank_registry,
+                &self.wallet_registry,
                 &self.item_vault,
                 &self.context,
             ),

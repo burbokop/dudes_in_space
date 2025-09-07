@@ -80,7 +80,7 @@ impl Bank {
             };
 
             if customers_count == 1 {
-                return true
+                return true;
             }
 
             let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
@@ -113,7 +113,8 @@ impl Bank {
             account.money -= amount.unwrap();
 
             if customers_count != 1 {
-                let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
+                let stored_money_lower_limit =
+                    -(customers_count as MoneyAmount * self.money_created);
                 assert!(self.money_stored - amount.unwrap() >= stored_money_lower_limit);
             }
 

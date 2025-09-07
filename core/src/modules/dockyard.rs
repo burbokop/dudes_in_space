@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::BankRegistry;
+use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -67,7 +67,7 @@ impl<'context> DockyardStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v,'b, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::dockyard::DockyardSeed::<'v,'a,'b, 'context>)]
 pub struct Dockyard {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
@@ -94,24 +94,29 @@ impl Dockyard {
 }
 
 #[derive(Clone)]
-struct DockyardSeed<'v, 'b, 'context> {
+struct DockyardSeed<'v, 'a, 'b, 'context> {
     module_storage_seed: ModuleStorageSeed<'v>,
     docking_clamp_seed: DockingClampSeed<'v>,
-    person_seed: TaggedOptionSeed<PersonSeed<'v, 'b>>,
+    person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
     state_seed: DockyardStateSeed<'context>,
 }
 
-impl<'v, 'b, 'context> DockyardSeed<'v, 'b, 'context> {
+impl<'v, 'a, 'b, 'context> DockyardSeed<'v, 'a, 'b, 'context> {
     fn new(
         module_vault: &'v DynDeserializeSeedVault<dyn Module>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
-        bank_registry: &'b BankRegistry,
+        bank_registry: &'a BankRegistry,
+        wallet_registry: &'b WalletRegistry,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
             module_storage_seed: ModuleStorageSeed::new(module_vault),
             docking_clamp_seed: DockingClampSeed::new(module_vault),
-            person_seed: TaggedOptionSeed::new(PersonSeed::new(objective_vault, bank_registry)),
+            person_seed: TaggedOptionSeed::new(PersonSeed::new(
+                objective_vault,
+                bank_registry,
+                wallet_registry,
+            )),
             state_seed: DockyardStateSeed::new(context),
         }
     }
@@ -516,6 +521,7 @@ impl ModuleFactoryOutputDescription for DockyardFactory {
 pub(crate) struct DockyardDynSeed {
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
+    wallet_registry: Rc<WalletRegistry>,
     context: Rc<ProcessTokenContext>,
 }
 
@@ -523,11 +529,13 @@ impl DockyardDynSeed {
     pub fn new(
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,
+        wallet_registry: Rc<WalletRegistry>,
         context: Rc<ProcessTokenContext>,
     ) -> Self {
         Self {
             objective_seed_vault,
             bank_registry,
+            wallet_registry,
             context,
         }
     }
@@ -548,6 +556,7 @@ impl DynDeserializeSeed<dyn Module> for DockyardDynSeed {
                 this_vault,
                 &self.objective_seed_vault,
                 &self.bank_registry,
+                &self.wallet_registry,
                 &self.context,
             ),
             &intermediate,

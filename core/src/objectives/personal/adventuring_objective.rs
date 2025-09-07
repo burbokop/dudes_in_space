@@ -262,6 +262,13 @@ impl DynSerialize for AdventuringObjective {
 
 impl Display for AdventuringObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            AdventuringObjective::CheckThisVessel => write!(f, "CheckThisVessel"),
+            AdventuringObjective::MoveToCockpit { .. } => write!(f, "MoveToCockpit"),
+            AdventuringObjective::SearchForOwnedShips { .. } => write!(f, "SearchForOwnedShips"),
+            AdventuringObjective::AcquireVessel { .. } => write!(f, "AcquireVessel"),
+            AdventuringObjective::MoveToDockedVessel { .. } => write!(f, "MoveToDockedVessel"),
+            AdventuringObjective::Fly => write!(f, "Fly"),
+        }
     }
 }

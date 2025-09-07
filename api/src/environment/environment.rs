@@ -1,5 +1,9 @@
-use crate::environment::{EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult, FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult, RequestStorage};
-use crate::finance::{BankRegistry, CurrencyGenerator};
+use crate::environment::{
+    EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
+    FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
+    RequestStorage,
+};
+use crate::finance::{BankRegistry, CurrencyGenerator, WalletRegistry};
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
@@ -69,6 +73,7 @@ impl Environment {
         item_vault: &ItemVault,
         subordination_table: &SubordinationTable,
         bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
         currency_generator: &CurrencyGenerator,
         logger: &mut dyn Logger,
     ) {
@@ -82,7 +87,7 @@ impl Environment {
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
-        self.process_requests(req_context, item_vault, bank_registry);
+        self.process_requests(req_context, item_vault, bank_registry, wallet_registry);
         self.iteration += 1;
     }
 
@@ -99,6 +104,7 @@ impl Environment {
         req_context: &ReqContext,
         item_vault: &ItemVault,
         bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
     ) {
         self.request_storage
             .find_best_buy_offer_requests
@@ -257,71 +263,94 @@ impl Environment {
                 false
             });
 
-        self.request_storage.find_owned_vessels_requests.retain_mut(|req| {
-            assert!(req.promise.check_pending(req_context));
+        self.request_storage
+            .find_owned_vessels_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
 
-            let mut vessels: Vec<VesselIdPath> = Default::default();
+                let mut vessels: Vec<VesselIdPath> = Default::default();
 
-            for vessel in &self.vessels {
-                let _: ControlFlow<()> = vessel.traverse(|path, vessel| {
-                    if vessel.owner() == req.input.owner
-                        && (!req.input.required_empty_pilot_seat || vessel.has_empty_pilot_seat())
-                        && req
-                            .input
-                            .required_capabilities
-                            .iter()
-                            .all(|x| vessel.capabilities().contains(x))
-                    {
-                        vessels.push(path.to_owned());
-                    }
-
-                    ControlFlow::Continue(())
-                });
-            }
-
-            // if !vessels.is_empty() {
-            req.promise
-                .make_ready(req_context, FindOwnedVesselsResult { vessels })
-                .unwrap();
-            return false;
-            // }
-            //
-            // true
-        });
-
-        self.request_storage.place_buy_custom_vessel_order_requests.retain_mut(|req| {
-            assert!(req.promise.check_pending(req_context));
-
-            for vessel in &self.vessels {
-                let flow: ControlFlow<()> = vessel.traverse(|path, vessel| {
-                    if vessel.id() == req.input.offer.vessel_id {
-
-                        if let Some( mut module) = vessel.module_by_id_mut(req.input.offer.module_id) {
-
-                            
-
-                            let order = module.trading_console_mut().unwrap()
-                                .place_buy_custom_vessel_order(req.input.needed_capabilities.clone(), req.input.needed_primary_capabilities.clone(), 1).unwrap();
-
-                            req.promise
-                                .make_ready(req_context, PlaceBuyCustomVesselOrderResult { order: Some(order) })
-                                .unwrap();
-                            return ControlFlow::Break(());
+                for vessel in &self.vessels {
+                    let _: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                        if vessel.owner() == req.input.owner
+                            && (!req.input.required_empty_pilot_seat
+                                || vessel.has_empty_pilot_seat())
+                            && req
+                                .input
+                                .required_capabilities
+                                .iter()
+                                .all(|x| vessel.capabilities().contains(x))
+                        {
+                            vessels.push(path.to_owned());
                         }
-                    }
 
-                    ControlFlow::Continue(())
-                });
-
-                if flow.is_break() {
-                    return false;
+                        ControlFlow::Continue(())
+                    });
                 }
-            }
 
-            req.promise
-                .make_ready(req_context, PlaceBuyCustomVesselOrderResult { order: None })
-                .unwrap();
-            return false;
-        });
+                // if !vessels.is_empty() {
+                req.promise
+                    .make_ready(req_context, FindOwnedVesselsResult { vessels })
+                    .unwrap();
+                return false;
+                // }
+                //
+                // true
+            });
+
+        self.request_storage
+            .place_buy_custom_vessel_order_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                for vessel in &self.vessels {
+                    let flow: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                        if vessel.id() == req.input.offer.vessel_id {
+                            if let Some(mut module) =
+                                vessel.module_by_id_mut(req.input.offer.module_id)
+                            {
+                                let order = module
+                                    .trading_console_mut()
+                                    .unwrap()
+                                    .place_buy_custom_vessel_order(
+                                        &mut wallet_registry
+                                            .get(&req.input.buyer_wallet)
+                                            .unwrap()
+                                            .upgrade()
+                                            .unwrap()
+                                            .borrow_mut(),
+                                        req.input.needed_capabilities.clone(),
+                                        req.input.needed_primary_capabilities.clone(),
+                                        1,
+                                    )
+                                    .unwrap();
+
+                                println!("ControlFlow::Break(())");
+
+                                req.promise
+                                    .make_ready(
+                                        req_context,
+                                        PlaceBuyCustomVesselOrderResult { order: Some(order) },
+                                    )
+                                    .unwrap();
+                                return ControlFlow::Break(());
+                            }
+                        }
+
+                        ControlFlow::Continue(())
+                    });
+
+                    if flow.is_break() {
+                        println!("flow.is_break()");
+                        return false;
+                    }
+                }
+
+                println!("END");
+                req.promise
+                    .make_ready(req_context, PlaceBuyCustomVesselOrderResult { order: None })
+                    .unwrap();
+                return false;
+            });
     }
 }

@@ -1,26 +1,37 @@
-use crate::finance::{Bank, BankRegistry, Currency, Wallet};
+use crate::finance::{Bank, BankRegistry, Currency, Wallet, WalletRegistry};
 use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-#[derive(Default, Debug, Serialize)]
+#[derive(Debug, Serialize)]
 pub struct PersonalFinancePackage {
     #[serde(with = "crate::utils::tagged_option")]
     bank: Option<Rc<RefCell<Bank>>>,
-    pub(crate) wallet: Wallet,
+    wallet: Rc<RefCell<Wallet>>,
+}
+
+impl Default for PersonalFinancePackage {
+    fn default() -> Self {
+        todo!()
+    }
 }
 
 impl PersonalFinancePackage {
     pub fn bank(&self) -> Option<Ref<'_, Bank>> {
         self.bank.as_ref().map(|x| x.borrow())
     }
-    pub fn wallet(&self) -> &Wallet {
-        &self.wallet
+
+    pub fn wallet<'a>(&'a self) -> Ref<'a, Wallet> {
+        self.wallet.borrow()
+    }
+
+    pub fn wallet_mut<'a>(&'a self) -> RefMut<'a, Wallet> {
+        self.wallet.borrow_mut()
     }
 
     pub fn preferred_currency(&self, bank_registry: &BankRegistry) -> Option<Currency> {
-        match self.wallet.most_worth_currency(bank_registry) {
+        match self.wallet.borrow().most_worth_currency(bank_registry) {
             None => self.bank().map(|b| b.currency().clone()),
             Some(c) => Some(c.currency),
         }
@@ -31,7 +42,7 @@ impl PersonalFinancePackage {
         bank_registry: &BankRegistry,
         new_bank: Bank,
     ) -> Currency {
-        match self.wallet.most_worth_currency(bank_registry) {
+        match self.wallet.borrow().most_worth_currency(bank_registry) {
             None => match self.bank().map(|b| b.currency().clone()) {
                 None => {
                     let currency = new_bank.currency().clone();
@@ -46,17 +57,25 @@ impl PersonalFinancePackage {
 }
 
 #[derive(Clone)]
-pub(crate) struct PersonalFinancePackageSeed<'b> {
-    bank_registry: &'b BankRegistry,
+pub(crate) struct PersonalFinancePackageSeed<'a, 'b> {
+    bank_registry: &'a BankRegistry,
+    wallet_registry: &'b WalletRegistry,
 }
 
-impl<'b> PersonalFinancePackageSeed<'b> {
-    pub(crate) fn new(bank_registry: &'b BankRegistry) -> Self {
-        Self { bank_registry }
+impl<'a, 'b> PersonalFinancePackageSeed<'a, 'b> {
+    pub(crate) fn new(
+        bank_registry: &'a BankRegistry,
+
+        wallet_registry: &'b WalletRegistry,
+    ) -> Self {
+        Self {
+            bank_registry,
+            wallet_registry,
+        }
     }
 }
 
-impl<'de, 'b> DeserializeSeed<'de> for PersonalFinancePackageSeed<'b> {
+impl<'de, 'a, 'b> DeserializeSeed<'de> for PersonalFinancePackageSeed<'a, 'b> {
     type Value = PersonalFinancePackage;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -77,7 +96,10 @@ impl<'de, 'b> DeserializeSeed<'de> for PersonalFinancePackageSeed<'b> {
                 .map(|bank| self.bank_registry.register(bank))
                 .map_or(Ok(None), |v| v.map(Some))
                 .map_err(Error::custom)?,
-            wallet,
+            wallet: self
+                .wallet_registry
+                .register(wallet)
+                .map_err(Error::custom)?,
         })
     }
 }

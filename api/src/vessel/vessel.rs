@@ -194,7 +194,10 @@ impl Vessel {
         R: Try<Output = ()>,
     {
         path.push(self.id);
-        f(VesselIdPathRef(&path), self);
+        match f(VesselIdPathRef(&path), self).branch() {
+            ControlFlow::Continue(_) => {}
+            ControlFlow::Break(g) => return R::from_residual(g),
+        }
         for module in &self.modules {
             let module = module.borrow();
             for clamp in module.docking_clamps() {

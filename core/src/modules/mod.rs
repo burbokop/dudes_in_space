@@ -22,7 +22,7 @@ pub(crate) use shuttle::*;
 pub(crate) use trading_terminal::*;
 pub(crate) use vessel_selling_terminal::*;
 
-use dudes_in_space_api::finance::BankRegistry;
+use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::ItemVault;
 use dudes_in_space_api::module::{Module, ProcessTokenContext};
 use dudes_in_space_api::person::DynObjective;
@@ -50,6 +50,7 @@ pub fn register_modules(
     factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
     objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
+    wallet_registry: Rc<WalletRegistry>,
     item_vault: Rc<ItemVault>,
     order_holder: Rc<OrderHolder>,
     process_token_context: Rc<ProcessTokenContext>,
@@ -58,20 +59,24 @@ pub fn register_modules(
         .with(PersonnelAreaDynSeed::new(
             objective_seed_vault.clone(),
             bank_registry.clone(),
+            wallet_registry.clone(),
         ))
         .with(ShuttleDynSeed::new(
             objective_seed_vault.clone(),
             bank_registry.clone(),
+            wallet_registry.clone(),
         ))
         .with(DockyardDynSeed::new(
             objective_seed_vault.clone(),
             bank_registry.clone(),
+            wallet_registry.clone(),
             process_token_context.clone(),
         ))
         .with(AssemblerDynSeed::new(
             factory_seed_vault,
             objective_seed_vault.clone(),
             bank_registry.clone(),
+            wallet_registry.clone(),
             item_vault.clone(),
             process_token_context.clone(),
         ))
@@ -80,15 +85,18 @@ pub fn register_modules(
             order_holder.clone(),
             objective_seed_vault.clone(),
             bank_registry.clone(),
+            wallet_registry.clone(),
         ))
         .with(VesselSellingTerminalDynSeed::new(
             order_holder,
             objective_seed_vault.clone(),
             bank_registry.clone(),
+            wallet_registry.clone(),
         ))
         .with(FabricatorDynSeed::new(
             objective_seed_vault,
             bank_registry.clone(),
+            wallet_registry.clone(),
             item_vault,
             process_token_context,
         ))

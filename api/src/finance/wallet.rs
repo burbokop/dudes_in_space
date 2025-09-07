@@ -1,17 +1,33 @@
 use crate::finance::{BankRegistry, Currency, Money, MoneyAmount};
 use crate::utils::math::{NonNeg, Zero};
+use crate::utils::non_nil_uuid::NonNilUuid;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::rc::{Rc, Weak};
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+pub type WalletId = NonNilUuid;
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Wallet {
-    #[serde(flatten)]
     content: BTreeMap<Currency, NonNeg<MoneyAmount>>,
+    id: WalletId,
 }
 
 impl Wallet {
+    pub fn new() -> Self {
+        Self {
+            content: Default::default(),
+            id: WalletId::new_v4(),
+        }
+    }
+
+    pub fn id(&self) -> &WalletId {
+        &self.id
+    }
+
     pub fn most_worth_currency(&self, bank_registry: &BankRegistry) -> Option<Money> {
         self.content
             .iter()
@@ -159,3 +175,70 @@ impl Display for Wallet {
         write!(f, "]")
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct WeakWallet {
+    data: Weak<RefCell<Wallet>>,
+}
+
+impl WeakWallet {
+    pub fn upgrade(&self) -> Option<Rc<RefCell<Wallet>>> {
+        self.data.upgrade()
+    }
+
+    // pub fn as_ref<'a>(&'a self) -> Ref<'a, Wallet> {
+    //     todo!()
+    // }
+    //
+    // pub fn as_mut<'a>(&'a self) -> RefMut<'a, Wallet> {
+    //     self.data.upgrade().unwrap().borrow_mut()
+    // }
+}
+
+#[derive(Debug)]
+pub struct WalletRegistry {
+    data: RefCell<BTreeMap<WalletId, WeakWallet>>,
+}
+
+impl Default for WalletRegistry {
+    fn default() -> Self {
+        Self {
+            data: RefCell::new(BTreeMap::new()),
+        }
+    }
+}
+
+impl WalletRegistry {
+    pub(crate) fn register(
+        &self,
+        b: Wallet,
+    ) -> Result<Rc<RefCell<Wallet>>, PersonAlreadyExistsError> {
+        let id = b.id().clone();
+        let b = Rc::new(RefCell::new(b));
+        self.data
+            .borrow_mut()
+            .try_insert(
+                id,
+                WeakWallet {
+                    data: Rc::downgrade(&b),
+                },
+            )
+            .map_err(|_| PersonAlreadyExistsError)?;
+        Ok(b)
+    }
+
+    pub(crate) fn get(&self, wallet_id: &WalletId) -> Option<WeakWallet> {
+        self.data.borrow().get(wallet_id).cloned()
+    }
+}
+
+#[derive(Debug)]
+pub struct PersonAlreadyExistsError;
+
+impl Display for PersonAlreadyExistsError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for PersonAlreadyExistsError {}
