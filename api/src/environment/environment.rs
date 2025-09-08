@@ -3,7 +3,7 @@ use crate::environment::{
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
     RequestStorage,
 };
-use crate::finance::{BankRegistry, CurrencyGenerator, WalletRegistry};
+use crate::finance::{BankRegistry, CurrencyGenerator, NotEnoughMoneyInWallet, WalletRegistry};
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
@@ -322,15 +322,16 @@ impl Environment {
                                         req.input.needed_capabilities.clone(),
                                         req.input.needed_primary_capabilities.clone(),
                                         1,
-                                    )
-                                    .unwrap();
-
-                                println!("ControlFlow::Break(())");
-
+                                    );
+                                
                                 req.promise
                                     .make_ready(
                                         req_context,
-                                        PlaceBuyCustomVesselOrderResult { order: Some(order) },
+                                        match order {
+                                            Ok(order) => PlaceBuyCustomVesselOrderResult::Ok(order ),
+                                            Err(NotEnoughMoneyInWallet) => PlaceBuyCustomVesselOrderResult::NotEnoughMoneyInWallet,
+                                        }
+                                        ,
                                     )
                                     .unwrap();
                                 return ControlFlow::Break(());
@@ -341,14 +342,12 @@ impl Environment {
                     });
 
                     if flow.is_break() {
-                        println!("flow.is_break()");
                         return false;
                     }
                 }
-
-                println!("END");
+                
                 req.promise
-                    .make_ready(req_context, PlaceBuyCustomVesselOrderResult { order: None })
+                    .make_ready(req_context, PlaceBuyCustomVesselOrderResult::OfferNotFound)
                     .unwrap();
                 return false;
             });

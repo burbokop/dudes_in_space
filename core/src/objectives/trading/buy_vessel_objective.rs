@@ -153,14 +153,23 @@ impl Objective for BuyVesselObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
             } => match future.take() {
-                Ok(result) => {
+                Ok(PlaceBuyCustomVesselOrderResult::Ok(order)) => {
                     *self = Self::ProcessOrder {
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
-                        order: result.order.unwrap(),
+                        order,
                     };
                     Ok(ObjectiveStatus::InProgress)
                 }
+                Ok(PlaceBuyCustomVesselOrderResult::NotEnoughMoneyInWallet) => {
+                    logger.err("Not enough money in wallet. Trying again...");
+                    *self = Self::CheckPrerequisites {
+                        needed_capabilities: std::mem::take(needed_capabilities),
+                        needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+                Ok(PlaceBuyCustomVesselOrderResult::OfferNotFound) => todo!(),
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },

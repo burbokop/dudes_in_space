@@ -1,6 +1,6 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{BankRegistry, Wallet, WalletRegistry};
+use dudes_in_space_api::finance::{BankRegistry, NotEnoughMoneyInWallet, Wallet, WalletRegistry};
 use dudes_in_space_api::item::{ItemCount, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -381,7 +381,7 @@ impl TradingConsole for TradingTerminal {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyCustomVesselOrder> {
+    ) -> Result<WeakBuyCustomVesselOrder, NotEnoughMoneyInWallet> {
         todo!()
     }
 }

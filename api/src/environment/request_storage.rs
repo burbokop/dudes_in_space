@@ -176,8 +176,11 @@ impl PlaceBuyCustomVesselOrder {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PlaceBuyCustomVesselOrderResult {
-    pub order: Option<WeakBuyCustomVesselOrder>,
+#[serde(tag = "tp")]
+pub enum PlaceBuyCustomVesselOrderResult {
+    Ok(WeakBuyCustomVesselOrder),
+    NotEnoughMoneyInWallet,
+    OfferNotFound,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

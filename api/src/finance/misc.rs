@@ -1,4 +1,3 @@
-use crate::finance::Bank;
 use crate::finance::bank_registry::BankRegistry;
 use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
@@ -82,7 +81,15 @@ impl Money {
         bank_registry: &BankRegistry,
         target_currency: Currency,
     ) -> Money {
-        todo!()
+        let bank_registry = bank_registry.borrow();
+        let this_bank = bank_registry.bank(&self.currency).unwrap();
+        let target_bank = bank_registry.bank(&target_currency).unwrap();
+        let target_amount = this_bank.sell_this_currency_price(&target_bank, self.amount);
+
+        Self {
+            currency: target_currency,
+            amount: target_amount,
+        }
     }
 
     pub fn sum_as(
@@ -123,38 +130,6 @@ impl Money {
             currency,
             amount: NonNeg::new(v.into_iter().map(|x| x.amount.unwrap()).sum()).unwrap(),
         })
-    }
-}
-
-#[derive(Clone)]
-pub struct MoneyRefExt<'a> {
-    pub currency_owner: &'a Bank,
-    pub amount: NonNeg<MoneyAmount>,
-}
-
-impl<'a> PartialEq<Self> for MoneyRefExt<'a> {
-    fn eq(&self, other: &Self) -> bool {
-        todo!()
-    }
-}
-
-impl<'a> Eq for MoneyRefExt<'a> {}
-
-impl<'a> PartialOrd for MoneyRefExt<'a> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(
-            self.currency_owner
-                .currency_price(other.currency_owner, self.amount)
-                .cmp(&other.amount),
-        )
-    }
-}
-
-impl<'a> Ord for MoneyRefExt<'a> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.currency_owner
-            .currency_price(other.currency_owner, self.amount)
-            .cmp(&other.amount)
     }
 }
 

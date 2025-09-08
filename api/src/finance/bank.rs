@@ -156,15 +156,26 @@ impl Bank {
         }
     }
 
-    pub fn currency_price(
+    pub fn buy_foreign_currency_price(
         &self,
         source_currency_bank: &Bank,
         target_amount: NonNeg<MoneyAmount>,
     ) -> NonNeg<MoneyAmount> {
-        let source_amount = (target_amount.unwrap() as Float
-            * source_currency_bank.money_created as Float
-            / self.money_created as Float) as MoneyAmount;
+        let source_amount = (target_amount.unwrap() as Float * self.money_created as Float
+            / source_currency_bank.money_created as Float)
+            as MoneyAmount;
         NonNeg::new(source_amount).unwrap()
+    }
+
+    pub fn sell_this_currency_price(
+        &self,
+        target_currency_bank: &Bank,
+        source_amount: NonNeg<MoneyAmount>,
+    ) -> NonNeg<MoneyAmount> {
+        let target_amount = (source_amount.unwrap() as Float
+            * target_currency_bank.money_created as Float
+            / self.money_created as Float) as MoneyAmount;
+        NonNeg::new(target_amount).unwrap()
     }
 
     pub fn buy_currency(

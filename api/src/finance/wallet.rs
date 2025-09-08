@@ -90,7 +90,18 @@ impl Wallet {
         }
     }
 
-    pub(crate) fn convert_all_into(&mut self, currency: Currency) {}
+    pub(crate) fn convert_all_into(&mut self, currency: Currency) {
+        todo!()
+    }
+
+    pub(crate) fn missing(&mut self, money: Money) -> Option<NonNeg<MoneyAmount>> {
+        let amount_containing = self
+            .content
+            .get(&money.currency)
+            .cloned()
+            .unwrap_or(Zero::zero());
+        NonNeg::new(money.amount - amount_containing).ok()
+    }
 
     /// Checks whether the wallet contains money if converted to this currency.
     /// Returns `None` if it has enough and `MoneyAmount` if missing.
@@ -129,12 +140,12 @@ impl Wallet {
         bank_registry: &BankRegistry,
         money: Money,
     ) -> Result<(), EnsureContainsError> {
-        match self.missing_if_converted(bank_registry, money) {
+        match self.missing_if_converted(bank_registry, money.clone()) {
             Some(missing) => Err(EnsureContainsError { missing }),
-            None => {
-                todo!()
-                // Ok()
-            }
+            None => match self.missing(money) {
+                None => Ok(()),
+                Some(missing) => todo!(),
+            },
         }
     }
 }

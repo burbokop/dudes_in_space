@@ -15,6 +15,7 @@ impl StepCommand {
             &components.item_vault,
             &components.subordination_table,
             &components.bank_registry,
+            &components.wallet_registry,
             &components.currency_generator,
             &mut StdOutLogger,
         );

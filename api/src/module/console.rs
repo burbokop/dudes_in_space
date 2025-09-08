@@ -1,4 +1,4 @@
-use crate::finance::{Money, Wallet};
+use crate::finance::{Money, NotEnoughMoneyInWallet, Wallet};
 use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
@@ -224,7 +224,7 @@ pub trait TradingConsole {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyCustomVesselOrder>;
+    ) -> Result<WeakBuyCustomVesselOrder, NotEnoughMoneyInWallet>;
 }
 
 pub trait TradingAdminConsole {

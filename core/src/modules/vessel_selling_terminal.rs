@@ -1,6 +1,8 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{BankRegistry, Money, Wallet, WalletRegistry};
+use dudes_in_space_api::finance::{
+    BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
+};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -471,7 +473,7 @@ impl TradingConsole for VesselSellingTerminal {
         capabilities: BTreeSet<ModuleCapability>,
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
-    ) -> Option<WeakBuyCustomVesselOrder> {
+    ) -> Result<WeakBuyCustomVesselOrder, NotEnoughMoneyInWallet> {
         let estimate = self
             .estimate_buy_custom_vessel_order(
                 capabilities.clone(),
@@ -484,7 +486,7 @@ impl TradingConsole for VesselSellingTerminal {
 
         let mut pledge_wallet = Wallet::new();
 
-        customer_wallet.transfer_to(&mut pledge_wallet, x).unwrap();
+        customer_wallet.transfer_to(&mut pledge_wallet, x)?;
 
         let (weak_order, order) = BuyCustomVesselOrder::new(
             pledge_wallet,
@@ -495,7 +497,7 @@ impl TradingConsole for VesselSellingTerminal {
         );
 
         self.custom_orders.push(order);
-        Some(weak_order)
+        Ok(weak_order)
     }
 }
 
