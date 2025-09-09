@@ -1,4 +1,4 @@
-use crate::finance::{BankRegistry, Money, PersonalFinancePackage};
+use crate::finance::{BankRegistry, Money, PersonalFinancePackage, WithdrawalError};
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 
@@ -23,13 +23,13 @@ impl<'a> ThisPerson<'a> {
         &mut self,
         bank_registry: &BankRegistry,
         money: Money,
-    ) -> bool {
+    ) -> Result<(), WithdrawalError> {
         assert_ne!(money.amount.unwrap(), 0);
 
         let mut wallet = self.finance.wallet_mut();
 
         match wallet.ensure_contains(bank_registry, money.clone()) {
-            Ok(_) => true,
+            Ok(_) => Ok(()),
             Err(err) => {
                 drop(wallet);
                 let missing = Money {
@@ -39,19 +39,17 @@ impl<'a> ThisPerson<'a> {
 
                 let bank_registry = bank_registry.borrow();
                 let mut bank = bank_registry.bank_mut(&missing.currency).unwrap();
-
-                if !bank.can_withdraw(self.id.clone(), &self.finance.wallet(), missing.amount) {
-                    return false;
-                }
-
+                bank.dry_run_withdraw(self.id.clone(), &self.finance.wallet(), missing.amount)?;
                 self.finance.wallet_mut().convert_all_into(missing.currency);
+
                 bank.withdraw(
                     self.id.clone(),
                     &mut self.finance.wallet_mut(),
                     missing.amount,
-                );
+                )?;
+
                 assert!(self.finance.wallet().contains(money));
-                true
+                Ok(())
             }
         }
     }

@@ -3,6 +3,7 @@ use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::fmt::Display;
 use std::ops::{Div, Mul};
 
 pub type Currency = String;
@@ -152,5 +153,11 @@ impl Div<Float> for Money {
             currency: self.currency,
             amount: NonNeg::new((self.amount.unwrap() as Float / rhs) as MoneyAmount).unwrap(),
         }
+    }
+}
+
+impl Display for Money {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.amount, self.currency)
     }
 }

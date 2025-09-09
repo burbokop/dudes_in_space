@@ -18,7 +18,7 @@ static TYPE_ID: &str = "BuyVesselObjective";
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "buy_vessel_objective_stage")]
-#[deserialize_seed_xxx(seed = crate::objectives::trading::buy_vessel_objective::BuyVesselObjectiveSeed::<'context>)]
+#[deserialize_seed_xxx(seed = crate::objectives::trade::buy_vessel_objective::BuyVesselObjectiveSeed::<'context>)]
 pub(crate) enum BuyVesselObjective {
     CheckPrerequisites {
         needed_capabilities: BTreeSet<ModuleCapability>,
@@ -114,11 +114,13 @@ impl Objective for BuyVesselObjective {
                     FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer, estimate } => {
                         println!("{:?} -> {:?}", offer, estimate);
 
-                        let ok = this_person.ensure_has_money_in_wallet(
+                        this_person.ensure_has_money_in_wallet(
                             environment_context.bank_registry(),
-                            estimate.pledge,
-                        );
-                        assert!(ok);
+                            estimate.pledge.clone(),
+                        )
+                            .expect(&format!("Failed to ensure that person has enough money in wallet (Wallet content: {}, pledge: {})",
+                                             this_person.finance.wallet(),
+                                             &estimate.pledge));
 
                         match person::utils::place_buy_vessel_order(
                             this_person,

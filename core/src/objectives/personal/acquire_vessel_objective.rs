@@ -1,7 +1,7 @@
 use crate::objectives::crafting::{
     CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
 };
-use crate::objectives::trading::{
+use crate::objectives::trade::{
     BuyVesselObjective, BuyVesselObjectiveError, BuyVesselObjectiveSeed,
 };
 use dudes_in_space_api::environment::EnvironmentContext;

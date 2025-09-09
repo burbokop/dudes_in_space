@@ -4,6 +4,7 @@ use crate::utils::math::{NonNeg, noneg_float};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 pub type Cycle = u64;
@@ -59,33 +60,50 @@ impl Bank {
         self.customers.len()
     }
 
-    pub fn can_withdraw(
+    pub fn dry_run_withdraw(
         &self,
         customer: PersonId,
         target_wallet: &Wallet,
         amount: NonNeg<MoneyAmount>,
-    ) -> bool {
+    ) -> Result<(), WithdrawalError> {
         let customers_count = self.customers.len();
         if customer == self.owner {
-            true
+            Ok(())
         } else {
             let customers_count = match self.customers.get(&customer) {
                 None => customers_count + 1,
                 Some(account) => {
                     if account.deadline.is_some() {
-                        return false;
+                        return Err(WithdrawalError::InDebt);
                     }
                     customers_count
                 }
             };
 
             if customers_count == 1 {
-                return true;
+                return Ok(());
             }
 
             let stored_money_lower_limit = -(customers_count as MoneyAmount * self.money_created);
-            self.money_stored - amount.unwrap() >= stored_money_lower_limit
+            if self.money_stored - amount.unwrap() >= stored_money_lower_limit {
+                Ok(())
+            } else {
+                Err(WithdrawalError::CreditLimitReached {
+                    requested: self.money_stored - amount.unwrap(),
+                    limit: stored_money_lower_limit,
+                })
+            }
         }
+    }
+
+    pub fn can_withdraw(
+        &self,
+        customer: PersonId,
+        target_wallet: &Wallet,
+        amount: NonNeg<MoneyAmount>,
+    ) -> bool {
+        self.dry_run_withdraw(customer, target_wallet, amount)
+            .is_ok()
     }
 
     pub fn withdraw(
@@ -93,14 +111,16 @@ impl Bank {
         customer: PersonId,
         target_wallet: &mut Wallet,
         amount: NonNeg<MoneyAmount>,
-    ) {
+    ) -> Result<(), WithdrawalError> {
         assert_ne!(amount.unwrap(), 0);
 
         self.customers.entry(customer).or_insert(BankAccount::new());
         let customers_count = self.customers.len();
 
         let account = self.customers.get_mut(&customer).unwrap();
-        assert!(account.deadline.is_none());
+        if account.deadline.is_some() {
+            return Err(WithdrawalError::InDebt);
+        }
 
         if customer == self.owner {
             account.money -= amount.unwrap();
@@ -108,14 +128,21 @@ impl Bank {
             target_wallet.put(Money {
                 currency: self.currency.clone(),
                 amount,
-            })
+            });
+            Ok(())
         } else {
             account.money -= amount.unwrap();
 
             if customers_count != 1 {
                 let stored_money_lower_limit =
                     -(customers_count as MoneyAmount * self.money_created);
-                assert!(self.money_stored - amount.unwrap() >= stored_money_lower_limit);
+
+                if self.money_stored - amount.unwrap() < stored_money_lower_limit {
+                    return Err(WithdrawalError::CreditLimitReached {
+                        requested: self.money_stored - amount.unwrap(),
+                        limit: stored_money_lower_limit,
+                    });
+                }
             }
 
             self.money_stored -= amount.unwrap();
@@ -128,7 +155,8 @@ impl Bank {
             target_wallet.put(Money {
                 currency: self.currency.clone(),
                 amount,
-            })
+            });
+            Ok(())
         }
     }
 
@@ -207,7 +235,8 @@ impl Bank {
                 bank_owner_wallet.amount(money_to_take_from_bank_owner.currency.clone());
             if owner_money < money_to_take_from_bank_owner.amount {
                 let delta = money_to_take_from_bank_owner.amount - owner_money;
-                self.withdraw(self.owner, bank_owner_wallet, NonNeg::new(delta).unwrap());
+                self.withdraw(self.owner, bank_owner_wallet, NonNeg::new(delta).unwrap())
+                    .unwrap();
             }
         }
 
@@ -244,3 +273,20 @@ impl Display for Bank {
         )
     }
 }
+
+#[derive(Debug)]
+pub enum WithdrawalError {
+    CreditLimitReached {
+        requested: MoneyAmount,
+        limit: MoneyAmount,
+    },
+    InDebt,
+}
+
+impl Display for WithdrawalError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for WithdrawalError {}

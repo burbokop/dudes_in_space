@@ -1,4 +1,4 @@
-use crate::objectives::trading::{BuyGoodsObjective, SellGoodsObjective};
+use crate::objectives::trade::{BuyGoodsObjective, SellGoodsObjective};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestBuyOffer, FindBestBuyOfferResult,
 };
@@ -49,7 +49,7 @@ impl From<Option<ModuleId>> for ModulePtr {
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "trade_objective_stage")]
-#[deserialize_seed_xxx(seed = crate::objectives::trading::trade_objective::TradeObjectiveSeed::<'context>)]
+#[deserialize_seed_xxx(seed = crate::objectives::trade::trade_objective::TradeObjectiveSeed::<'context>)]
 pub(crate) enum TradeObjective {
     SearchVessel,
     MoveToVessel {

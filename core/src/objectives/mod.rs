@@ -4,7 +4,7 @@ mod gathering;
 mod initiatives;
 mod management;
 mod personal;
-mod trading;
+mod trade;
 
 use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
 use dudes_in_space_api::utils::request::ReqContext;
@@ -21,7 +21,7 @@ use crate::objectives::management::{
     ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed,
 };
 use crate::objectives::personal::{AdventuringObjectiveDecider, AdventuringObjectiveDynSeed};
-use crate::objectives::trading::{
+use crate::objectives::trade::{
     TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed,
 };
 

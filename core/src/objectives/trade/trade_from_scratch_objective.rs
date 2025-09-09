@@ -1,7 +1,7 @@
 use crate::objectives::crafting::{
     CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
 };
-use crate::objectives::trading::{TradeObjective, TradeObjectiveError, TradeObjectiveSeed};
+use crate::objectives::trade::{TradeObjective, TradeObjectiveError, TradeObjectiveSeed};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
@@ -32,7 +32,7 @@ static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "trade_from_scratch_objective_stage")]
-#[deserialize_seed_xxx(seed = crate::objectives::trading::trade_from_scratch_objective::TradeFromScratchObjectiveSeed::<'context>)]
+#[deserialize_seed_xxx(seed = crate::objectives::trade::trade_from_scratch_objective::TradeFromScratchObjectiveSeed::<'context>)]
 pub(crate) enum TradeFromScratchObjective {
     #[deserialize_seed_xxx(seeds = [(trade_objective, self.seed.seed.trade_objective_seed)])]
     ExecuteTrade {
