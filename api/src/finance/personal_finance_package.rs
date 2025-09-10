@@ -1,4 +1,5 @@
-use crate::finance::{Bank, BankRegistry, Currency, Wallet, WalletRegistry};
+use crate::finance::{Bank, BankRegistry, Currency, MoneyAmount, Wallet, WalletRegistry};
+use crate::utils::math::NonNeg;
 use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
@@ -52,6 +53,37 @@ impl PersonalFinancePackage {
                 Some(c) => c,
             },
             Some(c) => c.currency,
+        }
+    }
+
+    pub fn increase_credit_limit_or_create(
+        &mut self,
+        new_limit: NonNeg<MoneyAmount>,
+        mut new_bank: Bank,
+    ) {
+        match &self.bank {
+            None => {
+                match NonNeg::new(new_limit - new_bank.money_created()) {
+                    Ok(missing) => {
+                        new_bank
+                            .withdraw(new_bank.owner(), &mut self.wallet.borrow_mut(), missing)
+                            .unwrap();
+                    }
+                    _ => {}
+                }
+                self.bank = Some(Rc::new(RefCell::new(new_bank)))
+            }
+            Some(bank) => {
+                let mut bank = bank.borrow_mut();
+                match NonNeg::new(new_limit - bank.money_created()) {
+                    Ok(missing) => {
+                        let owner = bank.owner();
+                        bank.withdraw(owner, &mut self.wallet.borrow_mut(), missing)
+                            .unwrap();
+                    }
+                    _ => {}
+                }
+            }
         }
     }
 }
