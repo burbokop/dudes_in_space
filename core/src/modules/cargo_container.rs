@@ -126,6 +126,10 @@ impl Module for CargoContainer {
         &[]
     }
 
+    fn persons_mut(&mut self) -> &mut [Person] {
+        todo!()
+    }
+
     fn storages(&self) -> Vec<&ItemStorage> {
         vec![&self.storage]
     }

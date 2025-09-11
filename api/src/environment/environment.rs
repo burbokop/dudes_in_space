@@ -5,7 +5,7 @@ use crate::environment::{
 };
 use crate::finance::{BankRegistry, CurrencyGenerator, NotEnoughMoneyInWallet, WalletRegistry};
 use crate::item::{ItemId, ItemVault};
-use crate::module::{Module, ProcessTokenContext};
+use crate::module::{Module, ModuleCapability, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
 use crate::trade::{BuyOffer, ItemTradeTable, OfferRef, SellOffer, VesselTradeTable};
 use crate::utils::request::ReqContext;
@@ -323,7 +323,7 @@ impl Environment {
                                         req.input.needed_primary_capabilities.clone(),
                                         1,
                                     );
-                                
+
                                 req.promise
                                     .make_ready(
                                         req_context,
@@ -345,11 +345,49 @@ impl Environment {
                         return false;
                     }
                 }
-                
+
                 req.promise
                     .make_ready(req_context, PlaceBuyCustomVesselOrderResult::OfferNotFound)
                     .unwrap();
                 return false;
+            });
+
+        self.request_storage
+            .request_credit_limit_increase_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                for vessel in &self.vessels {
+                    let flow: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                        let mut modules: Vec<_> = vessel
+                            .modules_with_capability_mut(ModuleCapability::PersonnelRoom)
+                            .collect();
+
+                        let persons: Vec<_> = modules
+                            .iter_mut()
+                            .map(|module| module.persons_mut().iter_mut())
+                            .flatten()
+                            .collect();
+
+                        for person in persons {
+                            if person.id() == req.input.recipient {
+                                person
+                                    .request_handler()
+                                    .unwrap()
+                                    .handle_request_credit_limit_increase(req);
+                                return ControlFlow::Break(());
+                            }
+                        }
+
+                        ControlFlow::Continue(())
+                    });
+
+                    if flow.is_break() {
+                        break;
+                    }
+                }
+
+                req.promise.check_pending(req_context)
             });
     }
 }

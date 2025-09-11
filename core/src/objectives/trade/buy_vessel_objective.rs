@@ -1,7 +1,8 @@
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult,
-    PlaceBuyCustomVesselOrderResult,
+    PlaceBuyCustomVesselOrderResult, RequestCreditLimitIncrease, RequestCreditLimitIncreaseResult,
 };
+use dudes_in_space_api::finance::WithdrawalError;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
@@ -30,6 +31,10 @@ pub(crate) enum BuyVesselObjective {
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
         future: ReqFuture<FindBestBuyVesselOfferResult>,
     },
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.request_credit_limit_increase_future_seed)])]
+    WaitForCreditLimitIncreased {
+        future: ReqFuture<RequestCreditLimitIncreaseResult>,
+    },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.place_order_future_seed)])]
     WaitForOrderToBeAccepted {
         needed_capabilities: BTreeSet<ModuleCapability>,
@@ -46,6 +51,8 @@ pub(crate) enum BuyVesselObjective {
 #[derive(Clone)]
 pub(crate) struct BuyVesselObjectiveSeed<'context> {
     find_offers_future_seed: ReqFutureSeed<'context, FindBestBuyVesselOfferResult>,
+    request_credit_limit_increase_future_seed:
+        ReqFutureSeed<'context, RequestCreditLimitIncreaseResult>,
     place_order_future_seed: ReqFutureSeed<'context, PlaceBuyCustomVesselOrderResult>,
 }
 
@@ -53,6 +60,7 @@ impl<'context> BuyVesselObjectiveSeed<'context> {
     pub(crate) fn new(context: &'context ReqContext) -> Self {
         Self {
             find_offers_future_seed: ReqFutureSeed::new(context),
+            request_credit_limit_increase_future_seed: ReqFutureSeed::new(context),
             place_order_future_seed: ReqFutureSeed::new(context),
         }
     }
@@ -114,13 +122,27 @@ impl Objective for BuyVesselObjective {
                     FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer, estimate } => {
                         println!("{:?} -> {:?}", offer, estimate);
 
-                        this_person.ensure_has_money_in_wallet(
+                        match this_person.ensure_has_money_in_wallet(
                             environment_context.bank_registry(),
                             estimate.pledge.clone(),
-                        )
-                            .expect(&format!("Failed to ensure that person has enough money in wallet (Wallet content: {}, pledge: {})",
-                                             this_person.finance.wallet(),
-                                             &estimate.pledge));
+                        ) {
+                            Ok(_) => {}
+                            Err(WithdrawalError::CreditLimitReached {
+                                bank_owner,
+                                requested,
+                                limit,
+                            }) => {
+                                *self = Self::WaitForCreditLimitIncreased {
+                                    future: RequestCreditLimitIncrease {
+                                        recipient: bank_owner,
+                                        new_limit: requested,
+                                    }
+                                    .push(environment_context.request_storage_mut()),
+                                };
+                                return Ok(ObjectiveStatus::InProgress);
+                            }
+                            Err(WithdrawalError::InDebt) => todo!(),
+                        }
 
                         match person::utils::place_buy_vessel_order(
                             this_person,
@@ -147,6 +169,18 @@ impl Objective for BuyVesselObjective {
                         Err(BuyVesselObjectiveError::NoBuyOffersFound)
                     }
                 },
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
+                Err(ReqTakeError::AlreadyTaken) => unreachable!(),
+            },
+            Self::WaitForCreditLimitIncreased { future } => match future.take() {
+                Ok(RequestCreditLimitIncreaseResult::LimitIncreased) => {
+                    todo!()
+                    // *self = Self::FindOffers {};
+                    // Ok(ObjectiveStatus::InProgress)
+                }
+                Ok(RequestCreditLimitIncreaseResult::RequestDenied) => {
+                    todo!()
+                }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },

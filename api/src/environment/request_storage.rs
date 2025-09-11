@@ -1,4 +1,4 @@
-use crate::finance::{Money, WalletId};
+use crate::finance::{Money, MoneyAmount, WalletId};
 use crate::item::{ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
@@ -6,6 +6,7 @@ use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef,
     SellOffer, WeakBuyCustomVesselOrder,
 };
+use crate::utils::math::NonNeg;
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
 use serde::{Deserialize, Serialize};
@@ -32,6 +33,10 @@ pub struct RequestStorage {
     #[serde(default)]
     pub(crate) place_buy_custom_vessel_order_requests:
         VecDeque<EnvironmentRequest<PlaceBuyCustomVesselOrder, PlaceBuyCustomVesselOrderResult>>,
+
+    #[serde(default)]
+    pub(crate) request_credit_limit_increase_requests:
+        VecDeque<EnvironmentRequest<RequestCreditLimitIncrease, RequestCreditLimitIncreaseResult>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -181,6 +186,32 @@ pub enum PlaceBuyCustomVesselOrderResult {
     Ok(WeakBuyCustomVesselOrder),
     NotEnoughMoneyInWallet,
     OfferNotFound,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RequestCreditLimitIncrease {
+    pub recipient: PersonId,
+    pub new_limit: NonNeg<MoneyAmount>,
+}
+
+impl RequestCreditLimitIncrease {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<RequestCreditLimitIncreaseResult> {
+        let (promise, future) = ReqPromise::new();
+        context
+            .request_credit_limit_increase_requests
+            .push_back(EnvironmentRequest {
+                promise,
+                input: self,
+            });
+        future
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "tp")]
+pub enum RequestCreditLimitIncreaseResult {
+    LimitIncreased,
+    RequestDenied,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

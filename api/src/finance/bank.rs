@@ -108,6 +108,7 @@ impl Bank {
                 Ok(())
             } else {
                 Err(WithdrawalError::CreditLimitReached {
+                    bank_owner: self.owner,
                     requested: NonNeg::new(amount.unwrap() - self.money_stored).unwrap(),
                     limit: NonNeg::new(-stored_money_lower_limit).unwrap(),
                 })
@@ -159,6 +160,7 @@ impl Bank {
 
             if self.money_stored - amount.unwrap() < stored_money_lower_limit {
                 return Err(WithdrawalError::CreditLimitReached {
+                    bank_owner: self.owner,
                     requested: NonNeg::new(amount.unwrap() - self.money_stored).unwrap(),
                     limit: NonNeg::new(-stored_money_lower_limit).unwrap(),
                 });
@@ -297,6 +299,7 @@ impl Display for Bank {
 #[derive(Debug, PartialEq)]
 pub enum WithdrawalError {
     CreditLimitReached {
+        bank_owner: PersonId,
         requested: NonNeg<MoneyAmount>,
         limit: NonNeg<MoneyAmount>,
     },

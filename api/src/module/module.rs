@@ -43,6 +43,7 @@ pub trait Module: Debug + DynSerialize {
     fn free_person_slots_count(&self) -> usize;
     fn contains_person(&self, id: PersonId) -> bool;
     fn persons(&self) -> &[Person];
+    fn persons_mut(&mut self) -> &mut [Person];
 
     /// storage
     fn storages(&self) -> Vec<&ItemStorage>;

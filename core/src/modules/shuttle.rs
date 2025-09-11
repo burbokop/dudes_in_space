@@ -190,6 +190,13 @@ impl Module for Shuttle {
         self.pilot.as_ref().map(std::slice::from_ref).unwrap_or(&[])
     }
 
+    fn persons_mut(&mut self) -> &mut [Person] {
+        self.pilot
+            .as_mut()
+            .map(std::slice::from_mut)
+            .unwrap_or(&mut [])
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         if let Some(pilot) = &self.pilot {

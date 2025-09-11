@@ -182,6 +182,10 @@ impl Module for PersonnelArea {
         &self.personnel
     }
 
+    fn persons_mut(&mut self) -> &mut [Person] {
+        &mut self.personnel
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         for person in &self.personnel {

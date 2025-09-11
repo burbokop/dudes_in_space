@@ -288,6 +288,10 @@ impl Module for TradingTerminal {
             .unwrap_or(&[])
     }
 
+    fn persons_mut(&mut self) -> &mut [Person] {
+        todo!()
+    }
+
     fn storages(&self) -> Vec<&ItemStorage> {
         vec![]
     }

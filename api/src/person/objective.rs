@@ -1,4 +1,7 @@
-use crate::environment::EnvironmentContext;
+use crate::environment::{
+    EnvironmentContext, EnvironmentRequest, RequestCreditLimitIncrease,
+    RequestCreditLimitIncreaseResult,
+};
 use crate::module::ModuleConsole;
 use crate::person::ThisPerson;
 use crate::person::logger::PersonLogger;
@@ -28,6 +31,16 @@ pub trait Objective {
     ) -> Result<ObjectiveStatus, Self::Error>;
 }
 
+pub trait ObjectiveRequestHandler {
+    fn handle_request_credit_limit_increase(
+        &mut self,
+        request: &mut EnvironmentRequest<
+            RequestCreditLimitIncrease,
+            RequestCreditLimitIncreaseResult,
+        >,
+    );
+}
+
 pub trait DynObjective: Debug + Display + DynSerialize {
     fn pursue_dyn(
         &mut self,
@@ -37,6 +50,8 @@ pub trait DynObjective: Debug + Display + DynSerialize {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>>;
+
+    fn request_handler_dyn(&mut self) -> Option<&mut dyn ObjectiveRequestHandler>;
 }
 
 dyn_serde_trait!(DynObjective, ObjectiveSeed);
@@ -59,6 +74,10 @@ impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
                 logger,
             )
             .map_err(|e| Box::new(e))?)
+    }
+
+    fn request_handler_dyn(&mut self) -> Option<&mut dyn ObjectiveRequestHandler> {
+        todo!()
     }
 }
 

@@ -7,7 +7,8 @@ use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::ObjectiveStatus;
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{
-    DynObjective, ObjectiveDeciderVault, ObjectiveSeed, StatusCollector, ThisPerson,
+    DynObjective, ObjectiveDeciderVault, ObjectiveRequestHandler, ObjectiveSeed, StatusCollector,
+    ThisPerson,
 };
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
@@ -341,6 +342,12 @@ impl Person {
                 }
             }
         }
+    }
+
+    pub(crate) fn request_handler(&mut self) -> Option<&mut dyn ObjectiveRequestHandler> {
+        self.objective
+            .as_mut()
+            .and_then(|x| x.request_handler_dyn())
     }
 
     pub fn collect_status(&self, collector: &mut dyn StatusCollector) {

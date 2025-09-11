@@ -110,6 +110,10 @@ impl Module for PlantFacility {
         todo!()
     }
 
+    fn persons_mut(&mut self) -> &mut [Person] {
+        todo!()
+    }
+
     fn storages(&self) -> Vec<&ItemStorage> {
         todo!()
     }

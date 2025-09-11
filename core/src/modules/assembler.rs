@@ -532,6 +532,13 @@ impl Module for Assembler {
             .unwrap_or(&[])
     }
 
+    fn persons_mut(&mut self) -> &mut [Person] {
+        self.operator
+            .as_mut()
+            .map(std::slice::from_mut)
+            .unwrap_or(&mut [])
+    }
+
     fn storages(&self) -> Vec<&ItemStorage> {
         vec![&self.storage]
     }
