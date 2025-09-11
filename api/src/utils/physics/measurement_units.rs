@@ -12,14 +12,35 @@ pub struct Kg<T>(pub T);
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Serialize, Deserialize)]
 pub struct M3<T>(pub T);
 
-impl<T> Div for M3<T>
-where
-    T: Div<Output = T>,
-{
-    type Output = T;
+impl Div for M3<f32> {
+    type Output = f32;
 
     fn div(self, rhs: Self) -> Self::Output {
         self.0 / rhs.0
+    }
+}
+
+impl Div for M3<f64> {
+    type Output = f64;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.0 / rhs.0
+    }
+}
+
+impl Div for M3<u32> {
+    type Output = f32;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.0 as f32 / rhs.0 as f32
+    }
+}
+
+impl Div for M3<u64> {
+    type Output = f64;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.0 as f64 / rhs.0 as f64
     }
 }
 

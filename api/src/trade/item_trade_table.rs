@@ -199,7 +199,7 @@ fn total_price(
     item_vault: &ItemVault,
 ) -> Money {
     let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
-    let count: ItemCount = free_storage_space / item.volume;
+    let count: ItemCount = (free_storage_space / item.volume) as ItemCount;
 
     Money {
         currency: price_per_unit.currency,

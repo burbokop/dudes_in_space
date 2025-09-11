@@ -83,6 +83,7 @@ impl Environment {
             subordination_table,
             bank_registry,
             currency_generator,
+            item_vault,
         );
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
@@ -257,6 +258,8 @@ impl Environment {
                         FindBestOffersForItemsResult {
                             max_profit_buy_offers,
                             max_profit_sell_offers,
+                            average_buy_offers: (|| todo!())(),
+                            average_sell_offers: (|| todo!())(),
                         },
                     )
                     .unwrap();

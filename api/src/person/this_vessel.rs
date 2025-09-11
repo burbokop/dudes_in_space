@@ -1,4 +1,4 @@
-use crate::item::ItemVolume;
+use crate::item::{ItemStorage, ItemVolume};
 use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId};
 use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use crate::utils::physics::M3;
@@ -159,6 +159,15 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
             } else {
                 M3(0)
             }
+    }
+
+    pub fn for_each_storage(&self, f: &impl Fn(&ItemStorage)) {
+        self.this_vessel
+            .modules_with_capability(ModuleCapability::ItemStorage)
+            .into_iter()
+            .for_each(|module| module.storages().into_iter().for_each(f));
+
+        self.this_module.storages().into_iter().for_each(f);
     }
 
     pub fn item_recipes(&self) -> Vec<ItemRecipe> {

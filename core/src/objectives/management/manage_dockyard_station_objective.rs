@@ -10,8 +10,10 @@ use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     ThisVessel, tie,
 };
+use dudes_in_space_api::utils::math::map_into_range;
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
+use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
@@ -123,17 +125,70 @@ impl Objective for ManageDockyardStationObjective {
                     //     (&search_result, assembly_recipes)
                     // );
 
-                    let mut max_counts: BTreeMap<ItemId, ItemCount> = BTreeMap::new();
+                    let mut min_counts: BTreeMap<ItemId, ItemCount> = BTreeMap::new();
                     assembly_recipes
                         .iter()
                         .map(|a| a.input())
                         .flatten()
                         .for_each(|(item, count)| {
-                            let c = max_counts.entry(item.clone()).or_default();
+                            let c = min_counts.entry(item.clone()).or_default();
                             *c = ItemCount::max(*c, *count);
                         });
 
-                    println!("{:#?}", max_counts);
+                    println!("{:#?}", min_counts);
+
+                    let sum_volume = min_counts
+                        .clone()
+                        .into_iter()
+                        .map(|(item, count)| {
+                            environment_context
+                                .item_vault()
+                                .get_ref(item)
+                                .unwrap()
+                                .volume
+                                * count
+                        })
+                        .sum();
+
+                    /// I use minimum free space storage because I don't know which one ends up to be used
+                    /// TODO pick specific storage and remember it in objective, free it from junk and and dedicate only for assembling
+                    let min_free_space_storage = tie(this_module, this_vessel)
+                        .storages()
+                        .iter()
+                        .min_by(|a, b| a.free_space().cmp(&b.free_space()));
+
+                    let capacity_dedicated_for_this_objective =
+                        min_free_space_storage.unwrap().free_space();
+
+                    for (item, count) in min_counts {
+                        let item = environment_context.item_vault().get_ref(item).unwrap();
+
+                        let item_volume = item.volume * count;
+                        let portion: Float = item_volume / sum_volume;
+                        let cap_for_item = capacity_dedicated_for_this_objective * portion;
+                        let capacity_for_item = cap_for_item / item.volume;
+
+                        let cheapest_buy_offer =
+                            search_result.max_profit_buy_offers.get(&item).unwrap();
+                        let average_buy_offer =
+                            search_result.average_buy_offers.get(&item).unwrap();
+
+                        let price_for_item = if count < capacity_for_item / 2 {
+                            map_into_range(
+                                count,
+                                0..capacity_for_item / 2,
+                                (average_buy_offer * 2)..average_buy_offer,
+                            );
+                        } else {
+                            map_into_range(
+                                count,
+                                (capacity_for_item / 2)..capacity_for_item,
+                                average_buy_offer..cheapest_buy_offer,
+                            );
+                        };
+
+                        let count_range = 1..capacity_for_item - occupied_space;
+                    }
 
                     let input_offers = (|| todo!())();
 

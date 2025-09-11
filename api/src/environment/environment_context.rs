@@ -1,23 +1,26 @@
 use crate::environment::RequestStorage;
 use crate::finance::{BankRegistry, CurrencyGenerator};
+use crate::item::ItemVault;
 use crate::module::ProcessTokenContext;
 use crate::person::SubordinationTable;
 
-pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e> {
+pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f> {
     process_token_context: &'a ProcessTokenContext,
     request_storage: &'b mut RequestStorage,
     subordination_table: &'c SubordinationTable,
     bank_registry: &'d BankRegistry,
     currency_generator: &'e CurrencyGenerator,
+    item_vault: &'f ItemVault,
 }
 
-impl<'a, 'b, 'c, 'd, 'e> EnvironmentContext<'a, 'b, 'c, 'd, 'e> {
+impl<'a, 'b, 'c, 'd, 'e, 'f> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f> {
     pub fn new(
         process_token_context: &'a ProcessTokenContext,
         request_storage: &'b mut RequestStorage,
         subordination_table: &'c SubordinationTable,
         bank_registry: &'d BankRegistry,
         currency_generator: &'e CurrencyGenerator,
+        item_vault: &'f ItemVault,
     ) -> Self {
         Self {
             process_token_context,
@@ -25,6 +28,7 @@ impl<'a, 'b, 'c, 'd, 'e> EnvironmentContext<'a, 'b, 'c, 'd, 'e> {
             subordination_table,
             bank_registry,
             currency_generator,
+            item_vault,
         }
     }
 
@@ -50,5 +54,9 @@ impl<'a, 'b, 'c, 'd, 'e> EnvironmentContext<'a, 'b, 'c, 'd, 'e> {
 
     pub fn currency_generator(&self) -> &CurrencyGenerator {
         self.currency_generator
+    }
+
+    pub fn item_vault(&self) -> &ItemVault {
+        self.item_vault
     }
 }

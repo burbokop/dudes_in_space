@@ -3,6 +3,7 @@ use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops::Deref;
 use std::rc::{Rc, Weak};
 
 pub type ItemId = String;
@@ -13,9 +14,9 @@ pub type ItemDensity = KgPerM3<u32>;
 
 #[derive(Debug, PartialEq)]
 pub struct Item {
-    pub(crate) id: ItemId,
-    pub(crate) volume: ItemVolume,
-    pub(crate) density: ItemDensity,
+    pub id: ItemId,
+    pub volume: ItemVolume,
+    pub density: ItemDensity,
 }
 
 impl Item {
@@ -136,6 +137,14 @@ impl ItemVault {
             .iter()
             .find(|item| item.id == id)
             .map(Rc::downgrade)
+            .ok_or(ItemNotFoundInVaultError { id })
+    }
+
+    pub fn get_ref(&self, id: ItemId) -> Result<&Item, ItemNotFoundInVaultError> {
+        self.data
+            .iter()
+            .find(|item| item.id == id)
+            .map(Rc::deref)
             .ok_or(ItemNotFoundInVaultError { id })
     }
 
