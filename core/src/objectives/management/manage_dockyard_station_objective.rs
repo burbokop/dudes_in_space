@@ -150,10 +150,10 @@ impl Objective for ManageDockyardStationObjective {
                         })
                         .sum();
 
-                    /// I use minimum free space storage because I don't know which one ends up to be used
-                    /// TODO pick specific storage and remember it in objective, free it from junk and and dedicate only for assembling
+                    // I use minimum free space storage because I don't know which one ends up to be used
+                    // TODO pick specific storage and remember it in objective, free it from junk and and dedicate only for assembling
                     let min_free_space_storage = tie(this_module, this_vessel)
-                        .storages()
+                        .map_storages(|x|x.)
                         .iter()
                         .min_by(|a, b| a.free_space().cmp(&b.free_space()));
 
@@ -186,6 +186,11 @@ impl Objective for ManageDockyardStationObjective {
                                 average_buy_offer..cheapest_buy_offer,
                             );
                         };
+
+                        let occupied_space =  tie(this_module, this_vessel)
+                            .storages().find(item);
+
+                         
 
                         let count_range = 1..capacity_for_item - occupied_space;
                     }
