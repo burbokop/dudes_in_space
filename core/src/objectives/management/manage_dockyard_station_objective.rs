@@ -118,10 +118,22 @@ impl Objective for ManageDockyardStationObjective {
                     )
                     .collect();
 
-                    println!(
-                        "ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe: {:#?}",
-                        (&search_result, assembly_recipes)
-                    );
+                    // println!(
+                    //     "ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe: {:#?}",
+                    //     (&search_result, assembly_recipes)
+                    // );
+
+                    let mut max_counts: BTreeMap<ItemId, ItemCount> = BTreeMap::new();
+                    assembly_recipes
+                        .iter()
+                        .map(|a| a.input())
+                        .flatten()
+                        .for_each(|(item, count)| {
+                            let c = max_counts.entry(item.clone()).or_default();
+                            *c = ItemCount::max(*c, *count);
+                        });
+
+                    println!("{:#?}", max_counts);
 
                     let input_offers = (|| todo!())();
 
