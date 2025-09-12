@@ -1,15 +1,26 @@
-use std::cell::Ref;
 use crate::item::{ItemStorage, ItemVolume};
 use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId};
 use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use crate::utils::physics::M3;
 use crate::vessel::{DockingClamp, DockingClampConnection, VesselConsole, VesselInternalConsole};
+use std::cell::Ref;
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
 
-pub enum MaybeCellRef<'a,'b, T> {
+pub enum MaybeCellRef<'a, 'b, T> {
     PlainRef(&'a T),
     CellRef(Ref<'b, T>),
+}
+
+impl<'a, 'b, T> Deref for MaybeCellRef<'a, 'b, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            MaybeCellRef::PlainRef(r) => *r,
+            MaybeCellRef::CellRef(r) => r.deref(),
+        }
+    }
 }
 
 pub struct ThisVessel<'a, 'b> {
@@ -167,44 +178,53 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
             }
     }
 
-    pub fn storages(&self) -> impl Iterator<Item = MaybeCellRef<'a,'b, ItemStorage>> {
-
+    pub fn storages<'q>(&'q self) -> Vec<MaybeCellRef<'a, 'b, ItemStorage>>
+    where
+        'q: 'a + 'b,
+    {
         // struct Iter<'a, 'b> {
         //     borrowed: std::vec::IntoIter<Ref<'a, dyn Module>> ,
-        //     
+        //
         //     this: std::slice::Iter<'b, ItemStorage>,
         // }
-        // 
+        //
         // impl<'a, 'b> Iterator for Iter<'a, 'b> {
         //     type Item = MaybeCellRef<'a, 'b, ItemStorage>;
-        // 
+        //
         //     fn next(&mut self) -> Option<Self::Item> {
         //         todo!()
         //     }
         // }
-        // 
+        //
         // Iter {
         //     borrowed: self.this_vessel
         //         .modules_with_capability(ModuleCapability::ItemStorage).into_iter(),
         //     this: self.this_module.storages().into_iter()
         // }
 
-
-        self.this_vessel
-            .modules_with_capability(ModuleCapability::ItemStorage)
+        let mut xx: Vec<MaybeCellRef<'a, 'b, ItemStorage>> = self
+            .this_module
+            .storages()
             .into_iter()
+            .map(|x: &'a ItemStorage| MaybeCellRef::<'a, 'b, ItemStorage>::PlainRef(x))
+            .collect();
+
+        let modules = self
+            .this_vessel
+            .modules_with_capability(ModuleCapability::ItemStorage);
+
+        let mut yy: Vec<MaybeCellRef<'a, 'b, ItemStorage>> = modules
+            .iter()
             .map(|module| {
-                let c= module.storages().len();
-                (0..c).map(|i|{
-                    
-                    Ref::map(Ref::clone(&module), |module|module.storages()[i])
-                    
-                }).collect::<Vec<_>>()
+                let c = module.storages().len();
+                (0..c).map(|i| Ref::map(Ref::clone(module), |module| module.storages()[i]))
             })
             .flatten()
-            .map(|x| MaybeCellRef::<'a,'b, ItemStorage>::CellRef(x))
-            .chain(self.this_module.storages().iter().map(|x|MaybeCellRef::<'a,'b, ItemStorage>::PlainRef(x)).collect::<Vec<_>>().into_iter())
-            .collect::<Vec<_>>().into_iter()
+            .map(|x| MaybeCellRef::<'a, 'b, ItemStorage>::CellRef(x))
+            .collect();
+
+        xx.append(&mut yy);
+        xx
     }
 
     pub fn item_recipes(&self) -> Vec<ItemRecipe> {

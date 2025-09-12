@@ -3,7 +3,7 @@ use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffe
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
 };
-use dudes_in_space_api::finance::Money;
+use dudes_in_space_api::finance::{Currency, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
@@ -13,7 +13,6 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::utils::math::map_into_range;
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
@@ -152,45 +151,76 @@ impl Objective for ManageDockyardStationObjective {
 
                     // I use minimum free space storage because I don't know which one ends up to be used
                     // TODO pick specific storage and remember it in objective, free it from junk and and dedicate only for assembling
-                    let min_free_space_storage = tie(this_module, this_vessel)
-                        .map_storages(|x|x.)
-                        .iter()
-                        .min_by(|a, b| a.free_space().cmp(&b.free_space()));
 
-                    let capacity_dedicated_for_this_objective =
-                        min_free_space_storage.unwrap().free_space();
+                    let this_vessel = tie(this_module, this_vessel);
+
+                    let min_free_space_storage = this_vessel
+                        .storages()
+                        .into_iter()
+                        .min_by(|a, b| a.free_space().cmp(&b.free_space()))
+                        .unwrap();
+
+                    let capacity_dedicated_for_this_objective = min_free_space_storage.free_space();
 
                     for (item, count) in min_counts {
                         let item = environment_context.item_vault().get_ref(item).unwrap();
 
                         let item_volume = item.volume * count;
-                        let portion: Float = item_volume / sum_volume;
+                        let portion = item_volume / sum_volume;
                         let cap_for_item = capacity_dedicated_for_this_objective * portion;
-                        let capacity_for_item = cap_for_item / item.volume;
+                        let capacity_for_item = (cap_for_item / item.volume) as ItemCount;
 
-                        let cheapest_buy_offer =
-                            search_result.max_profit_buy_offers.get(&item).unwrap();
-                        let average_buy_offer =
-                            search_result.average_buy_offers.get(&item).unwrap();
+                        let target_currency: Currency = (|| todo!())();
+
+                        let cheapest_buy_offer = search_result
+                            .max_profit_buy_offers
+                            .get(&item.id)
+                            .map(|offer| {
+                                offer
+                                    .offer
+                                    .price_per_unit
+                                    .convert_to_currency(
+                                        environment_context.bank_registry(),
+                                        target_currency.clone(),
+                                    )
+                                    .amount
+                                    .unwrap()
+                            })
+                            .unwrap_or(1);
+
+                        let average_buy_offer = search_result
+                            .average_buy_offers
+                            .get(&item.id)
+                            .map(|offer| {
+                                offer
+                                    .offer
+                                    .price_per_unit
+                                    .convert_to_currency(
+                                        environment_context.bank_registry(),
+                                        target_currency,
+                                    )
+                                    .amount
+                                    .unwrap()
+                            })
+                            .unwrap_or(1);
 
                         let price_for_item = if count < capacity_for_item / 2 {
                             map_into_range(
-                                count,
-                                0..capacity_for_item / 2,
+                                count as i64,
+                                0..capacity_for_item as i64 / 2,
                                 (average_buy_offer * 2)..average_buy_offer,
                             );
                         } else {
                             map_into_range(
-                                count,
-                                (capacity_for_item / 2)..capacity_for_item,
+                                count as i64,
+                                (capacity_for_item as i64 / 2)..capacity_for_item as i64,
                                 average_buy_offer..cheapest_buy_offer,
                             );
                         };
 
-                        let occupied_space =  tie(this_module, this_vessel)
-                            .storages().find(item);
-
-                         
+                        let occupied_space = min_free_space_storage.count(item.id.clone());
+                        // TODO: if occupied_space == capacity_for_item then no need for order
+                        assert!(occupied_space < capacity_for_item);
 
                         let count_range = 1..capacity_for_item - occupied_space;
                     }

@@ -162,7 +162,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn storages(&self) -> &[ItemStorage] {
-        todo!()
+        &[]
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {

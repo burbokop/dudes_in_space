@@ -86,6 +86,22 @@ where
     }
 }
 
+impl Mul<f32> for M3<u32> {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self((self.0 as f32 * rhs) as u32)
+    }
+}
+
+impl Mul<f64> for M3<u64> {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self((self.0 as f64 * rhs) as u64)
+    }
+}
+
 impl<T: One> One for M3<T> {
     fn one() -> Self {
         M3(T::one())
