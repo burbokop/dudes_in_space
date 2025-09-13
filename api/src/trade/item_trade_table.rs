@@ -4,6 +4,7 @@ use crate::module::ModuleCapability;
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
 use crate::utils::math::NonNeg;
 use crate::utils::range::Range;
+use crate::utils::utils::Float;
 use crate::vessel::Vessel;
 use std::collections::BTreeMap;
 
@@ -42,6 +43,41 @@ impl ItemRecord {
                 .price_per_unit
                 .cmp(bank_registry, &b.offer.price_per_unit)
         })
+    }
+
+    pub(crate) fn average_buy_offer(&self, bank_registry: &BankRegistry) -> Option<Money> {
+        let count = self.buy_offers.len();
+        let currency = self
+            .buy_offers
+            .first()?
+            .offer
+            .price_per_unit
+            .currency
+            .clone();
+
+        let amount = NonNeg::new(
+            (self
+                .buy_offers
+                .iter()
+                .map(|offer| {
+                    offer
+                        .offer
+                        .price_per_unit
+                        .convert_to_currency(bank_registry, currency.clone())
+                        .amount
+                        .unwrap()
+                })
+                .sum::<MoneyAmount>() as Float
+                / count as Float)
+                .round() as MoneyAmount,
+        )
+        .unwrap();
+
+        Some(Money { currency, amount })
+    }
+
+    pub(crate) fn average_sell_offer(&self, bank_registry: &BankRegistry) -> Option<Money> {
+        todo!()
     }
 
     pub(crate) fn eval_max_profit(

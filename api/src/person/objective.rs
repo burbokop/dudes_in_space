@@ -2,14 +2,16 @@ use crate::environment::{
     EnvironmentContext, EnvironmentRequest, RequestCreditLimitIncrease,
     RequestCreditLimitIncreaseResult,
 };
+use crate::finance::{Bank, BankRegistry, CurrencyGenerator};
 use crate::module::ModuleConsole;
 use crate::person::ThisPerson;
 use crate::person::logger::PersonLogger;
+use crate::utils::request::ReqContext;
 use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
-use rand::Rng;
 use rand::prelude::SliceRandom;
+use rand::{Rng, rng};
 use std::error::Error;
 use std::fmt::{Debug, Display};
 
@@ -21,6 +23,7 @@ pub enum ObjectiveStatus {
 
 pub trait Objective {
     type Error: Error + 'static;
+
     fn pursue(
         &mut self,
         this_person: &mut ThisPerson,
@@ -29,16 +32,56 @@ pub trait Objective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Self::Error>;
+
+    fn request_handler(&mut self) -> Option<Box<dyn ObjectiveRequestHandler>> {
+        Some(Box::new(DefaultObjectiveRequestHandler))
+    }
 }
 
 pub trait ObjectiveRequestHandler {
     fn handle_request_credit_limit_increase(
         &mut self,
+        this_person: &mut ThisPerson,
+        currency_generator: &CurrencyGenerator,
+        bank_registry: &BankRegistry,
+        req_context: &ReqContext,
         request: &mut EnvironmentRequest<
             RequestCreditLimitIncrease,
             RequestCreditLimitIncreaseResult,
         >,
     );
+}
+
+struct DefaultObjectiveRequestHandler;
+
+impl<'a> ObjectiveRequestHandler for DefaultObjectiveRequestHandler {
+    fn handle_request_credit_limit_increase(
+        &mut self,
+        this_person: &mut ThisPerson,
+        currency_generator: &CurrencyGenerator,
+        bank_registry: &BankRegistry,
+        req_context: &ReqContext,
+        request: &mut EnvironmentRequest<
+            RequestCreditLimitIncrease,
+            RequestCreditLimitIncreaseResult,
+        >,
+    ) {
+        this_person.finance.increase_credit_limit_or_create(
+            request.input.new_limit,
+            Bank::new(
+                this_person.id.clone(),
+                currency_generator.generate_name(&mut rng(), bank_registry, this_person),
+            ),
+        );
+
+        request
+            .promise
+            .make_ready(
+                req_context,
+                RequestCreditLimitIncreaseResult::LimitIncreased,
+            )
+            .unwrap()
+    }
 }
 
 pub trait DynObjective: Debug + Display + DynSerialize {
@@ -51,7 +94,7 @@ pub trait DynObjective: Debug + Display + DynSerialize {
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus, Box<dyn Error>>;
 
-    fn request_handler_dyn(&mut self) -> Option<&mut dyn ObjectiveRequestHandler>;
+    fn request_handler_dyn(&mut self) -> Option<Box<dyn ObjectiveRequestHandler>>;
 }
 
 dyn_serde_trait!(DynObjective, ObjectiveSeed);
@@ -76,8 +119,8 @@ impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
             .map_err(|e| Box::new(e))?)
     }
 
-    fn request_handler_dyn(&mut self) -> Option<&mut dyn ObjectiveRequestHandler> {
-        todo!()
+    fn request_handler_dyn(&mut self) -> Option<Box<dyn ObjectiveRequestHandler>> {
+        self.request_handler()
     }
 }
 

@@ -3,7 +3,9 @@ use crate::environment::{
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
     RequestStorage,
 };
-use crate::finance::{BankRegistry, CurrencyGenerator, NotEnoughMoneyInWallet, WalletRegistry};
+use crate::finance::{
+    BankRegistry, CurrencyGenerator, Money, NotEnoughMoneyInWallet, WalletRegistry,
+};
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ModuleCapability, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
@@ -88,7 +90,13 @@ impl Environment {
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
-        self.process_requests(req_context, item_vault, bank_registry, wallet_registry);
+        self.process_requests(
+            req_context,
+            item_vault,
+            bank_registry,
+            wallet_registry,
+            currency_generator,
+        );
         self.iteration += 1;
     }
 
@@ -106,6 +114,7 @@ impl Environment {
         item_vault: &ItemVault,
         bank_registry: &BankRegistry,
         wallet_registry: &WalletRegistry,
+        currency_generator: &CurrencyGenerator,
     ) {
         self.request_storage
             .find_best_buy_offer_requests
@@ -240,14 +249,25 @@ impl Environment {
                     Default::default();
                 let mut max_profit_sell_offers: BTreeMap<ItemId, OfferRef<SellOffer>> =
                     Default::default();
+                let mut average_buy_offers: BTreeMap<ItemId, Money> = Default::default();
+                let mut average_sell_offers: BTreeMap<ItemId, Money> = Default::default();
 
                 for item in &req.input.items {
                     if let Some(record) = ItemTradeTable::build(&self.vessels).get(item) {
                         if let Some(o) = record.cheapest_buy_offer(bank_registry) {
                             max_profit_buy_offers.insert(item.clone(), o.clone());
                         }
+
                         if let Some(o) = record.the_most_expensive_sell_offer(bank_registry) {
                             max_profit_sell_offers.insert(item.clone(), o.clone());
+                        }
+
+                        if let Some(o) = record.average_buy_offer(bank_registry) {
+                            average_buy_offers.insert(item.clone(), o);
+                        }
+
+                        if let Some(o) = record.average_sell_offer(bank_registry) {
+                            average_sell_offers.insert(item.clone(), o);
                         }
                     }
                 }
@@ -258,8 +278,8 @@ impl Environment {
                         FindBestOffersForItemsResult {
                             max_profit_buy_offers,
                             max_profit_sell_offers,
-                            average_buy_offers: (|| todo!())(),
-                            average_sell_offers: (|| todo!())(),
+                            average_buy_offers,
+                            average_sell_offers,
                         },
                     )
                     .unwrap();
@@ -375,9 +395,16 @@ impl Environment {
                         for person in persons {
                             if person.id() == req.input.recipient {
                                 person
-                                    .request_handler()
-                                    .unwrap()
-                                    .handle_request_credit_limit_increase(req);
+                                    .handle_request(|h, p| {
+                                        h.handle_request_credit_limit_increase(
+                                            p,
+                                            currency_generator,
+                                            bank_registry,
+                                            req_context,
+                                            req,
+                                        )
+                                    })
+                                    .unwrap();
                                 return ControlFlow::Break(());
                             }
                         }

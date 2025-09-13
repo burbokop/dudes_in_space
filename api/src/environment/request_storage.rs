@@ -48,8 +48,8 @@ pub struct FindBestOffersForItems {
 pub struct FindBestOffersForItemsResult {
     pub max_profit_buy_offers: BTreeMap<ItemId, OfferRef<BuyOffer>>,
     pub max_profit_sell_offers: BTreeMap<ItemId, OfferRef<SellOffer>>,
-    pub average_buy_offers: BTreeMap<ItemId, OfferRef<BuyOffer>>,
-    pub average_sell_offers: BTreeMap<ItemId, OfferRef<SellOffer>>,
+    pub average_buy_offers: BTreeMap<ItemId, Money>,
+    pub average_sell_offers: BTreeMap<ItemId, Money>,
 }
 
 impl FindBestOffersForItems {

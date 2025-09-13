@@ -3,14 +3,14 @@ use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffe
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
 };
-use dudes_in_space_api::finance::{Currency, Money};
+use dudes_in_space_api::finance::{Bank, Currency, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     ThisVessel, tie,
 };
-use dudes_in_space_api::utils::math::map_into_range;
+use dudes_in_space_api::utils::math::{NonNeg, map_into_range};
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
@@ -18,6 +18,7 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::rng;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
@@ -25,6 +26,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+
 /*
     - Find list of modules you can craft
     - Place available capabilities in vessel selling terminal
@@ -162,6 +164,9 @@ impl Objective for ManageDockyardStationObjective {
 
                     let capacity_dedicated_for_this_objective = min_free_space_storage.free_space();
 
+                    let mut input_offers: BTreeMap<String, (Range<ItemCount>, Money)> =
+                        Default::default();
+
                     for (item, count) in min_counts {
                         let item = environment_context.item_vault().get_ref(item).unwrap();
 
@@ -170,7 +175,18 @@ impl Objective for ManageDockyardStationObjective {
                         let cap_for_item = capacity_dedicated_for_this_objective * portion;
                         let capacity_for_item = (cap_for_item / item.volume) as ItemCount;
 
-                        let target_currency: Currency = (|| todo!())();
+                        let target_currency: Currency =
+                            this_person.finance.preferred_currency_or_create(
+                                environment_context.bank_registry(),
+                                Bank::new(
+                                    this_person.id.clone(),
+                                    environment_context.currency_generator().generate_name(
+                                        &mut rng(),
+                                        environment_context.bank_registry(),
+                                        this_person,
+                                    ),
+                                ),
+                            );
 
                         let cheapest_buy_offer = search_result
                             .max_profit_buy_offers
@@ -191,13 +207,11 @@ impl Objective for ManageDockyardStationObjective {
                         let average_buy_offer = search_result
                             .average_buy_offers
                             .get(&item.id)
-                            .map(|offer| {
-                                offer
-                                    .offer
-                                    .price_per_unit
+                            .map(|price| {
+                                price
                                     .convert_to_currency(
                                         environment_context.bank_registry(),
-                                        target_currency,
+                                        target_currency.clone(),
                                     )
                                     .amount
                                     .unwrap()
@@ -209,23 +223,32 @@ impl Objective for ManageDockyardStationObjective {
                                 count as i64,
                                 0..capacity_for_item as i64 / 2,
                                 (average_buy_offer * 2)..average_buy_offer,
-                            );
+                            )
                         } else {
                             map_into_range(
                                 count as i64,
                                 (capacity_for_item as i64 / 2)..capacity_for_item as i64,
                                 average_buy_offer..cheapest_buy_offer,
-                            );
+                            )
                         };
 
                         let occupied_space = min_free_space_storage.count(item.id.clone());
                         // TODO: if occupied_space == capacity_for_item then no need for order
                         assert!(occupied_space < capacity_for_item);
 
-                        let count_range = 1..capacity_for_item - occupied_space;
-                    }
+                        let count_range = (1..capacity_for_item - occupied_space).into();
 
-                    let input_offers = (|| todo!())();
+                        input_offers.insert(
+                            item.id.clone(),
+                            (
+                                count_range,
+                                Money {
+                                    currency: target_currency,
+                                    amount: NonNeg::new(price_for_item).unwrap(),
+                                },
+                            ),
+                        );
+                    }
 
                     *self = Self::RequireModules {
                         objective: RequireModulesObjective::new(
@@ -293,7 +316,7 @@ impl Objective for ManageDockyardStationObjective {
                     };
                     Ok(ObjectiveStatus::InProgress)
                 }
-                Err(err) => todo!(),
+                Err(err) => todo!("{} {:?}", this_person.id, err),
             },
 
             Self::PlaceSellOffers { objective } => match objective.pursue(

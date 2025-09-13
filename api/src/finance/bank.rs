@@ -332,6 +332,7 @@ mod tests {
         assert_eq!(
             result,
             Err(WithdrawalError::CreditLimitReached {
+                bank_owner: owner,
                 requested: NonNeg::new(100).unwrap(),
                 limit: Zero::zero(),
             })
@@ -353,6 +354,7 @@ mod tests {
         assert_eq!(
             result,
             Err(WithdrawalError::CreditLimitReached {
+                bank_owner: owner,
                 requested: NonNeg::new(100).unwrap(),
                 limit: Zero::zero(),
             })

@@ -21,6 +21,7 @@ use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
 use serde::{Deserialize, Serialize};
 use std::cell::Ref;
 use std::collections::BTreeSet;
+use std::ops::DerefMut;
 
 fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
     let male_names = [
@@ -344,10 +345,30 @@ impl Person {
         }
     }
 
-    pub(crate) fn request_handler(&mut self) -> Option<&mut dyn ObjectiveRequestHandler> {
-        self.objective
-            .as_mut()
-            .and_then(|x| x.request_handler_dyn())
+    pub(crate) fn handle_request(
+        &mut self,
+        f: impl FnOnce(&mut dyn ObjectiveRequestHandler, &mut ThisPerson),
+    ) -> Result<(), ()> {
+        let mut info = ThisPerson {
+            id: &self.id,
+            age: &self.age,
+            gender: &self.gender,
+            passions: &self.passions,
+            morale: &self.morale,
+            boldness: &self.boldness,
+            awareness: &self.awareness,
+            finance: &mut self.finance,
+            notes: &mut self.personal_notes,
+        };
+
+        Ok(f(
+            self.objective
+                .as_mut()
+                .and_then(|x| x.request_handler_dyn())
+                .ok_or(())?
+                .deref_mut(),
+            &mut info,
+        ))
     }
 
     pub fn collect_status(&self, collector: &mut dyn StatusCollector) {

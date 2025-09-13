@@ -283,11 +283,11 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn storages(&self) -> &[ItemStorage] {
-        todo!()
+        std::slice::from_ref(&self.storage)
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {
-        todo!()
+        std::slice::from_mut(&mut self.storage)
     }
 
     fn safes(&self) -> &[ItemSafe] {

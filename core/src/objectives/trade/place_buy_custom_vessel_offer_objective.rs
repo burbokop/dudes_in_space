@@ -36,7 +36,7 @@ struct PlaceBuyCustomVesselOfferObjectiveSeed {}
 
 impl PlaceBuyCustomVesselOfferObjective {
     pub fn new(input_prices: BTreeMap<ItemId, Money>) -> Self {
-        todo!()
+        Self::FindTerminal { input_prices }
     }
 }
 

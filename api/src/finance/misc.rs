@@ -27,6 +27,23 @@ impl Mul<u32> for Money {
 }
 
 impl Money {
+    pub fn cmp_same_currency(&self, other: &Money) -> Ordering {
+        #[derive(Ord, PartialOrd, Eq, PartialEq)]
+        struct Impl<'a> {
+            pub currency: &'a Currency,
+            pub amount: &'a NonNeg<MoneyAmount>,
+        }
+
+        Impl {
+            currency: &self.currency,
+            amount: &self.amount,
+        }
+        .cmp(&Impl {
+            currency: &other.currency,
+            amount: &other.amount,
+        })
+    }
+
     pub fn cmp(&self, bank_registry: &BankRegistry, other: &Money) -> Ordering {
         if self.currency == other.currency {
             return self.amount.cmp(&other.amount);
@@ -159,5 +176,62 @@ impl Div<Float> for Money {
 impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {}", self.amount, self.currency)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::finance::{Bank, Wallet};
+    use crate::person::PersonId;
+
+    #[test]
+    fn convert_to_currency_test() {
+        let reg = BankRegistry::new();
+
+        let create_bank = |created_money: Money| {
+            let owner = PersonId::new_v4();
+            let mut owner_wallet = Wallet::new();
+            let mut bank = Bank::new(owner, created_money.currency);
+
+            bank.withdraw(owner, &mut owner_wallet, created_money.amount)
+                .unwrap();
+            reg.register(bank).unwrap();
+        };
+
+        create_bank(Money {
+            currency: "USD".to_string(),
+            amount: 100000.into(),
+        });
+        create_bank(Money {
+            currency: "EUR".to_string(),
+            amount: 10000.into(),
+        });
+        create_bank(Money {
+            currency: "GBP".to_string(),
+            amount: 1000.into(),
+        });
+
+        let test_money_gbp = Money {
+            currency: "GBP".to_string(),
+            amount: 10.into(),
+        };
+
+        let test_money_usd = test_money_gbp.convert_to_currency(&reg, "USD".to_string());
+        let test_money_eur = test_money_usd.convert_to_currency(&reg, "EUR".to_string());
+        let intermediate_test_money_gbp =
+            test_money_usd.convert_to_currency(&reg, "GBP".to_string());
+        let final_test_money_gbp = test_money_eur.convert_to_currency(&reg, "GBP".to_string());
+
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&intermediate_test_money_gbp)
+                .is_eq()
+        );
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&final_test_money_gbp)
+                .is_eq()
+        );
     }
 }

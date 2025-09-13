@@ -180,13 +180,13 @@ impl ItemStorage {
         todo!()
     }
 
-    pub fn count(&self, _item_id: ItemId) -> ItemCount {
+    pub fn count(&self, id: ItemId) -> ItemCount {
         debug_assert_eq!(
             self.total_occupied_volume,
             Self::eval_total_occupied_volume(&self.content)
         );
         debug_assert!(self.total_occupied_volume <= self.volume);
-        todo!()
+        self.content.get(&id).map(|v| v.count).unwrap_or(0)
     }
 
     pub fn contains(&self, id: ItemId, count: ItemCount) -> bool {

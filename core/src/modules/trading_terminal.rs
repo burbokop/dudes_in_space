@@ -1,7 +1,9 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{BankRegistry, NotEnoughMoneyInWallet, Wallet, WalletRegistry};
-use dudes_in_space_api::item::{ItemCount, ItemSafe, ItemStorage};
+use dudes_in_space_api::finance::{
+    BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
+};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
@@ -14,10 +16,11 @@ use dudes_in_space_api::recipe::{
     OutputItemRecipe,
 };
 use dudes_in_space_api::trade::{
-    BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder, BuyVesselOffer,
-    OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
-    WeakBuyVesselOrder, WeakSellOrder,
+    BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
+    BuyVesselOffer, BuyVesselOrder, OrderHolder, OrderSeed, SellOffer, SellOrder,
+    WeakBuyCustomVesselOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
+use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -28,7 +31,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -109,7 +112,7 @@ struct Console<'a> {
 
 impl<'a> ModuleConsole for Console<'a> {
     fn id(&self) -> ModuleId {
-        todo!()
+        self.id
     }
 
     fn type_id(&self) -> ModuleTypeId {
@@ -165,7 +168,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
-        todo!()
+        Some(self)
     }
 
     fn storages(&self) -> &[ItemStorage] {
@@ -269,7 +272,12 @@ impl Module for TradingTerminal {
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
+        if self.operator.is_none() {
+            self.operator = Some(person);
+            true
+        } else {
+            false
+        }
     }
 
     fn free_person_slots_count(&self) -> usize {
@@ -278,7 +286,10 @@ impl Module for TradingTerminal {
     }
 
     fn contains_person(&self, id: PersonId) -> bool {
-        todo!()
+        self.operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
     }
 
     fn persons(&self) -> &[Person] {
@@ -386,6 +397,58 @@ impl TradingConsole for TradingTerminal {
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> Result<WeakBuyCustomVesselOrder, NotEnoughMoneyInWallet> {
+        todo!()
+    }
+}
+
+impl<'a> TradingAdminConsole for Console<'a> {
+    fn place_buy_offer(
+        &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer> {
+        todo!()
+    }
+
+    fn place_buy_vessel_offer(
+        &mut self,
+        primary_caps: Vec<ModuleCapability>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer> {
+        todo!()
+    }
+
+    fn place_sell_offer(
+        &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&SellOffer> {
+        todo!()
+    }
+
+    fn place_buy_custom_vessel_offer(
+        &mut self,
+        capabilities: BTreeMap<ModuleCapability, Money>,
+        primary_capabilities: BTreeMap<ModuleCapability, Money>,
+    ) -> BuyCustomVesselOffer {
+        todo!()
+    }
+
+    fn buy_orders(&self) -> &[BuyOrder] {
+        todo!()
+    }
+
+    fn sell_orders(&self) -> &[SellOrder] {
+        todo!()
+    }
+
+    fn buy_vessel_orders(&self) -> &[BuyVesselOrder] {
+        todo!()
+    }
+
+    fn buy_custom_vessel_orders(&self) -> &[BuyCustomVesselOrder] {
         todo!()
     }
 }
