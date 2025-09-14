@@ -13,9 +13,17 @@ impl<'a, T: sdl2::render::RenderTarget> ColumnLayout<'a, T> {
     }
 }
 
+impl<'a, T: sdl2::render::RenderTarget + 'a> From<ColumnLayout<'a, T>>
+    for Box<dyn GraphicsNode<T> + 'a>
+{
+    fn from(value: ColumnLayout<'a, T>) -> Self {
+        Box::new(value)
+    }
+}
+
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for ColumnLayout<'a, T> {
     fn visible(&self) -> bool {
-        todo!()
+        !self.elems.is_empty() && self.elems.iter().all(|x| x.visible())
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {

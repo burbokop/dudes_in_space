@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Serialize};
@@ -95,5 +96,11 @@ impl<T> RangeBounds<T> for RangeInclusive<&T> {
     }
     fn end_bound(&self) -> Bound<&T> {
         Bound::Included(self.end)
+    }
+}
+
+impl<T: Display> Display for Range<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
     }
 }

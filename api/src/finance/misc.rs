@@ -175,7 +175,11 @@ impl Div<Float> for Money {
 
 impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.amount, self.currency)
+        if self.currency.chars().count() > 1 {
+            write!(f, "{} {}", self.amount, self.currency)
+        } else {
+            write!(f, "{}{}", self.amount, self.currency)
+        }
     }
 }
 

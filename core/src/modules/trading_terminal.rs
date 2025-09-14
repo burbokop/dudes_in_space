@@ -17,7 +17,7 @@ use dudes_in_space_api::recipe::{
 };
 use dudes_in_space_api::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
-    BuyVesselOffer, BuyVesselOrder, OrderHolder, OrderSeed, SellOffer, SellOrder,
+    BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder, OrderSeed, SellOffer, SellOrder,
     WeakBuyCustomVesselOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::range::Range;
@@ -106,8 +106,8 @@ impl DynSerialize for TradingTerminal {
 
 struct Console<'a> {
     id: ModuleId,
-    buy_offers: &'a [BuyOffer],
-    sell_offers: &'a [SellOffer],
+    buy_offers: &'a mut Vec<BuyOffer>,
+    sell_offers: &'a mut Vec<SellOffer>,
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -230,8 +230,8 @@ impl Module for TradingTerminal {
     ) {
         let mut console = Console {
             id: self.id,
-            buy_offers: &self.buy_offers,
-            sell_offers: &self.sell_offers,
+            buy_offers: &mut self.buy_offers,
+            sell_offers: &mut self.sell_offers,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -425,7 +425,14 @@ impl<'a> TradingAdminConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
-        todo!()
+        let offer = SellOffer {
+            id: OfferId::new_v4(),
+            item,
+            count_range,
+            price_per_unit,
+        };
+        self.sell_offers.push(offer);
+        self.sell_offers.last()
     }
 
     fn place_buy_custom_vessel_offer(
@@ -445,11 +452,11 @@ impl<'a> TradingAdminConsole for Console<'a> {
     }
 
     fn buy_vessel_orders(&self) -> &[BuyVesselOrder] {
-        todo!()
+        &[]
     }
 
     fn buy_custom_vessel_orders(&self) -> &[BuyCustomVesselOrder] {
-        todo!()
+        &[]
     }
 }
 

@@ -19,10 +19,37 @@ impl<T: sdl2::render::RenderTarget> GraphicsNode<T> for String {
     }
 }
 
+impl<T: sdl2::render::RenderTarget> From<String> for Box<dyn GraphicsNode<T>> {
+    fn from(value: String) -> Self {
+        Box::new(value)
+    }
+}
+
+impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for &'a str {
+    fn visible(&self) -> bool {
+        !self.is_empty()
+    }
+
+    fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
+        renderer.draw_confined_text(
+            &self,
+            bounding_box,
+            HorisontalAlignment::Center,
+            Color::black(),
+        );
+    }
+}
+
 pub struct Text {
     pub text: String,
     pub color: Color,
     pub alignment: HorisontalAlignment,
+}
+
+impl<T: sdl2::render::RenderTarget> From<Text> for Box<dyn GraphicsNode<T>> {
+    fn from(value: Text) -> Self {
+        Box::new(value)
+    }
 }
 
 impl<T: sdl2::render::RenderTarget> GraphicsNode<T> for Text {

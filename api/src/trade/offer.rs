@@ -6,6 +6,7 @@ use crate::utils::range::Range;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::{Display, Formatter};
 
 pub type OfferId = NonNilUuid;
 
@@ -45,4 +46,30 @@ pub struct OfferRef<Offer> {
     pub vessel_id: VesselId,
     pub module_id: ModuleId,
     pub offer: Offer,
+}
+
+impl Display for BuyOffer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Display for SellOffer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} for {}",
+            self.count_range, self.item, self.price_per_unit
+        )
+    }
+}
+
+impl Display for BuyCustomVesselOffer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:?}\n{:?}",
+            self.available_capabilities, self.available_primary_capabilities
+        )
+    }
 }

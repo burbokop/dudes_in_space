@@ -7,9 +7,21 @@ pub struct GridLayout<'a, T: sdl2::render::RenderTarget> {
     elems: Vec<Box<dyn GraphicsNode<T> + 'a>>,
 }
 
-impl<'a, T: sdl2::render::RenderTarget> GridLayout<'a, T> {
+impl<'a, T: sdl2::render::RenderTarget + 'a> GridLayout<'a, T> {
     pub fn new(elems: Vec<Box<dyn GraphicsNode<T> + 'a>>) -> Self {
         Self { elems }
+    }
+
+    pub fn boxed(elems: Vec<Box<dyn GraphicsNode<T> + 'a>>) -> Box<dyn GraphicsNode<T> + 'a> {
+        Box::new(Self { elems })
+    }
+}
+
+impl<'a, T: sdl2::render::RenderTarget + 'a> From<GridLayout<'a, T>>
+    for Box<dyn GraphicsNode<T> + 'a>
+{
+    fn from(value: GridLayout<'a, T>) -> Self {
+        Box::new(value)
     }
 }
 
@@ -28,7 +40,7 @@ impl<'a, T: sdl2::render::RenderTarget, N: GraphicsNode<T> + 'a> FromIterator<N>
 
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for GridLayout<'a, T> {
     fn visible(&self) -> bool {
-        todo!()
+        !self.elems.is_empty() && self.elems.iter().all(|x| x.visible())
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {

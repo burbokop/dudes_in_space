@@ -7,6 +7,14 @@ pub struct RowLayout<'a, T: sdl2::render::RenderTarget> {
     elems: Vec<Box<dyn GraphicsNode<T> + 'a>>,
 }
 
+impl<'a, T: sdl2::render::RenderTarget + 'a> From<RowLayout<'a, T>>
+    for Box<dyn GraphicsNode<T> + 'a>
+{
+    fn from(value: RowLayout<'a, T>) -> Self {
+        Box::new(value)
+    }
+}
+
 impl<'a, T: sdl2::render::RenderTarget> RowLayout<'a, T> {
     pub fn new(elems: Vec<Box<dyn GraphicsNode<T> + 'a>>) -> Self {
         Self { elems }
@@ -15,7 +23,7 @@ impl<'a, T: sdl2::render::RenderTarget> RowLayout<'a, T> {
 
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for RowLayout<'a, T> {
     fn visible(&self) -> bool {
-        todo!()
+        !self.elems.is_empty() && self.elems.iter().all(|x| x.visible())
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {

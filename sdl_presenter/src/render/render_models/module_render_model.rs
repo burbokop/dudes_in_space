@@ -2,7 +2,7 @@ use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
-use crate::render::scene_graph::{ColumnLayout, GraphicsNode, GridLayout, RowLayout};
+use crate::render::scene_graph::{ColumnLayout, Frame, GraphicsNode, GridLayout, RowLayout};
 use crate::render::{
     HorisontalAlignment, ItemStorageRenderModel, LazyVesselRenderModel, RenderError,
 };
@@ -954,11 +954,17 @@ impl<'a> DrawSellOffer<'a> {
 
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawSellOffer<'a> {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        renderer.draw_confined_text(
+            &format!("Sell {}", self.offer),
+            bounding_box,
+            HorisontalAlignment::Center,
+            Color::black(),
+        );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -978,7 +984,16 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawSellOffers<'a> {
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        let layout = RowLayout::new(
+            self.offers
+                .iter()
+                .map(DrawSellOffer::new)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
+                .collect(),
+        );
+
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -1038,12 +1053,32 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyCustomVesselO
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        renderer.draw_confined_text(
-            &format!("{:?}", self.offer),
-            bounding_box,
-            HorisontalAlignment::Left,
-            Color::black(),
-        )
+        match self.offer {
+            None => "None".draw(renderer, bounding_box),
+            Some(offer) => {
+                ColumnLayout::new(vec![
+                    GridLayout::boxed(
+                        offer
+                            .available_capabilities
+                            .iter()
+                            .map(|(cap, price)| {
+                                Frame::boxed() + format!("{:?} for {}", cap, price).into()
+                            })
+                            .collect(),
+                    ) + Frame::boxed(),
+                    GridLayout::boxed(
+                        offer
+                            .available_primary_capabilities
+                            .iter()
+                            .map(|(cap, price)| {
+                                Frame::boxed() + format!("{:?} for {}", cap, price).into()
+                            })
+                            .collect(),
+                    ) + Frame::boxed(),
+                ])
+                .draw(renderer, bounding_box);
+            }
+        }
     }
 }
 
