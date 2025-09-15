@@ -1,5 +1,5 @@
 use crate::finance::{Bank, BankRegistry, Currency, MoneyAmount, Wallet, WalletRegistry};
-use crate::utils::math::NonNeg;
+use crate::utils::math::{NonNeg, Zero};
 use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
@@ -61,6 +61,7 @@ impl PersonalFinancePackage {
         new_limit: NonNeg<MoneyAmount>,
         mut new_bank: Bank,
     ) {
+        assert_ne!(new_limit.unwrap(), 0);
         match &self.bank {
             None => {
                 match NonNeg::new(new_limit - new_bank.money_created()) {
@@ -76,7 +77,7 @@ impl PersonalFinancePackage {
             Some(bank) => {
                 let mut bank = bank.borrow_mut();
                 match NonNeg::new(new_limit - bank.money_created()) {
-                    Ok(missing) => {
+                    Ok(missing) if missing != Zero::zero() => {
                         let owner = bank.owner();
                         bank.withdraw(owner, &mut self.wallet.borrow_mut(), missing)
                             .unwrap();

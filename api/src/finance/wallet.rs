@@ -90,8 +90,21 @@ impl Wallet {
         }
     }
 
-    pub(crate) fn convert_all_into(&mut self, currency: Currency) {
-        todo!()
+    pub(crate) fn convert_all_into(
+        &mut self,
+        bank_registry: &BankRegistry,
+        target_currency: Currency,
+    ) {
+        self.content = Money::sum_as(
+            bank_registry,
+            self.content.iter().map(|(currency, amount)| Money {
+                currency: currency.clone(),
+                amount: amount.clone(),
+            }),
+            target_currency,
+        )
+        .map(|money| BTreeMap::from([(money.currency, money.amount)]))
+        .unwrap_or_default();
     }
 
     pub(crate) fn missing(&mut self, money: Money) -> Option<NonNeg<MoneyAmount>> {

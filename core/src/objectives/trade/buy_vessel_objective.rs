@@ -33,6 +33,8 @@ pub(crate) enum BuyVesselObjective {
     },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.request_credit_limit_increase_future_seed)])]
     WaitForCreditLimitIncreased {
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
         future: ReqFuture<RequestCreditLimitIncreaseResult>,
     },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.place_order_future_seed)])]
@@ -133,6 +135,10 @@ impl Objective for BuyVesselObjective {
                                 limit,
                             }) => {
                                 *self = Self::WaitForCreditLimitIncreased {
+                                    needed_capabilities: std::mem::take(needed_capabilities),
+                                    needed_primary_capabilities: std::mem::take(
+                                        needed_primary_capabilities,
+                                    ),
                                     future: RequestCreditLimitIncrease {
                                         recipient: bank_owner,
                                         new_limit: requested,
@@ -172,11 +178,25 @@ impl Objective for BuyVesselObjective {
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::WaitForCreditLimitIncreased { future } => match future.take() {
+            Self::WaitForCreditLimitIncreased {
+                needed_capabilities,
+                needed_primary_capabilities,
+                future,
+            } => match future.take() {
                 Ok(RequestCreditLimitIncreaseResult::LimitIncreased) => {
-                    todo!()
-                    // *self = Self::FindOffers {};
-                    // Ok(ObjectiveStatus::InProgress)
+                    *self = Self::FindOffers {
+                        needed_capabilities: needed_capabilities.clone(),
+                        needed_primary_capabilities: needed_primary_capabilities.clone(),
+                        future: FindBestBuyVesselOffer {
+                            prefer_to_buy_from: Some(this_vessel.id()),
+                            required_capabilities: std::mem::take(needed_capabilities),
+                            required_primary_capabilities: std::mem::take(
+                                needed_primary_capabilities,
+                            ),
+                        }
+                        .push(environment_context.request_storage_mut()),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
                 }
                 Ok(RequestCreditLimitIncreaseResult::RequestDenied) => {
                     todo!()
@@ -209,7 +229,13 @@ impl Objective for BuyVesselObjective {
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::ProcessOrder { .. } => todo!(),
+            Self::ProcessOrder {
+                needed_capabilities,
+                needed_primary_capabilities,
+                order,
+            } => {
+                todo!()
+            }
         }
     }
 }
@@ -226,3 +252,19 @@ impl Display for BuyVesselObjectiveError {
 }
 
 impl Error for BuyVesselObjectiveError {}
+
+impl Display for BuyVesselObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BuyVesselObjective::CheckPrerequisites { .. } => write!(f, "CheckPrerequisites"),
+            BuyVesselObjective::FindOffers { .. } => write!(f, "FindOffers"),
+            BuyVesselObjective::WaitForCreditLimitIncreased { .. } => {
+                write!(f, "WaitForCreditLimitIncreased")
+            }
+            BuyVesselObjective::WaitForOrderToBeAccepted { .. } => {
+                write!(f, "WaitForOrderToBeAccepted")
+            }
+            BuyVesselObjective::ProcessOrder { .. } => write!(f, "ProcessOrder"),
+        }
+    }
+}

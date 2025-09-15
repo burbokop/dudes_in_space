@@ -161,3 +161,15 @@ impl Display for AcquireVesselObjectiveError {
 }
 
 impl Error for AcquireVesselObjectiveError {}
+
+impl Display for AcquireVesselObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AcquireVesselObjective::CheckPrerequisites { .. } => write!(f, "CheckPrerequisites"),
+            AcquireVesselObjective::BuyVessel { objective, .. } => {
+                write!(f, "BuyVessel -> {}", objective)
+            }
+            AcquireVesselObjective::CraftVessel { .. } => write!(f, "CraftVessel"),
+        }
+    }
+}

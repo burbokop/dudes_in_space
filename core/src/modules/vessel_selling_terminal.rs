@@ -37,7 +37,10 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
-static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
+static CAPABILITIES: &[ModuleCapability] = &[
+    ModuleCapability::VesselSellingTerminal,
+    ModuleCapability::PersonnelRoom,
+];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
@@ -362,7 +365,10 @@ impl Module for VesselSellingTerminal {
     }
 
     fn persons_mut(&mut self) -> &mut [Person] {
-        todo!()
+        self.operator
+            .as_mut()
+            .map(std::slice::from_mut)
+            .unwrap_or(&mut [])
     }
 
     fn storages(&self) -> Vec<&ItemStorage> {

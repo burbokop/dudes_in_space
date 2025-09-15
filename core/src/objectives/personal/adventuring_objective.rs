@@ -266,7 +266,9 @@ impl Display for AdventuringObjective {
             AdventuringObjective::CheckThisVessel => write!(f, "CheckThisVessel"),
             AdventuringObjective::MoveToCockpit { .. } => write!(f, "MoveToCockpit"),
             AdventuringObjective::SearchForOwnedShips { .. } => write!(f, "SearchForOwnedShips"),
-            AdventuringObjective::AcquireVessel { .. } => write!(f, "AcquireVessel"),
+            AdventuringObjective::AcquireVessel { objective } => {
+                write!(f, "AcquireVessel -> {}", objective)
+            }
             AdventuringObjective::MoveToDockedVessel { .. } => write!(f, "MoveToDockedVessel"),
             AdventuringObjective::Fly => write!(f, "Fly"),
         }
