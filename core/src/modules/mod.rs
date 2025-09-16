@@ -89,6 +89,7 @@ pub fn register_modules(
         ))
         .with(VesselSellingTerminalDynSeed::new(
             order_holder,
+            process_token_context.clone(),
             objective_seed_vault.clone(),
             bank_registry.clone(),
             wallet_registry.clone(),

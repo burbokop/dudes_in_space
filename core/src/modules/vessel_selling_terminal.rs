@@ -6,7 +6,8 @@ use dudes_in_space_api::finance::{
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
+    ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingAdminConsole,
+    TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -16,9 +17,10 @@ use dudes_in_space_api::recipe::{
     OutputItemRecipe,
 };
 use dudes_in_space_api::trade::{
-    BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
-    BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder, OrderSeed, SellOffer, SellOrder,
-    WeakBuyCustomVesselOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
+    BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate,
+    BuyCustomVesselOrderSeed, BuyOffer, BuyOrder, BuyVesselOffer, BuyVesselOrder, OfferId,
+    OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
+    WeakBuyVesselOrder, WeakSellOrder,
 };
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
@@ -44,7 +46,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::VesselSellingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h,'a,'b, 'v>)]
+#[deserialize_seed_xxx(seed = crate::modules::vessel_selling_terminal::VesselSellingTerminalSeed::<'h,'c,'a,'b, 'v>)]
 struct VesselSellingTerminal {
     id: ModuleId,
     offers: Vec<BuyVesselOffer>,
@@ -60,22 +62,26 @@ struct VesselSellingTerminal {
     operator: Option<Person>,
 }
 
-struct VesselSellingTerminalSeed<'h, 'a, 'b, 'v> {
+struct VesselSellingTerminalSeed<'h, 'c, 'a, 'b, 'v> {
     order_seed: VecSeed<OrderSeed<'h, BuyVesselOrder>>,
-    custom_order_seed: VecSeed<OrderSeed<'h, BuyCustomVesselOrder>>,
+    custom_order_seed: VecSeed<BuyCustomVesselOrderSeed<'h, 'c>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
 }
 
-impl<'h, 'a, 'b, 'v> VesselSellingTerminalSeed<'h, 'a, 'b, 'v> {
+impl<'h, 'c, 'a, 'b, 'v> VesselSellingTerminalSeed<'h, 'c, 'a, 'b, 'v> {
     fn new(
         order_holder: &'h OrderHolder,
+        process_token_context: &'c ProcessTokenContext,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
         bank_registry: &'a BankRegistry,
         wallet_registry: &'b WalletRegistry,
     ) -> Self {
         Self {
             order_seed: VecSeed::new(OrderSeed::new(order_holder)),
-            custom_order_seed: VecSeed::new(OrderSeed::new(order_holder)),
+            custom_order_seed: VecSeed::new(BuyCustomVesselOrderSeed::new(
+                order_holder,
+                process_token_context,
+            )),
             person_seed: TaggedOptionSeed::new(PersonSeed::new(
                 objective_vault,
                 bank_registry,
@@ -589,6 +595,7 @@ impl DynDeserializeSeed<dyn ModuleFactory> for VesselSellingTerminalFactoryDynSe
 
 pub(crate) struct VesselSellingTerminalDynSeed {
     order_holder: Rc<OrderHolder>,
+    process_token_context: Rc<ProcessTokenContext>,
     objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
     bank_registry: Rc<BankRegistry>,
     wallet_registry: Rc<WalletRegistry>,
@@ -597,12 +604,14 @@ pub(crate) struct VesselSellingTerminalDynSeed {
 impl VesselSellingTerminalDynSeed {
     pub(crate) fn new(
         order_holder: Rc<OrderHolder>,
+        process_token_context: Rc<ProcessTokenContext>,
         objective_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,
         wallet_registry: Rc<WalletRegistry>,
     ) -> Self {
         Self {
             order_holder,
+            process_token_context,
             objective_vault,
             bank_registry,
             wallet_registry,
@@ -623,6 +632,7 @@ impl DynDeserializeSeed<dyn Module> for VesselSellingTerminalDynSeed {
         let r: VesselSellingTerminal = from_intermediate_seed(
             VesselSellingTerminalSeed::new(
                 &self.order_holder,
+                &self.process_token_context,
                 &self.objective_vault,
                 &self.bank_registry,
                 &self.wallet_registry,

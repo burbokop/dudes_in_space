@@ -1,8 +1,11 @@
 use crate::finance::{Money, Wallet, WalletId};
 use crate::item::{Item, ItemRefStack};
-use crate::module::ModuleCapability;
+use crate::module::{
+    ModuleCapability, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed,
+};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::VesselId;
+use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cell::RefCell;
@@ -153,6 +156,7 @@ pub struct WeakBuyCustomVesselOrder {
     id: NonNilUuid,
     #[serde(skip)]
     data: Option<Weak<BuyCustomVesselOrderImpl>>,
+    process_token: ProcessToken,
 }
 
 impl WeakBuyCustomVesselOrder {
@@ -177,11 +181,27 @@ pub struct BuyVesselOrder {
 pub struct BuyCustomVesselOrder {
     id: NonNilUuid,
     data: Rc<BuyCustomVesselOrderImpl>,
+    process_token: ProcessTokenMut,
 }
 
 pub struct OrderSeed<'h, T> {
     holder: &'h OrderHolder,
     _pd: std::marker::PhantomData<T>,
+}
+
+#[derive(Clone)]
+pub struct BuyCustomVesselOrderSeed<'h, 'c> {
+    holder: &'h OrderHolder,
+    process_token_context: &'c ProcessTokenContext,
+}
+
+impl<'h, 'c> BuyCustomVesselOrderSeed<'h, 'c> {
+    pub fn new(holder: &'h OrderHolder, process_token_context: &'c ProcessTokenContext) -> Self {
+        Self {
+            holder,
+            process_token_context,
+        }
+    }
 }
 
 impl<'h, T> Clone for OrderSeed<'h, T> {
@@ -332,21 +352,39 @@ impl Serialize for BuyCustomVesselOrder {
     }
 }
 
-impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, BuyCustomVesselOrder> {
+impl<'de, 'holder, 'context> DeserializeSeed<'de> for BuyCustomVesselOrderSeed<'holder, 'context> {
     type Value = BuyCustomVesselOrder;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        #[derive(Deserialize)]
+        #[derive(DeserializeSeedXXX)]
+        #[deserialize_seed_xxx(seed = ImplSeed::<'context>)]
         struct Impl {
-            data: BuyCustomVesselOrderImpl,
             id: NonNilUuid,
+            data: BuyCustomVesselOrderImpl,
+            #[deserialize_seed_xxx(seed = self.seed.process_token_seed)]
+            process_token: ProcessTokenMut,
         }
 
-        let Impl { data, id } = Impl::deserialize(deserializer)?;
-        Ok(self.holder.register_buy_custom_vessel_order(data, id))
+        #[derive(Clone)]
+        struct ImplSeed<'context> {
+            process_token_seed: ProcessTokenMutSeed<'context>,
+        }
+
+        let seed = ImplSeed {
+            process_token_seed: ProcessTokenMutSeed::new(self.process_token_context),
+        };
+
+        let Impl {
+            data,
+            id,
+            process_token,
+        } = seed.deserialize(deserializer)?;
+        Ok(self
+            .holder
+            .register_buy_custom_vessel_order(id, data, process_token))
     }
 }
 
@@ -358,6 +396,8 @@ impl BuyCustomVesselOrder {
         primary_capabilities: BTreeSet<ModuleCapability>,
         count: usize,
     ) -> (WeakBuyCustomVesselOrder, Self) {
+        let (process_token, process_token_mut) = ProcessTokenMut::new();
+
         let data = Rc::new(BuyCustomVesselOrderImpl {
             pledge_wallet,
             customer_wallet_id,
@@ -365,13 +405,19 @@ impl BuyCustomVesselOrder {
             primary_capabilities,
             count,
         });
+
         let id = NonNilUuid::new_v4();
         (
             WeakBuyCustomVesselOrder {
                 id,
                 data: Some(Rc::downgrade(&data)),
+                process_token,
             },
-            Self { id, data },
+            Self {
+                id,
+                data,
+                process_token: process_token_mut,
+            },
         )
     }
 
@@ -447,14 +493,19 @@ impl OrderHolder {
 
     fn register_buy_custom_vessel_order(
         &self,
-        data: BuyCustomVesselOrderImpl,
         id: NonNilUuid,
+        data: BuyCustomVesselOrderImpl,
+        process_token: ProcessTokenMut,
     ) -> BuyCustomVesselOrder {
         let data = Rc::new(data);
         self.buy_custom_vessel_orders
             .borrow_mut()
             .try_insert(id, Rc::downgrade(&data))
             .unwrap();
-        BuyCustomVesselOrder { data, id }
+        BuyCustomVesselOrder {
+            id,
+            data,
+            process_token,
+        }
     }
 }
