@@ -3,7 +3,8 @@ use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::fmt::Display;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::ops::{Div, Mul};
 
 pub type Currency = String;
@@ -27,21 +28,12 @@ impl Mul<u32> for Money {
 }
 
 impl Money {
-    pub fn cmp_same_currency(&self, other: &Money) -> Ordering {
-        #[derive(Ord, PartialOrd, Eq, PartialEq)]
-        struct Impl<'a> {
-            pub currency: &'a Currency,
-            pub amount: &'a NonNeg<MoneyAmount>,
+    pub fn cmp_same_currency(&self, other: &Money) -> Result<Ordering, DifferentCurrenciesError> {
+        if self.currency != other.currency {
+            return Err(DifferentCurrenciesError);
         }
 
-        Impl {
-            currency: &self.currency,
-            amount: &self.amount,
-        }
-        .cmp(&Impl {
-            currency: &other.currency,
-            amount: &other.amount,
-        })
+        Ok(self.amount.cmp(&other.amount))
     }
 
     pub fn cmp(&self, bank_registry: &BankRegistry, other: &Money) -> Ordering {
@@ -83,6 +75,7 @@ impl Money {
     pub fn add(self, bank_registry: &BankRegistry, other: Money) -> Self {
         todo!()
     }
+
     pub fn sub(self, bank_registry: &BankRegistry, other: Money) -> Self {
         todo!()
     }
@@ -90,7 +83,30 @@ impl Money {
     pub fn add_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
         todo!()
     }
+
     pub fn sub_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
+        todo!()
+    }
+
+    pub fn add_same_currency(self, other: Money) -> Result<Self, DifferentCurrenciesError> {
+        todo!()
+    }
+
+    pub fn sub_same_currency(self, other: Money) -> Result<Self, DifferentCurrenciesError> {
+        todo!()
+    }
+
+    pub fn add_assign_same_currency(
+        &mut self,
+        other: Money,
+    ) -> Result<(), DifferentCurrenciesError> {
+        todo!()
+    }
+
+    pub fn sub_assign_same_currency(
+        &mut self,
+        other: Money,
+    ) -> Result<(), DifferentCurrenciesError> {
         todo!()
     }
 
@@ -239,3 +255,14 @@ mod tests {
         );
     }
 }
+
+#[derive(Debug)]
+struct DifferentCurrenciesError;
+
+impl Display for DifferentCurrenciesError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for DifferentCurrenciesError {}

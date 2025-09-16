@@ -1,9 +1,10 @@
+use crate::objectives::trade::BuyVesselObjective::CheckPrerequisites;
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestBuyVesselOffer, FindBestBuyVesselOfferResult,
     PlaceBuyCustomVesselOrderResult, RequestCreditLimitIncrease, RequestCreditLimitIncreaseResult,
 };
 use dudes_in_space_api::finance::WithdrawalError;
-use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ProcessTokenExpiredError};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::trade::WeakBuyCustomVesselOrder;
@@ -233,9 +234,18 @@ impl Objective for BuyVesselObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
                 order,
-            } => {
-                todo!()
-            }
+            } => match order.is_completed(environment_context.process_token_context()) {
+                Ok(true) => todo!(),
+                Ok(false) => Ok(ObjectiveStatus::InProgress),
+                Err(ProcessTokenExpiredError) => {
+                    logger.warn("Order is dropped. Retrying...");
+                    *self = CheckPrerequisites {
+                        needed_capabilities: std::mem::take(needed_capabilities),
+                        needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+            },
         }
     }
 }

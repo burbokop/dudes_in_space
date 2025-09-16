@@ -105,6 +105,10 @@ impl Wallet {
         )
         .map(|money| BTreeMap::from([(money.currency, money.amount)]))
         .unwrap_or_default();
+
+        todo!(
+            "You have a bug in this function. You must do conversion through bank buy currency function"
+        )
     }
 
     pub(crate) fn missing(&mut self, money: Money) -> Option<NonNeg<MoneyAmount>> {
@@ -155,11 +159,54 @@ impl Wallet {
     ) -> Result<(), EnsureContainsError> {
         match self.missing_if_converted(bank_registry, money.clone()) {
             Some(missing) => Err(EnsureContainsError { missing }),
-            None => match self.missing(money) {
+            None => match self.missing(money.clone()) {
                 None => Ok(()),
-                Some(missing) => todo!(),
+                Some(missing) => {
+                    let ok = self.ensure_contains_impl(
+                        bank_registry,
+                        Money {
+                            currency: money.currency,
+                            amount: missing,
+                        },
+                    );
+                    assert!(ok);
+                    Ok(())
+                }
             },
         }
+    }
+
+    fn ensure_contains_impl(&mut self, bank_registry: &BankRegistry, money: Money) -> bool {
+        let mut missing = money.clone();
+
+        for (currency, amount) in &self.content {
+            if currency == &money.currency {
+                missing.amount.sub_assign(*amount).unwrap();
+                break;
+            }
+        }
+        self.content.remove(&money.currency);
+
+
+
+        self.content.retain(|currency, amount| {
+            let current = Money {
+                currency: currency.clone(),
+                amount: amount.clone(),
+            };
+
+            let current = current.convert_to_currency(bank_registry, missing.currency.clone());
+
+            let min = current.clone().min(bank_registry, missing.clone());
+
+            missing.sub_assign_same_currency(min.clone()).unwrap();
+
+            todo!("Get the bank from the bank registry and buy the currency from it");
+
+            min.amount != current.amount
+        });
+
+        true
     }
 }
 

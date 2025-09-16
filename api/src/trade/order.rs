@@ -1,7 +1,8 @@
 use crate::finance::{Money, Wallet, WalletId};
 use crate::item::{Item, ItemRefStack};
 use crate::module::{
-    ModuleCapability, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed,
+    ModuleCapability, ProcessToken, ProcessTokenContext, ProcessTokenExpiredError, ProcessTokenMut,
+    ProcessTokenMutSeed,
 };
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::VesselId;
@@ -168,6 +169,12 @@ impl WeakBuyCustomVesselOrder {
     }
     pub fn price(&self) -> Option<Money> {
         todo!()
+    }
+    pub fn is_completed(
+        &mut self,
+        context: &ProcessTokenContext,
+    ) -> Result<bool, ProcessTokenExpiredError> {
+        self.process_token.is_completed(context)
     }
 }
 
@@ -340,13 +347,15 @@ impl Serialize for BuyCustomVesselOrder {
     {
         #[derive(Serialize)]
         struct Impl<'a> {
-            data: &'a BuyCustomVesselOrderImpl,
             id: NonNilUuid,
+            data: &'a BuyCustomVesselOrderImpl,
+            process_token: &'a ProcessTokenMut,
         }
 
         Impl {
-            data: &self.data,
             id: self.id,
+            data: &self.data,
+            process_token: &self.process_token,
         }
         .serialize(serializer)
     }
