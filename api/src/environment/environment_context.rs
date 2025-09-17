@@ -14,7 +14,7 @@ pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g> {
     item_vault: &'g ItemVault,
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f,'g> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f,'g> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g> {
     pub fn new(
         process_token_context: &'a ProcessTokenContext,
         request_storage: &'b mut RequestStorage,

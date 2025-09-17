@@ -38,7 +38,7 @@ pub struct Bank {
 }
 
 impl Bank {
-    pub fn new(owner: PersonId, owner_wallet:WalletId, currency: Currency) -> Self {
+    pub fn new(owner: PersonId, owner_wallet: WalletId, currency: Currency) -> Self {
         Self {
             owner,
             owner_wallet,
@@ -216,22 +216,32 @@ impl Bank {
         &self,
         source_currency_bank: &Bank,
         target_amount: NonNeg<MoneyAmount>,
-    ) -> NonNeg<MoneyAmount> {
+    ) -> Result<NonNeg<MoneyAmount>, SourceBankDidNotCreateAnyMoneyError> {
+        if source_currency_bank.money_created.unwrap() == 0 {
+            return Err(SourceBankDidNotCreateAnyMoneyError);
+        }
+
         let source_amount = (target_amount.unwrap() as Float * self.money_created.unwrap() as Float
             / source_currency_bank.money_created.unwrap() as Float)
             as MoneyAmount;
-        NonNeg::new(source_amount).unwrap()
+
+        Ok(NonNeg::new(source_amount).unwrap())
     }
 
     pub fn sell_this_currency_price(
         &self,
         target_currency_bank: &Bank,
         source_amount: NonNeg<MoneyAmount>,
-    ) -> NonNeg<MoneyAmount> {
+    ) -> Result<NonNeg<MoneyAmount>, SourceBankDidNotCreateAnyMoneyError> {
+        if self.money_created.unwrap() == 0 {
+            return Err(SourceBankDidNotCreateAnyMoneyError);
+        }
+
         let target_amount = (source_amount.unwrap() as Float
             * target_currency_bank.money_created.unwrap() as Float
             / self.money_created.unwrap() as Float) as MoneyAmount;
-        NonNeg::new(target_amount).unwrap()
+
+        Ok(NonNeg::new(target_amount).unwrap())
     }
 
     pub fn buy_currency(
@@ -319,6 +329,17 @@ impl Display for WithdrawalError {
 }
 
 impl Error for WithdrawalError {}
+
+#[derive(Debug)]
+pub struct SourceBankDidNotCreateAnyMoneyError;
+
+impl Display for SourceBankDidNotCreateAnyMoneyError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for SourceBankDidNotCreateAnyMoneyError {}
 
 #[cfg(test)]
 mod tests {

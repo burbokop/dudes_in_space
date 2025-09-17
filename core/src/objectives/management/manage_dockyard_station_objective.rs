@@ -201,6 +201,7 @@ impl Objective for ManageDockyardStationObjective {
                                         environment_context.bank_registry(),
                                         target_currency.clone(),
                                     )
+                                    .unwrap()
                                     .amount
                                     .unwrap()
                             })
@@ -215,6 +216,7 @@ impl Objective for ManageDockyardStationObjective {
                                         environment_context.bank_registry(),
                                         target_currency.clone(),
                                     )
+                                    .unwrap()
                                     .amount
                                     .unwrap()
                             })

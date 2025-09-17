@@ -48,6 +48,7 @@ impl Wallet {
             }),
             currency,
         )
+        .unwrap()
     }
 
     pub fn transfer_to(
@@ -103,6 +104,7 @@ impl Wallet {
             }),
             target_currency,
         )
+        .unwrap()
         .map(|money| BTreeMap::from([(money.currency, money.amount)]))
         .unwrap_or_default();
 
@@ -138,7 +140,9 @@ impl Wallet {
                 amount: amount.clone(),
             }),
             money.currency.clone(),
-        ) {
+        )
+        .unwrap()
+        {
             None => Some(money.amount),
             Some(sum) => {
                 if money.amount > sum.amount {
@@ -191,6 +195,11 @@ impl Wallet {
                 break true;
             }
 
+            let delta_money = Money {
+                currency: target_money.currency.clone(),
+                amount: delta.clone(),
+            };
+
             let mut content = self.content.clone();
 
             content.retain(|currency, amount| {
@@ -203,16 +212,14 @@ impl Wallet {
                     amount: amount.clone(),
                 };
 
-                let current_money =
-                    current_money.convert_to_currency(bank_registry, target_money.currency.clone());
+                let current_money_in_target_currency = current_money
+                    .convert_to_currency(bank_registry, target_money.currency.clone())
+                    .unwrap();
 
-                let min = current_money.clone().min(
-                    bank_registry,
-                    Money {
-                        currency: target_money.currency.clone(),
-                        amount: delta.clone(),
-                    },
-                );
+                let min = current_money_in_target_currency
+                    .clone()
+                    .min_same_currency(delta_money.clone())
+                    .unwrap();
 
                 let bank_registry = bank_registry.borrow();
 
@@ -223,6 +230,14 @@ impl Wallet {
                     wallet_registry.get(&target_bank.owner_wallet()).unwrap();
                 let target_bank_owner_wallet = target_bank_owner_wallet.upgrade().unwrap();
                 let mut target_bank_owner_wallet = target_bank_owner_wallet.borrow_mut();
+
+                println!("target_money: {}", target_money);
+                println!("delta_money: {}", target_money);
+                println!("current_money: {}", current_money);
+                println!(
+                    "current_money_in_target_currency: {}",
+                    current_money_in_target_currency
+                );
 
                 target_bank.buy_currency(
                     &mut target_bank_owner_wallet,

@@ -64,6 +64,7 @@ impl ItemRecord {
                         .offer
                         .price_per_unit
                         .convert_to_currency(bank_registry, currency.clone())
+                        .unwrap()
                         .amount
                         .unwrap()
                 })

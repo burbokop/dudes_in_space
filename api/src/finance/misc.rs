@@ -1,3 +1,4 @@
+use crate::finance::SourceBankDidNotCreateAnyMoneyError;
 use crate::finance::bank_registry::BankRegistry;
 use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
@@ -43,6 +44,7 @@ impl Money {
 
         let other_amount = other
             .convert_to_currency(bank_registry, self.currency.clone())
+            .unwrap()
             .amount
             .unwrap();
         let self_amount = self.amount.unwrap();
@@ -62,6 +64,20 @@ impl Money {
     pub fn max(self, bank_registry: &BankRegistry, other: Money) -> Money {
         let ord = self.cmp(bank_registry, &other);
         if ord == Ordering::Less { other } else { self }
+    }
+
+    pub fn min_same_currency(self, other: Money) -> Result<Self, DifferentCurrenciesError> {
+        let ord = self.cmp_same_currency(&other)?;
+        Ok(if ord == Ordering::Greater {
+            other
+        } else {
+            self
+        })
+    }
+
+    pub fn max_same_currency(self, other: Money) -> Result<Self, DifferentCurrenciesError> {
+        let ord = self.cmp_same_currency(&other)?;
+        Ok(if ord == Ordering::Less { other } else { self })
     }
 
     pub fn min_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
@@ -114,40 +130,41 @@ impl Money {
         &self,
         bank_registry: &BankRegistry,
         target_currency: Currency,
-    ) -> Money {
+    ) -> Result<Money, SourceBankDidNotCreateAnyMoneyError> {
         let bank_registry = bank_registry.borrow();
         let this_bank = bank_registry.bank(&self.currency).unwrap();
         let target_bank = bank_registry.bank(&target_currency).unwrap();
-        let target_amount = this_bank.sell_this_currency_price(&target_bank, self.amount);
+        let target_amount = this_bank.sell_this_currency_price(&target_bank, self.amount)?;
 
-        Self {
+        Ok(Self {
             currency: target_currency,
             amount: target_amount,
-        }
+        })
     }
 
     pub fn sum_as(
         bank_registry: &BankRegistry,
         iter: impl Iterator<Item = Money>,
         target_currency: Currency,
-    ) -> Option<Money> {
-        let amount: Vec<MoneyAmount> = iter
+    ) -> Result<Option<Money>, SourceBankDidNotCreateAnyMoneyError> {
+        let amount: Result<Vec<MoneyAmount>, SourceBankDidNotCreateAnyMoneyError> = iter
             .map(|money| {
-                money
-                    .convert_to_currency(bank_registry, target_currency.clone())
+                Ok(money
+                    .convert_to_currency(bank_registry, target_currency.clone())?
                     .amount
-                    .unwrap()
+                    .unwrap())
             })
             .collect();
 
+        let amount = amount?;
         if amount.is_empty() {
-            return None;
+            return Ok(None);
         }
 
-        Some(Money {
+        Ok(Some(Money {
             currency: target_currency,
             amount: NonNeg::new(amount.into_iter().sum()).unwrap(),
-        })
+        }))
     }
 
     pub fn sum_same_currency(iter: impl Iterator<Item = Money>) -> Option<Money> {

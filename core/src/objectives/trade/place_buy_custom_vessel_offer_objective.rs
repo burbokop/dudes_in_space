@@ -125,7 +125,8 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                         currency: person.finance.preferred_currency_or_create(
                             environment_context.bank_registry(),
                             Bank::new(
-                                person.id.clone(),this_person_wallet_id,
+                                person.id.clone(),
+                                this_person_wallet_id,
                                 environment_context.currency_generator().generate_name(
                                     &mut rng(),
                                     environment_context.bank_registry(),
