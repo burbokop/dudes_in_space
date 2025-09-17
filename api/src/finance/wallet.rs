@@ -155,20 +155,16 @@ impl Wallet {
     pub(crate) fn ensure_contains(
         &mut self,
         bank_registry: &BankRegistry,
-        money: Money,
+        wallet_registry: &WalletRegistry,
+        target_money: Money,
     ) -> Result<(), EnsureContainsError> {
-        match self.missing_if_converted(bank_registry, money.clone()) {
+        match self.missing_if_converted(bank_registry, target_money.clone()) {
             Some(missing) => Err(EnsureContainsError { missing }),
-            None => match self.missing(money.clone()) {
+            None => match self.missing(target_money.clone()) {
                 None => Ok(()),
                 Some(missing) => {
-                    let ok = self.ensure_contains_impl(
-                        bank_registry,
-                        Money {
-                            currency: money.currency,
-                            amount: missing,
-                        },
-                    );
+                    let ok =
+                        self.ensure_contains_impl(bank_registry, wallet_registry, target_money);
                     assert!(ok);
                     Ok(())
                 }
@@ -176,37 +172,68 @@ impl Wallet {
         }
     }
 
-    fn ensure_contains_impl(&mut self, bank_registry: &BankRegistry, money: Money) -> bool {
-        let mut missing = money.clone();
+    fn ensure_contains_impl(
+        &mut self,
+        bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
+        target_money: Money,
+    ) -> bool {
+        loop {
+            let current_amount_of_target_currency = self
+                .content
+                .get(&target_money.currency)
+                .cloned()
+                .unwrap_or(Zero::zero());
+            let delta =
+                NonNeg::new(target_money.amount - current_amount_of_target_currency).unwrap();
 
-        for (currency, amount) in &self.content {
-            if currency == &money.currency {
-                missing.amount.sub_assign(*amount).unwrap();
-                break;
+            if delta == Zero::zero() {
+                break true;
             }
+
+            let mut content = self.content.clone();
+
+            content.retain(|currency, amount| {
+                if *currency == target_money.currency {
+                    return false;
+                }
+
+                let current_money = Money {
+                    currency: currency.clone(),
+                    amount: amount.clone(),
+                };
+
+                let current_money =
+                    current_money.convert_to_currency(bank_registry, target_money.currency.clone());
+
+                let min = current_money.clone().min(
+                    bank_registry,
+                    Money {
+                        currency: target_money.currency.clone(),
+                        amount: delta.clone(),
+                    },
+                );
+
+                let bank_registry = bank_registry.borrow();
+
+                let mut target_bank = bank_registry.bank_mut(&target_money.currency).unwrap();
+                let mut current_bank = bank_registry.bank_mut(&current_money.currency).unwrap();
+
+                let target_bank_owner_wallet =
+                    wallet_registry.get(&target_bank.owner_wallet()).unwrap();
+                let target_bank_owner_wallet = target_bank_owner_wallet.upgrade().unwrap();
+                let mut target_bank_owner_wallet = target_bank_owner_wallet.borrow_mut();
+
+                target_bank.buy_currency(
+                    &mut target_bank_owner_wallet,
+                    self,
+                    &mut current_bank,
+                    min.amount,
+                );
+
+                *amount > Zero::zero()
+            });
         }
-        self.content.remove(&money.currency);
-
-
-
-        self.content.retain(|currency, amount| {
-            let current = Money {
-                currency: currency.clone(),
-                amount: amount.clone(),
-            };
-
-            let current = current.convert_to_currency(bank_registry, missing.currency.clone());
-
-            let min = current.clone().min(bank_registry, missing.clone());
-
-            missing.sub_assign_same_currency(min.clone()).unwrap();
-
-            todo!("Get the bank from the bank registry and buy the currency from it");
-
-            min.amount != current.amount
-        });
-
-        true
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::finance::{Currency, Money, MoneyAmount, Wallet};
+use crate::finance::{Currency, Money, MoneyAmount, Wallet, WalletId};
 use crate::person::PersonId;
 use crate::utils::math::{NonNeg, Zero, noneg_float};
 use crate::utils::utils::Float;
@@ -29,6 +29,7 @@ impl BankAccount {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Bank {
     owner: PersonId,
+    owner_wallet: WalletId,
     currency: Currency,
     money_stored: MoneyAmount,
     money_created: NonNeg<MoneyAmount>,
@@ -37,9 +38,10 @@ pub struct Bank {
 }
 
 impl Bank {
-    pub fn new(owner: PersonId, currency: Currency) -> Self {
+    pub fn new(owner: PersonId, owner_wallet:WalletId, currency: Currency) -> Self {
         Self {
             owner,
+            owner_wallet,
             currency,
             money_stored: 0,
             money_created: Zero::zero(),
@@ -48,8 +50,12 @@ impl Bank {
         }
     }
 
-    pub fn owner(&self) -> PersonId {
-        self.owner
+    pub fn owner(&self) -> &PersonId {
+        &self.owner
+    }
+
+    pub fn owner_wallet(&self) -> &WalletId {
+        &self.owner_wallet
     }
 
     pub fn currency(&self) -> &Currency {

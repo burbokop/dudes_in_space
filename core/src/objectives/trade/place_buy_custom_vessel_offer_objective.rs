@@ -120,11 +120,12 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                     person: &mut ThisPerson,
                     environment_context: &EnvironmentContext,
                 ) -> Money {
+                    let this_person_wallet_id = person.finance.wallet().id().clone();
                     Money {
                         currency: person.finance.preferred_currency_or_create(
                             environment_context.bank_registry(),
                             Bank::new(
-                                person.id.clone(),
+                                person.id.clone(),this_person_wallet_id,
                                 environment_context.currency_generator().generate_name(
                                     &mut rng(),
                                     environment_context.bank_registry(),

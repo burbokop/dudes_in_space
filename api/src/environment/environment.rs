@@ -84,6 +84,7 @@ impl Environment {
             &mut self.request_storage,
             subordination_table,
             bank_registry,
+            wallet_registry,
             currency_generator,
             item_vault,
         );

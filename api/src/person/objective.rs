@@ -66,10 +66,12 @@ impl<'a> ObjectiveRequestHandler for DefaultObjectiveRequestHandler {
             RequestCreditLimitIncreaseResult,
         >,
     ) {
+        let this_person_wallet_id = this_person.finance.wallet().id().clone();
         this_person.finance.increase_credit_limit_or_create(
             request.input.new_limit,
             Bank::new(
                 this_person.id.clone(),
+                this_person_wallet_id,
                 currency_generator.generate_name(&mut rng(), bank_registry, this_person),
             ),
         );

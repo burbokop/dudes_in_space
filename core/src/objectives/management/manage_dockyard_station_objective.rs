@@ -175,11 +175,13 @@ impl Objective for ManageDockyardStationObjective {
                         let cap_for_item = capacity_dedicated_for_this_objective * portion;
                         let capacity_for_item = (cap_for_item / item.volume) as ItemCount;
 
+                        let this_person_wallet_id = this_person.finance.wallet().id().clone();
                         let target_currency: Currency =
                             this_person.finance.preferred_currency_or_create(
                                 environment_context.bank_registry(),
                                 Bank::new(
                                     this_person.id.clone(),
+                                    this_person_wallet_id,
                                     environment_context.currency_generator().generate_name(
                                         &mut rng(),
                                         environment_context.bank_registry(),

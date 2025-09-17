@@ -1,4 +1,4 @@
-use crate::finance::{BankRegistry, Money, PersonalFinancePackage, WithdrawalError};
+use crate::finance::{BankRegistry, Money, PersonalFinancePackage, WalletRegistry, WithdrawalError};
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 
@@ -22,13 +22,14 @@ impl<'a> ThisPerson<'a> {
     pub fn ensure_has_money_in_wallet(
         &mut self,
         bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
         money: Money,
     ) -> Result<(), WithdrawalError> {
         assert_ne!(money.amount.unwrap(), 0);
 
         let mut wallet = self.finance.wallet_mut();
 
-        match wallet.ensure_contains(bank_registry, money.clone()) {
+        match wallet.ensure_contains(bank_registry,wallet_registry, money.clone()) {
             Ok(_) => Ok(()),
             Err(err) => {
                 drop(wallet);

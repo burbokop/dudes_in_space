@@ -257,7 +257,7 @@ mod tests {
 }
 
 #[derive(Debug)]
-struct DifferentCurrenciesError;
+pub struct DifferentCurrenciesError;
 
 impl Display for DifferentCurrenciesError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

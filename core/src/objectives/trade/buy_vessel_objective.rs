@@ -127,6 +127,7 @@ impl Objective for BuyVesselObjective {
 
                         match this_person.ensure_has_money_in_wallet(
                             environment_context.bank_registry(),
+                            environment_context.wallet_registry(),
                             estimate.pledge.clone(),
                         ) {
                             Ok(_) => {}

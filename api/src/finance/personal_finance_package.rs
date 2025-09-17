@@ -67,7 +67,7 @@ impl PersonalFinancePackage {
                 match NonNeg::new(new_limit - new_bank.money_created()) {
                     Ok(missing) => {
                         new_bank
-                            .withdraw(new_bank.owner(), &mut self.wallet.borrow_mut(), missing)
+                            .withdraw(*new_bank.owner(), &mut self.wallet.borrow_mut(), missing)
                             .unwrap();
                     }
                     _ => {}
@@ -78,7 +78,7 @@ impl PersonalFinancePackage {
                 let mut bank = bank.borrow_mut();
                 match NonNeg::new(new_limit - bank.money_created()) {
                     Ok(missing) if missing != Zero::zero() => {
-                        let owner = bank.owner();
+                        let owner = bank.owner().clone();
                         bank.withdraw(owner, &mut self.wallet.borrow_mut(), missing)
                             .unwrap();
                     }
