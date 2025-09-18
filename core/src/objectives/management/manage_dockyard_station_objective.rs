@@ -121,11 +121,6 @@ impl Objective for ManageDockyardStationObjective {
                     )
                     .collect();
 
-                    // println!(
-                    //     "ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe: {:#?}",
-                    //     (&search_result, assembly_recipes)
-                    // );
-
                     let mut min_counts: BTreeMap<ItemId, ItemCount> = BTreeMap::new();
                     assembly_recipes
                         .iter()
@@ -135,8 +130,6 @@ impl Objective for ManageDockyardStationObjective {
                             let c = min_counts.entry(item.clone()).or_default();
                             *c = ItemCount::max(*c, *count);
                         });
-
-                    println!("{:#?}", min_counts);
 
                     let sum_volume = min_counts
                         .clone()
@@ -338,6 +331,10 @@ impl Objective for ManageDockyardStationObjective {
                 Err(err) => todo!(),
             },
             Self::CheckOrders => {
+                if !this_module.capabilities().contains(&ModuleCapability::VesselSellingTerminal) {
+                    todo!("Move to exact vessel selling terminal the person placed offer in")
+                }
+
                 let console = this_module.trading_admin_console_mut().unwrap();
 
                 if let Some(current_order) = console.buy_vessel_orders().first() {

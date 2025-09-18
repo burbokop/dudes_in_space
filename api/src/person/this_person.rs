@@ -44,9 +44,11 @@ impl<'a> ThisPerson<'a> {
                 let bank = borrowed_bank_registry.bank(&missing.currency).unwrap();
                 bank.dry_run_withdraw(self.id.clone(), &self.finance.wallet(), missing.amount)?;
                 drop(bank);
-                self.finance
-                    .wallet_mut()
-                    .convert_all_into(&bank_registry, missing.currency.clone());
+                self.finance.wallet_mut().convert_all_into(
+                    &bank_registry,
+                    &wallet_registry,
+                    missing.currency.clone(),
+                );
 
                 let mut bank = borrowed_bank_registry.bank_mut(&missing.currency).unwrap();
                 bank.withdraw(

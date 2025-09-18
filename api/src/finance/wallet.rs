@@ -94,23 +94,45 @@ impl Wallet {
     pub(crate) fn convert_all_into(
         &mut self,
         bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
         target_currency: Currency,
     ) {
-        self.content = Money::sum_as(
-            bank_registry,
-            self.content.iter().map(|(currency, amount)| Money {
+        for (currency, amount) in self.content.clone() {
+            if currency == target_currency {
+                continue;
+            }
+
+            let current_money = Money {
                 currency: currency.clone(),
                 amount: amount.clone(),
-            }),
-            target_currency,
-        )
-        .unwrap()
-        .map(|money| BTreeMap::from([(money.currency, money.amount)]))
-        .unwrap_or_default();
+            };
 
-        todo!(
-            "You have a bug in this function. You must do conversion through bank buy currency function"
-        )
+            let bank_registry = bank_registry.borrow();
+
+            let mut target_bank = bank_registry.bank_mut(&target_currency).unwrap();
+            let mut current_bank = bank_registry.bank_mut(&current_money.currency).unwrap();
+
+            let target_bank_owner_wallet =
+                wallet_registry.get(&target_bank.owner_wallet()).unwrap();
+            let target_bank_owner_wallet = target_bank_owner_wallet.upgrade().unwrap();
+            let mut target_bank_owner_wallet = target_bank_owner_wallet.borrow_mut();
+
+            let current_bank_owner_wallet =
+                wallet_registry.get(&current_bank.owner_wallet()).unwrap();
+            let current_bank_owner_wallet = current_bank_owner_wallet.upgrade().unwrap();
+            let current_bank_owner_wallet = current_bank_owner_wallet.borrow_mut();
+
+            let target_amount = current_bank
+                .sell_this_currency_price(&target_bank, amount)
+                .unwrap();
+
+            target_bank.buy_currency(
+                &mut target_bank_owner_wallet,
+                self,
+                &mut current_bank,
+                target_amount,
+            );
+        }
     }
 
     pub(crate) fn missing(&mut self, money: Money) -> Option<NonNeg<MoneyAmount>> {
@@ -182,30 +204,34 @@ impl Wallet {
         wallet_registry: &WalletRegistry,
         target_money: Money,
     ) -> bool {
-        loop {
-            let current_amount_of_target_currency = self
-                .content
-                .get(&target_money.currency)
-                .cloned()
-                .unwrap_or(Zero::zero());
-            let delta =
-                NonNeg::new(target_money.amount - current_amount_of_target_currency).unwrap();
-
-            if delta == Zero::zero() {
-                break true;
-            }
-
-            let delta_money = Money {
-                currency: target_money.currency.clone(),
-                amount: delta.clone(),
-            };
-
-            let mut content = self.content.clone();
-
-            content.retain(|currency, amount| {
+        'l: loop {
+            for (currency, amount) in self.content.clone() {
                 if *currency == target_money.currency {
-                    return false;
+                    continue;
                 }
+
+                let current_amount_of_target_currency = self
+                    .content
+                    .get(&target_money.currency)
+                    .cloned()
+                    .unwrap_or(Zero::zero());
+
+                let delta =
+                    NonNeg::new(target_money.amount - current_amount_of_target_currency).unwrap();
+
+                if delta == Zero::zero() {
+                    self.content.retain(|_, a| *a != Zero::zero());
+                    break 'l true;
+                }
+
+                if self.content.len() <= 1 {
+                    break 'l false;
+                }
+
+                let delta_money = Money {
+                    currency: target_money.currency.clone(),
+                    amount: delta.clone(),
+                };
 
                 let current_money = Money {
                     currency: currency.clone(),
@@ -231,14 +257,6 @@ impl Wallet {
                 let target_bank_owner_wallet = target_bank_owner_wallet.upgrade().unwrap();
                 let mut target_bank_owner_wallet = target_bank_owner_wallet.borrow_mut();
 
-                println!("target_money: {}", target_money);
-                println!("delta_money: {}", target_money);
-                println!("current_money: {}", current_money);
-                println!(
-                    "current_money_in_target_currency: {}",
-                    current_money_in_target_currency
-                );
-
                 target_bank.buy_currency(
                     &mut target_bank_owner_wallet,
                     self,
@@ -246,8 +264,11 @@ impl Wallet {
                     min.amount,
                 );
 
-                *amount > Zero::zero()
-            });
+                if self.content.get(&target_money.currency).unwrap().clone() >= target_money.amount
+                {
+                    break;
+                }
+            }
         }
     }
 }
@@ -355,3 +376,201 @@ impl Display for PersonAlreadyExistsError {
 }
 
 impl Error for PersonAlreadyExistsError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::finance::tests::create_bank;
+
+    #[test]
+    fn convert_all_into_test() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
+
+        let (usd_bank, usd_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 100000.into(),
+            },
+        );
+
+        let (eur_bank, eur_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 10000.into(),
+            },
+        );
+
+        let (gbp_bank, gbp_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "GBP".to_string(),
+                amount: 1000.into(),
+            },
+        );
+
+        let mut wallet = Wallet::new();
+
+        {
+            let mut usd_bank_owner_wallet = usd_bank_owner_wallet.borrow_mut();
+            let mut eur_bank_owner_wallet = eur_bank_owner_wallet.borrow_mut();
+            let mut gbp_bank_owner_wallet = gbp_bank_owner_wallet.borrow_mut();
+
+            usd_bank_owner_wallet
+                .transfer_to(
+                    &mut wallet,
+                    Money {
+                        currency: "USD".to_string(),
+                        amount: 1000.into(),
+                    },
+                )
+                .unwrap();
+
+            eur_bank_owner_wallet
+                .transfer_to(
+                    &mut wallet,
+                    Money {
+                        currency: "EUR".to_string(),
+                        amount: 1000.into(),
+                    },
+                )
+                .unwrap();
+
+            gbp_bank_owner_wallet
+                .transfer_to(
+                    &mut wallet,
+                    Money {
+                        currency: "GBP".to_string(),
+                        amount: 1000.into(),
+                    },
+                )
+                .unwrap();
+        }
+
+        wallet.convert_all_into(&bank_registry, &wallet_registry, "USD".to_string());
+
+        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 111000);
+        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 0);
+        assert_eq!(wallet.amount("GBP".to_string()).unwrap(), 0);
+    }
+
+    #[test]
+    fn transfer_to_test() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
+
+        let (bank, bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 100000.into(),
+            },
+        );
+
+        let mut bank_owner_wallet = bank_owner_wallet.borrow_mut();
+        let mut wallet = Wallet::new();
+
+        bank_owner_wallet
+            .transfer_to(
+                &mut wallet,
+                Money {
+                    currency: "USD".to_string(),
+                    amount: 1000.into(),
+                },
+            )
+            .unwrap();
+
+        assert_eq!(bank_owner_wallet.amount("USD".to_string()).unwrap(), 99000);
+        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 1000);
+    }
+
+    #[test]
+    fn ensure_contains_impl() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
+
+        let (usd_bank, usd_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 100000.into(),
+            },
+        );
+
+        let (eur_bank, eur_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 10000.into(),
+            },
+        );
+
+        let (gbp_bank, gbp_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "GBP".to_string(),
+                amount: 1000.into(),
+            },
+        );
+
+        let mut wallet = Wallet::new();
+
+        {
+            let mut usd_bank_owner_wallet = usd_bank_owner_wallet.borrow_mut();
+            let mut eur_bank_owner_wallet = eur_bank_owner_wallet.borrow_mut();
+            let mut gbp_bank_owner_wallet = gbp_bank_owner_wallet.borrow_mut();
+
+            usd_bank_owner_wallet
+                .transfer_to(
+                    &mut wallet,
+                    Money {
+                        currency: "USD".to_string(),
+                        amount: 1000.into(),
+                    },
+                )
+                .unwrap();
+
+            eur_bank_owner_wallet
+                .transfer_to(
+                    &mut wallet,
+                    Money {
+                        currency: "EUR".to_string(),
+                        amount: 1000.into(),
+                    },
+                )
+                .unwrap();
+
+            gbp_bank_owner_wallet
+                .transfer_to(
+                    &mut wallet,
+                    Money {
+                        currency: "GBP".to_string(),
+                        amount: 1000.into(),
+                    },
+                )
+                .unwrap();
+        }
+
+        wallet.ensure_contains_impl(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 20000.into(),
+            },
+        );
+
+        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 20000);
+        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 0);
+        assert_eq!(wallet.amount("GBP".to_string()).unwrap(), 910);
+    }
+}

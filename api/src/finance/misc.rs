@@ -1,4 +1,4 @@
-use crate::finance::SourceBankDidNotCreateAnyMoneyError;
+use crate::finance::TargetBankDidNotCreateAnyMoneyError;
 use crate::finance::bank_registry::BankRegistry;
 use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
@@ -130,7 +130,7 @@ impl Money {
         &self,
         bank_registry: &BankRegistry,
         target_currency: Currency,
-    ) -> Result<Money, SourceBankDidNotCreateAnyMoneyError> {
+    ) -> Result<Money, TargetBankDidNotCreateAnyMoneyError> {
         let bank_registry = bank_registry.borrow();
         let this_bank = bank_registry.bank(&self.currency).unwrap();
         let target_bank = bank_registry.bank(&target_currency).unwrap();
@@ -146,8 +146,8 @@ impl Money {
         bank_registry: &BankRegistry,
         iter: impl Iterator<Item = Money>,
         target_currency: Currency,
-    ) -> Result<Option<Money>, SourceBankDidNotCreateAnyMoneyError> {
-        let amount: Result<Vec<MoneyAmount>, SourceBankDidNotCreateAnyMoneyError> = iter
+    ) -> Result<Option<Money>, TargetBankDidNotCreateAnyMoneyError> {
+        let amount: Result<Vec<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> = iter
             .map(|money| {
                 Ok(money
                     .convert_to_currency(bank_registry, target_currency.clone())?
@@ -219,55 +219,67 @@ impl Display for Money {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::finance::{Bank, Wallet};
-    use crate::person::PersonId;
+    use crate::finance::WalletRegistry;
+    use crate::finance::tests::create_bank;
 
     #[test]
     fn convert_to_currency_test() {
-        let reg = BankRegistry::new();
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
 
-        let create_bank = |created_money: Money| {
-            let owner = PersonId::new_v4();
-            let mut owner_wallet = Wallet::new();
-            let mut bank = Bank::new(owner, created_money.currency);
-
-            bank.withdraw(owner, &mut owner_wallet, created_money.amount)
-                .unwrap();
-            reg.register(bank).unwrap();
-        };
-
-        create_bank(Money {
-            currency: "USD".to_string(),
-            amount: 100000.into(),
-        });
-        create_bank(Money {
-            currency: "EUR".to_string(),
-            amount: 10000.into(),
-        });
-        create_bank(Money {
-            currency: "GBP".to_string(),
-            amount: 1000.into(),
-        });
+        create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 100000.into(),
+            },
+        );
+        create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 10000.into(),
+            },
+        );
+        create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "GBP".to_string(),
+                amount: 1000.into(),
+            },
+        );
 
         let test_money_gbp = Money {
             currency: "GBP".to_string(),
             amount: 10.into(),
         };
 
-        let test_money_usd = test_money_gbp.convert_to_currency(&reg, "USD".to_string());
-        let test_money_eur = test_money_usd.convert_to_currency(&reg, "EUR".to_string());
-        let intermediate_test_money_gbp =
-            test_money_usd.convert_to_currency(&reg, "GBP".to_string());
-        let final_test_money_gbp = test_money_eur.convert_to_currency(&reg, "GBP".to_string());
+        let test_money_usd = test_money_gbp
+            .convert_to_currency(&bank_registry, "USD".to_string())
+            .unwrap();
+        let test_money_eur = test_money_usd
+            .convert_to_currency(&bank_registry, "EUR".to_string())
+            .unwrap();
+        let intermediate_test_money_gbp = test_money_usd
+            .convert_to_currency(&bank_registry, "GBP".to_string())
+            .unwrap();
+        let final_test_money_gbp = test_money_eur
+            .convert_to_currency(&bank_registry, "GBP".to_string())
+            .unwrap();
 
         assert!(
             test_money_gbp
                 .cmp_same_currency(&intermediate_test_money_gbp)
+                .unwrap()
                 .is_eq()
         );
         assert!(
             test_money_gbp
                 .cmp_same_currency(&final_test_money_gbp)
+                .unwrap()
                 .is_eq()
         );
     }

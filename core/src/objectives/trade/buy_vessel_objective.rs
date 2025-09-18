@@ -123,8 +123,6 @@ impl Objective for BuyVesselObjective {
                 Ok(result) => match result {
                     FindBestBuyVesselOfferResult::BuyVesselOffer(_) => todo!(),
                     FindBestBuyVesselOfferResult::BuyCustomVesselOffer { offer, estimate } => {
-                        println!("{:?} -> {:?}", offer, estimate);
-
                         match this_person.ensure_has_money_in_wallet(
                             environment_context.bank_registry(),
                             environment_context.wallet_registry(),
@@ -160,7 +158,14 @@ impl Objective for BuyVesselObjective {
                             needed_capabilities.clone(),
                             needed_primary_capabilities.clone(),
                         ) {
-                            Ok(order) => todo!(),
+                            Ok(order) => {
+                                *self = Self::ProcessOrder {
+                                    needed_capabilities: std::mem::take(needed_capabilities),
+                                    needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                    order,
+                                };
+                                Ok(ObjectiveStatus::InProgress)
+                            },
                             Err(future) => {
                                 *self = Self::WaitForOrderToBeAccepted {
                                     needed_capabilities: std::mem::take(needed_capabilities),

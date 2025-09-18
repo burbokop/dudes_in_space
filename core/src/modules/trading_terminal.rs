@@ -127,7 +127,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {

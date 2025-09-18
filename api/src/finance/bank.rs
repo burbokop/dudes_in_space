@@ -84,16 +84,6 @@ impl Bank {
             amount: NonNeg<MoneyAmount>,
         }
 
-        println!(
-            "dry_run_withdraw: {:#?}",
-            Params {
-                this_bank: self,
-                customer,
-                target_wallet,
-                amount
-            }
-        );
-
         let customers_count = self.customers.len();
         if customer == self.owner {
             Ok(())
@@ -212,29 +202,34 @@ impl Bank {
         }
     }
 
+    /// Returns amount of money you need to buy `target_amount` from `source_currency_bank`
+    /// Note: `target_amount` is in currency of `source_currency_bank`
+    /// Note: result is in currency of `self`
     pub fn buy_foreign_currency_price(
         &self,
-        source_currency_bank: &Bank,
+        target_currency_bank: &Bank,
         target_amount: NonNeg<MoneyAmount>,
-    ) -> Result<NonNeg<MoneyAmount>, SourceBankDidNotCreateAnyMoneyError> {
-        if source_currency_bank.money_created.unwrap() == 0 {
-            return Err(SourceBankDidNotCreateAnyMoneyError);
+    ) -> Result<NonNeg<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> {
+        if target_currency_bank.money_created.unwrap() == 0 {
+            return Err(TargetBankDidNotCreateAnyMoneyError);
         }
 
         let source_amount = (target_amount.unwrap() as Float * self.money_created.unwrap() as Float
-            / source_currency_bank.money_created.unwrap() as Float)
+            / target_currency_bank.money_created.unwrap() as Float)
             as MoneyAmount;
 
         Ok(NonNeg::new(source_amount).unwrap())
     }
 
+    /// Returns amount of money you get when selling `source_amount` of `self` currency to `target_currency_bank`.
+    /// Note: result is in `target_currency_bank` currency
     pub fn sell_this_currency_price(
         &self,
         target_currency_bank: &Bank,
         source_amount: NonNeg<MoneyAmount>,
-    ) -> Result<NonNeg<MoneyAmount>, SourceBankDidNotCreateAnyMoneyError> {
+    ) -> Result<NonNeg<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> {
         if self.money_created.unwrap() == 0 {
-            return Err(SourceBankDidNotCreateAnyMoneyError);
+            return Err(TargetBankDidNotCreateAnyMoneyError);
         }
 
         let target_amount = (source_amount.unwrap() as Float
@@ -244,6 +239,7 @@ impl Bank {
         Ok(NonNeg::new(target_amount).unwrap())
     }
 
+    /// Buy `target_amount` currency of `self` by selling corresponding amount of `source_currency_bank` currency
     pub fn buy_currency(
         &mut self,
         bank_owner_wallet: &mut Wallet,
@@ -254,9 +250,9 @@ impl Bank {
         assert_ne!(target_amount.unwrap(), 0);
         assert_ne!(self.money_created, Zero::zero());
 
-        let source_amount = (target_amount.unwrap() as Float
-            * source_currency_bank.money_created.unwrap() as Float
-            / self.money_created.unwrap() as Float) as MoneyAmount;
+        let source_amount = self
+            .sell_this_currency_price(source_currency_bank, target_amount)
+            .unwrap();
 
         let money_to_take_from_bank_owner = Money {
             currency: self.currency.clone(),
@@ -264,8 +260,8 @@ impl Bank {
         };
 
         let money_to_take_from_customer = Money {
-            currency: self.currency.clone(),
-            amount: target_amount,
+            currency: source_currency_bank.currency.clone(),
+            amount: source_amount,
         };
 
         {
@@ -331,28 +327,119 @@ impl Display for WithdrawalError {
 impl Error for WithdrawalError {}
 
 #[derive(Debug)]
-pub struct SourceBankDidNotCreateAnyMoneyError;
+pub struct TargetBankDidNotCreateAnyMoneyError;
 
-impl Display for SourceBankDidNotCreateAnyMoneyError {
+impl Display for TargetBankDidNotCreateAnyMoneyError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
-impl Error for SourceBankDidNotCreateAnyMoneyError {}
+impl Error for TargetBankDidNotCreateAnyMoneyError {}
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
+    use crate::finance::{BankRegistry, WalletRegistry};
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    pub fn create_bank(
+        bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
+        created_money: Money,
+    ) -> (Rc<RefCell<Bank>>, Rc<RefCell<Wallet>>) {
+        let owner = PersonId::new_v4();
+        let mut owner_wallet = Wallet::new();
+        let mut bank = Bank::new(owner, owner_wallet.id().clone(), created_money.currency);
+
+        bank.withdraw(owner, &mut owner_wallet, created_money.amount)
+            .unwrap();
+        (
+            bank_registry.register(bank).unwrap(),
+            wallet_registry.register(owner_wallet).unwrap(),
+        )
+    }
 
     #[test]
-    fn dry_run_withdraw_from_virgin_bank() {
+    fn buy_foreign_currency_price_test() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
+
+        let (usd_bank, _) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 1000.into(),
+            },
+        );
+
+        let (eur_bank, _) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 100.into(),
+            },
+        );
+
+        let usd_bank = usd_bank.borrow_mut();
+        let eur_bank = eur_bank.borrow_mut();
+
+        // Returns the amount of USD you need to buy 1 EUR from eur_bank
+        assert_eq!(
+            usd_bank
+                .buy_foreign_currency_price(&eur_bank, 1.into())
+                .unwrap(),
+            10.into()
+        );
+    }
+
+    #[test]
+    fn sell_this_currency_price_test() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
+
+        let (usd_bank, _) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 1000.into(),
+            },
+        );
+
+        let (eur_bank, _) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 100.into(),
+            },
+        );
+
+        let usd_bank = usd_bank.borrow_mut();
+        let eur_bank = eur_bank.borrow_mut();
+
+        // Returns the amount of EUR you get by selling 10 USD to `eur_bank`
+        assert_eq!(
+            usd_bank
+                .sell_this_currency_price(&eur_bank, 10.into())
+                .unwrap(),
+            1.into()
+        );
+    }
+
+    #[test]
+    fn dry_run_withdraw_from_virgin_bank_test() {
         let owner = PersonId::new_v4();
+        let owner_wallet = Wallet::new();
         let customer = PersonId::new_v4();
         let mut customer_wallet = Wallet::new();
         let currency = "$".into();
         let amount = NonNeg::new(100).unwrap();
-        let bank = Bank::new(owner, currency);
+        let bank = Bank::new(owner, owner_wallet.id().clone(), currency);
 
         let result = bank.dry_run_withdraw(customer, &mut customer_wallet, amount);
 
@@ -367,14 +454,16 @@ mod tests {
     }
 
     #[test]
-    fn withdraw_from_virgin_bank() {
+    fn withdraw_from_virgin_bank_test() {
         let owner = PersonId::new_v4();
+        let owner_wallet = Wallet::new();
+
         let customer = PersonId::new_v4();
         let mut customer_wallet = Wallet::new();
         let currency = "$".into();
         let amount = NonNeg::new(100).unwrap();
 
-        let mut bank = Bank::new(owner, currency);
+        let mut bank = Bank::new(owner, owner_wallet.id().clone(), currency);
 
         let result = bank.withdraw(customer, &mut customer_wallet, amount);
 
@@ -390,5 +479,68 @@ mod tests {
         assert_eq!(bank.money_created.unwrap(), 0);
         assert_eq!(bank.money_stored, 0);
         assert_eq!(bank.customers.get(&customer).unwrap().money, 0);
+    }
+
+    #[test]
+    fn buy_currency_test() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
+
+        let (usd_bank, usd_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 100000.into(),
+            },
+        );
+
+        let (eur_bank, eur_bank_owner_wallet) = create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 10000.into(),
+            },
+        );
+
+        let mut wallet = Wallet::new();
+
+        let mut usd_bank = usd_bank.borrow_mut();
+        let eur_bank = eur_bank.borrow_mut();
+
+        let mut usd_bank_ow = usd_bank_owner_wallet.borrow_mut();
+        let mut eur_bank_ow = eur_bank_owner_wallet.borrow_mut();
+
+        usd_bank_ow
+            .transfer_to(
+                &mut wallet,
+                Money {
+                    currency: "USD".to_string(),
+                    amount: 1000.into(),
+                },
+            )
+            .unwrap();
+
+        eur_bank_ow
+            .transfer_to(
+                &mut wallet,
+                Money {
+                    currency: "EUR".to_string(),
+                    amount: 1000.into(),
+                },
+            )
+            .unwrap();
+
+        usd_bank.buy_currency(&mut usd_bank_ow, &mut wallet, &eur_bank, 10.into());
+
+        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 1010);
+        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 999);
+
+        assert_eq!(usd_bank_ow.amount("USD".to_string()).unwrap(), 98990);
+        assert_eq!(usd_bank_ow.amount("EUR".to_string()).unwrap(), 1);
+
+        assert_eq!(eur_bank_ow.amount("USD".to_string()).unwrap(), 0);
+        assert_eq!(eur_bank_ow.amount("EUR".to_string()).unwrap(), 9000);
     }
 }
