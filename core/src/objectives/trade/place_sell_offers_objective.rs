@@ -37,6 +37,7 @@ impl PlaceSellOffersObjective {
 }
 
 impl Objective for PlaceSellOffersObjective {
+    type Result = ();
     type Error = PlaceSellOfferObjectiveError;
 
     fn pursue(
@@ -46,7 +47,7 @@ impl Objective for PlaceSellOffersObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::FindTerminal { offers } => {
                 if this_module
@@ -115,9 +116,9 @@ impl Objective for PlaceSellOffersObjective {
                 }
 
                 *self = Self::Done;
-                Ok(ObjectiveStatus::Done)
+                Ok(ObjectiveStatus::Done(()))
             }
-            Self::Done => Ok(ObjectiveStatus::Done),
+            Self::Done => Ok(ObjectiveStatus::Done(())),
         }
     }
 }

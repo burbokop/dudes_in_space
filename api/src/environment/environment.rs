@@ -128,15 +128,15 @@ impl Environment {
                     max_profit_record,
                 )) = trade_table
                     .iter()
-                    .map(|(item_id, record)| {
-                        (
+                    .filter_map(|(item_id, record)| {
+                        Some((
                             record.eval_max_profit(
                                 bank_registry,
                                 req.input.free_storage_space,
                                 item_vault,
-                            ),
+                            )?,
                             record,
-                        )
+                        ))
                     })
                     .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(bank_registry, b))
                 {

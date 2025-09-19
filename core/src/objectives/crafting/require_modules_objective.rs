@@ -36,6 +36,7 @@ impl RequireModulesObjective {
 }
 
 impl Objective for RequireModulesObjective {
+    type Result = ();
     type Error = CraftModulesObjectiveError;
 
     fn pursue(
@@ -45,7 +46,7 @@ impl Objective for RequireModulesObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::SearchingForRequireModules {
                 needed_capabilities,

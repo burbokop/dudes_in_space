@@ -31,6 +31,7 @@ impl MoveToDockedVesselObjective {
 }
 
 impl Objective for MoveToDockedVesselObjective {
+    type Result = ();
     type Error = MoveToDockedVesselObjectiveError;
 
     fn pursue(
@@ -40,13 +41,13 @@ impl Objective for MoveToDockedVesselObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::SearchVessel { vessel_id } => {
                 if *vessel_id == this_vessel.id() {
                     logger.info("SearchForCockpit");
                     *self = Self::Done;
-                    return Ok(ObjectiveStatus::Done);
+                    return Ok(ObjectiveStatus::Done(()));
                 }
 
                 if let Some((module_id, connection_id)) = tie(this_module, this_vessel)
@@ -80,7 +81,7 @@ impl Objective for MoveToDockedVesselObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => {
+                Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("Entering vessel...");
                     *self = Self::EnterVessel {
                         vessel_id: *vessel_id,
@@ -109,7 +110,7 @@ impl Objective for MoveToDockedVesselObjective {
                     .unwrap();
 
                 *self = Self::Done;
-                Ok(ObjectiveStatus::Done)
+                Ok(ObjectiveStatus::Done(()))
             }
             Self::Done => todo!(),
         }

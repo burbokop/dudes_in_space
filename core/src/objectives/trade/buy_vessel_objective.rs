@@ -88,6 +88,7 @@ impl BuyVesselObjective {
 }
 
 impl Objective for BuyVesselObjective {
+    type Result = ();
     type Error = BuyVesselObjectiveError;
 
     fn pursue(
@@ -97,7 +98,7 @@ impl Objective for BuyVesselObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::CheckPrerequisites {
                 needed_capabilities,
@@ -161,11 +162,13 @@ impl Objective for BuyVesselObjective {
                             Ok(order) => {
                                 *self = Self::ProcessOrder {
                                     needed_capabilities: std::mem::take(needed_capabilities),
-                                    needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                                    needed_primary_capabilities: std::mem::take(
+                                        needed_primary_capabilities,
+                                    ),
                                     order,
                                 };
                                 Ok(ObjectiveStatus::InProgress)
-                            },
+                            }
                             Err(future) => {
                                 *self = Self::WaitForOrderToBeAccepted {
                                     needed_capabilities: std::mem::take(needed_capabilities),

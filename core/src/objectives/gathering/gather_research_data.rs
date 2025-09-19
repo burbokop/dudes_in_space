@@ -16,6 +16,7 @@ static TYPE_ID: &str = "GatherResearchDataObjective";
 pub(crate) struct GatherResearchDataObjective {}
 
 impl Objective for GatherResearchDataObjective {
+    type Result = ();
     type Error = GatherResearchDataObjectiveError;
 
     fn pursue(
@@ -25,7 +26,7 @@ impl Objective for GatherResearchDataObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         todo!()
     }
 }

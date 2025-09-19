@@ -73,6 +73,7 @@ impl CraftVesselFromScratchObjective {
 }
 
 impl Objective for CraftVesselFromScratchObjective {
+    type Result = ();
     type Error = CraftVesselFromScratchObjectiveError;
 
     fn pursue(
@@ -82,7 +83,7 @@ impl Objective for CraftVesselFromScratchObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::CheckingAllPrerequisites {
                 needed_capabilities,
@@ -171,7 +172,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
-                    ObjectiveStatus::Done => {
+                    ObjectiveStatus::Done(()) => {
                         logger.info("CraftVesselFromScratchObjective::CraftingDockyard::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
                             needed_capabilities: std::mem::take(needed_capabilities),
@@ -199,7 +200,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
-                    ObjectiveStatus::Done => {
+                    ObjectiveStatus::Done(_) => {
                         logger.info(
                             "Checking all prerequisites for crafting a vessel from scratch...",
                         );
@@ -229,14 +230,14 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
-                    ObjectiveStatus::Done => {
+                    ObjectiveStatus::Done(_) => {
                         logger.info("Done crafting a vessel from scratch.");
                         *self = Self::Done;
-                        Ok(ObjectiveStatus::Done)
+                        Ok(ObjectiveStatus::Done(()))
                     }
                 }
             }
-            Self::Done => Ok(ObjectiveStatus::Done),
+            Self::Done => Ok(ObjectiveStatus::Done(())),
         }
     }
 }

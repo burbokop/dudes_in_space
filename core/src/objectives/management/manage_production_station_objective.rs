@@ -78,6 +78,7 @@ impl<'context> ManageProductionStationObjectiveSeed<'context> {
 }
 
 impl Objective for ManageProductionStationObjective {
+    type Result = ();
     type Error = ManageProductionStationObjectiveError;
 
     fn pursue(
@@ -87,7 +88,7 @@ impl Objective for ManageProductionStationObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::CollectAllAvailableRecipes => {
                 let item_recipes: BTreeSet<_> = iter::chain(
@@ -172,7 +173,7 @@ impl Objective for ManageProductionStationObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => {
+                Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("Checking all prerequisites to managing production station...");
                     *self = Self::ExecuteProduction {
                         craft_objective: CraftItemsObjective::new(

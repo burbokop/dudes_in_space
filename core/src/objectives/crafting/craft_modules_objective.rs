@@ -77,6 +77,7 @@ impl CraftModulesObjective {
 }
 
 impl Objective for CraftModulesObjective {
+    type Result = ();
     type Error = CraftModulesObjectiveError;
 
     fn pursue(
@@ -86,7 +87,7 @@ impl Objective for CraftModulesObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::SearchingForCraftingModule {
                 needed_capabilities,
@@ -256,7 +257,7 @@ impl Objective for CraftModulesObjective {
 
                     logger.info("Done crafting modules.");
                     *self = Self::Done;
-                    Ok(ObjectiveStatus::Done)
+                    Ok(ObjectiveStatus::Done(()))
                 }
                 Some(some_process_token) => {
                     if some_process_token
@@ -268,7 +269,7 @@ impl Objective for CraftModulesObjective {
                         {
                             logger.info("Done crafting modules.");
                             *self = Self::Done;
-                            Ok(ObjectiveStatus::Done)
+                            Ok(ObjectiveStatus::Done(()))
                         } else {
                             *process_token = None;
                             Ok(ObjectiveStatus::InProgress)
@@ -285,7 +286,7 @@ impl Objective for CraftModulesObjective {
                     }
                 }
             },
-            Self::Done => Ok(ObjectiveStatus::Done),
+            Self::Done => Ok(ObjectiveStatus::Done(())),
         }
     }
 }

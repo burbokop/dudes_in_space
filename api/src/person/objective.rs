@@ -16,12 +16,13 @@ use std::error::Error;
 use std::fmt::{Debug, Display};
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum ObjectiveStatus {
+pub enum ObjectiveStatus<R> {
     InProgress,
-    Done,
+    Done(R),
 }
 
 pub trait Objective {
+    type Result;
     type Error: Error + 'static;
 
     fn pursue(
@@ -31,7 +32,7 @@ pub trait Objective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error>;
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error>;
 
     fn request_handler(&mut self) -> Option<Box<dyn ObjectiveRequestHandler>> {
         Some(Box::new(DefaultObjectiveRequestHandler))
@@ -94,7 +95,7 @@ pub trait DynObjective: Debug + Display + DynSerialize {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Box<dyn Error>>;
+    ) -> Result<ObjectiveStatus<()>, Box<dyn Error>>;
 
     fn request_handler_dyn(&mut self) -> Option<Box<dyn ObjectiveRequestHandler>>;
 }
@@ -109,16 +110,18 @@ impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Box<dyn Error>> {
-        Ok(self
-            .pursue(
-                this_person,
-                this_module,
-                this_vessel,
-                environment_context,
-                logger,
-            )
-            .map_err(|e| Box::new(e))?)
+    ) -> Result<ObjectiveStatus<()>, Box<dyn Error>> {
+        match self.pursue(
+            this_person,
+            this_module,
+            this_vessel,
+            environment_context,
+            logger,
+        ) {
+            Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+            Ok(ObjectiveStatus::Done(_)) => Ok(ObjectiveStatus::Done(())),
+            Err(err) => Err(Box::new(err)),
+        }
     }
 
     fn request_handler_dyn(&mut self) -> Option<Box<dyn ObjectiveRequestHandler>> {

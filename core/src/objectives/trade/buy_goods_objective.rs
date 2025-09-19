@@ -22,6 +22,7 @@ impl BuyGoodsObjective {
 }
 
 impl Objective for BuyGoodsObjective {
+    type Result = ();
     type Error = BuyGoodsObjectiveError;
 
     fn pursue(
@@ -31,7 +32,7 @@ impl Objective for BuyGoodsObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         todo!()
     }
 }

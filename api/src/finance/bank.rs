@@ -211,7 +211,9 @@ impl Bank {
         target_amount: NonNeg<MoneyAmount>,
     ) -> Result<NonNeg<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> {
         if target_currency_bank.money_created.unwrap() == 0 {
-            return Err(TargetBankDidNotCreateAnyMoneyError);
+            return Err(TargetBankDidNotCreateAnyMoneyError {
+                currency: target_currency_bank.currency.clone(),
+            });
         }
 
         let source_amount = (target_amount.unwrap() as Float * self.money_created.unwrap() as Float
@@ -229,7 +231,9 @@ impl Bank {
         source_amount: NonNeg<MoneyAmount>,
     ) -> Result<NonNeg<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> {
         if self.money_created.unwrap() == 0 {
-            return Err(TargetBankDidNotCreateAnyMoneyError);
+            return Err(TargetBankDidNotCreateAnyMoneyError {
+                currency: self.currency.clone(),
+            });
         }
 
         let target_amount = (source_amount.unwrap() as Float
@@ -327,7 +331,9 @@ impl Display for WithdrawalError {
 impl Error for WithdrawalError {}
 
 #[derive(Debug)]
-pub struct TargetBankDidNotCreateAnyMoneyError;
+pub struct TargetBankDidNotCreateAnyMoneyError {
+    currency: Currency,
+}
 
 impl Display for TargetBankDidNotCreateAnyMoneyError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

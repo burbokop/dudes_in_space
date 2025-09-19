@@ -86,7 +86,7 @@ impl ItemRecord {
         bank_registry: &BankRegistry,
         free_storage_space: ItemVolume,
         item_vault: &ItemVault,
-    ) -> (Money, OfferRef<BuyOffer>, OfferRef<SellOffer>) {
+    ) -> Option<(Money, OfferRef<BuyOffer>, OfferRef<SellOffer>)> {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
@@ -105,8 +105,7 @@ impl ItemRecord {
                     offer,
                 )
             })
-            .min_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))
-            .unwrap();
+            .min_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))?;
 
         let (max_sell_price, max_price_sell_offer) = self
             .sell_offers
@@ -126,14 +125,13 @@ impl ItemRecord {
                     offer,
                 )
             })
-            .max_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))
-            .unwrap();
+            .max_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))?;
 
-        (
+        Some((
             max_sell_price.sub(bank_registry, min_buy_price),
             min_price_buy_offer.clone(),
             max_price_sell_offer.clone(),
-        )
+        ))
     }
 }
 

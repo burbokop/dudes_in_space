@@ -27,9 +27,12 @@ pub(crate) enum PlaceBuyCustomVesselOfferObjective {
         input_prices: BTreeMap<ItemId, Money>,
     },
     PlaceOffer {
+        target_terminal: ModuleId,
         input_prices: BTreeMap<ItemId, Money>,
     },
-    Done,
+    Done {
+        target_terminal: ModuleId,
+    },
 }
 
 struct PlaceBuyCustomVesselOfferObjectiveSeed {}
@@ -40,7 +43,12 @@ impl PlaceBuyCustomVesselOfferObjective {
     }
 }
 
+pub(crate) struct CraftVesselFromScratchObjectiveResult {
+    pub(crate) target_terminal: ModuleId,
+}
+
 impl Objective for PlaceBuyCustomVesselOfferObjective {
+    type Result = CraftVesselFromScratchObjectiveResult;
     type Error = PlaceBuyCustomVesselOfferObjectiveError;
 
     fn pursue(
@@ -50,7 +58,7 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::FindTerminal { input_prices } => {
                 if this_module
@@ -58,6 +66,7 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                     .contains(&ModuleCapability::VesselSellingTerminal)
                 {
                     *self = Self::PlaceOffer {
+                        target_terminal: this_module.id(),
                         input_prices: std::mem::take(input_prices),
                     };
                     return Ok(ObjectiveStatus::InProgress);
@@ -81,6 +90,7 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                 if *dst == this_module.id() {
                     logger.info("Placing capabilities in vessel selling terminal...");
                     *self = Self::PlaceOffer {
+                        target_terminal: *dst,
                         input_prices: std::mem::take(input_prices),
                     };
                     Ok(ObjectiveStatus::InProgress)
@@ -107,7 +117,10 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                     }
                 }
             }
-            Self::PlaceOffer { input_prices } => {
+            Self::PlaceOffer {
+                target_terminal,
+                input_prices,
+            } => {
                 let assembly_recipes: Vec<_> = iter::chain(
                     tie(this_module, this_vessel).assembly_recipes().into_iter(),
                     tie(this_module, this_vessel)
@@ -247,10 +260,11 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                     capabilities_prices,
                     primary_capabilities_prices,
                 );
-                *self = Self::Done;
-                Ok(ObjectiveStatus::Done)
+                let target_terminal = *target_terminal;
+                *self = Self::Done { target_terminal };
+                Ok(ObjectiveStatus::Done(Self::Result { target_terminal }))
             }
-            Self::Done => todo!(),
+            Self::Done { target_terminal } => todo!(),
         }
     }
 }

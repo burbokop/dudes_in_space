@@ -16,6 +16,7 @@ static TYPE_ID: &str = "MineAsteroidsObjective";
 pub(crate) struct MineAsteroidsObjective {}
 
 impl Objective for MineAsteroidsObjective {
+    type Result = ();
     type Error = MineAsteroidsObjectiveError;
 
     fn pursue(
@@ -25,7 +26,7 @@ impl Objective for MineAsteroidsObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         todo!()
     }
 }

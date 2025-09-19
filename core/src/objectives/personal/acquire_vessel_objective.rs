@@ -70,6 +70,7 @@ impl AcquireVesselObjective {
 }
 
 impl Objective for AcquireVesselObjective {
+    type Result = ();
     type Error = AcquireVesselObjectiveError;
 
     fn pursue(
@@ -79,7 +80,7 @@ impl Objective for AcquireVesselObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::CheckPrerequisites {
                 needed_capabilities,
@@ -108,7 +109,7 @@ impl Objective for AcquireVesselObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => Ok(ObjectiveStatus::Done),
+                Ok(ObjectiveStatus::Done(_)) => Ok(ObjectiveStatus::Done(())),
                 Err(err) => Err(AcquireVesselObjectiveError::CanNotCraftCanNotBuy {
                     craft_error: craft_error.clone(),
                     buy_error: err,
@@ -127,7 +128,7 @@ impl Objective for AcquireVesselObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => Ok(ObjectiveStatus::Done),
+                Ok(ObjectiveStatus::Done(_)) => Ok(ObjectiveStatus::Done(())),
                 Err(err) => {
                     *self = Self::BuyVessel {
                         craft_error: err,

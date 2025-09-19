@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub struct BankRegistry {
     data: RefCell<BTreeMap<Currency, Rc<RefCell<Bank>>>>,
 }

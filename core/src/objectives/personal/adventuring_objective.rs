@@ -79,6 +79,7 @@ impl AdventuringObjective {
 }
 
 impl Objective for AdventuringObjective {
+    type Result = ();
     type Error = AdventuringObjectiveError;
 
     fn pursue(
@@ -88,7 +89,7 @@ impl Objective for AdventuringObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             AdventuringObjective::CheckThisVessel => {
                 *self = Self::SearchForOwnedShips {
@@ -170,7 +171,7 @@ impl Objective for AdventuringObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => todo!(),
+                Ok(ObjectiveStatus::Done(_)) => todo!(),
                 Err(err) => Err(Self::Error::FailedToAcquireVessel(err)),
             },
             AdventuringObjective::MoveToDockedVessel { objective } => match objective.pursue(
@@ -181,7 +182,7 @@ impl Objective for AdventuringObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => todo!(),
+                Ok(ObjectiveStatus::Done(_)) => todo!(),
                 Err(err) => todo!(),
             },
             AdventuringObjective::Fly => todo!(),

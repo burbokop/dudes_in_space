@@ -41,6 +41,7 @@ impl BuildVesselObjective {
 }
 
 impl Objective for BuildVesselObjective {
+    type Result = ();
     type Error = BuildVesselObjectiveError;
 
     fn pursue(
@@ -50,7 +51,7 @@ impl Objective for BuildVesselObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             BuildVesselObjective::SearchingForDockyard {
                 needed_capabilities,
@@ -166,7 +167,7 @@ impl Objective for BuildVesselObjective {
                     {
                         logger.info("Done building the vessel.");
                         *self = Self::Done;
-                        return Ok(ObjectiveStatus::Done);
+                        return Ok(ObjectiveStatus::Done(()));
                     }
 
                     assert!(this_module.in_progress());

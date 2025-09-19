@@ -1,3 +1,4 @@
+use crate::objectives::common::MoveToModuleObjective;
 use crate::objectives::crafting::{CraftModulesObjectiveError, RequireModulesObjective};
 use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffersObjective};
 use dudes_in_space_api::environment::{
@@ -5,7 +6,7 @@ use dudes_in_space_api::environment::{
 };
 use dudes_in_space_api::finance::{Bank, Currency, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId};
-use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     ThisVessel, tie,
@@ -26,7 +27,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
-
 /*
     - Find list of modules you can craft
     - Place available capabilities in vessel selling terminal
@@ -65,9 +65,12 @@ enum ManageDockyardStationObjective {
         input_offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>,
     },
     PlaceSellOffers {
+        terminal_to_observe: ModuleId,
         objective: PlaceSellOffersObjective,
     },
-    CheckOrders,
+    CheckOrders {
+        move_objective: MoveToModuleObjective,
+    },
 }
 
 struct ManageDockyardStationObjectiveSeed<'context> {
@@ -89,6 +92,7 @@ impl ManageDockyardStationObjective {
 }
 
 impl Objective for ManageDockyardStationObjective {
+    type Result = ();
     type Error = ManageDockyardStationObjectiveError;
 
     fn pursue(
@@ -98,7 +102,7 @@ impl Objective for ManageDockyardStationObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::CollectAllAvailableRecipes => {
                 logger.info("ManageDockyardStationObjective::FindBestOffersAndDecideBestRecipe");
@@ -284,7 +288,7 @@ impl Objective for ManageDockyardStationObjective {
                     logger,
                 ) {
                     Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                    Ok(ObjectiveStatus::Done) => {
+                    Ok(ObjectiveStatus::Done(_)) => {
                         *self = Self::PlaceBuyCustomVesselOffer {
                             objective: PlaceBuyCustomVesselOfferObjective::new(std::mem::take(
                                 prices_on_market,
@@ -307,16 +311,20 @@ impl Objective for ManageDockyardStationObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => {
+                Ok(ObjectiveStatus::Done(result)) => {
                     *self = Self::PlaceSellOffers {
                         objective: PlaceSellOffersObjective::new(std::mem::take(input_offers)),
+                        terminal_to_observe: result.target_terminal,
                     };
                     Ok(ObjectiveStatus::InProgress)
                 }
                 Err(err) => todo!("{} {:?}", this_person.id, err),
             },
 
-            Self::PlaceSellOffers { objective } => match objective.pursue(
+            Self::PlaceSellOffers {
+                objective,
+                terminal_to_observe,
+            } => match objective.pursue(
                 this_person,
                 this_module,
                 this_vessel,
@@ -324,38 +332,57 @@ impl Objective for ManageDockyardStationObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done) => {
-                    *self = Self::CheckOrders;
+                Ok(ObjectiveStatus::Done(_)) => {
+                    *self = Self::CheckOrders {
+                        move_objective: MoveToModuleObjective::new(*terminal_to_observe),
+                    };
                     Ok(ObjectiveStatus::InProgress)
                 }
                 Err(err) => todo!(),
             },
-            Self::CheckOrders => {
-                if !this_module.capabilities().contains(&ModuleCapability::VesselSellingTerminal) {
-                    todo!("Move to exact vessel selling terminal the person placed offer in")
+            Self::CheckOrders { move_objective } => {
+                match move_objective.pursue(
+                    this_person,
+                    this_module,
+                    this_vessel,
+                    environment_context,
+                    logger,
+                ) {
+                    Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                    Ok(ObjectiveStatus::Done(_)) => {
+                        if !this_module
+                            .capabilities()
+                            .contains(&ModuleCapability::VesselSellingTerminal)
+                        {
+                            todo!(
+                                "Move to exact vessel selling terminal the person placed offer in"
+                            )
+                        }
+
+                        let console = this_module.trading_admin_console_mut().unwrap();
+
+                        if let Some(current_order) = console.buy_vessel_orders().first() {
+                            // - find recipes for caps
+                            // - make a list of all input ingredients
+                            // - place sell offers for all input ingredients
+
+                            todo!()
+                        }
+
+                        if let Some(current_order) = console.buy_custom_vessel_orders().first() {
+                            let caps = current_order.primary_capabilities();
+
+                            // - find recipes for caps
+                            // - make a list of all input ingredients
+                            // - place sell offers for all input ingredients
+
+                            todo!()
+                        }
+
+                        Ok(ObjectiveStatus::InProgress)
+                    }
+                    Err(_) => todo!(),
                 }
-
-                let console = this_module.trading_admin_console_mut().unwrap();
-
-                if let Some(current_order) = console.buy_vessel_orders().first() {
-                    // - find recipes for caps
-                    // - make a list of all input ingredients
-                    // - place sell offers for all input ingredients
-
-                    todo!()
-                }
-
-                if let Some(current_order) = console.buy_custom_vessel_orders().first() {
-                    let caps = current_order.primary_capabilities();
-
-                    // - find recipes for caps
-                    // - make a list of all input ingredients
-                    // - place sell offers for all input ingredients
-
-                    todo!()
-                }
-
-                Ok(ObjectiveStatus::InProgress)
             }
         }
     }
@@ -444,7 +471,7 @@ impl Display for ManageDockyardStationObjective {
                 write!(f, "FindBestOffersAndDecideBestRecipe")
             }
             ManageDockyardStationObjective::RequireModules { .. } => write!(f, "RequireModules"),
-            ManageDockyardStationObjective::CheckOrders => write!(f, "CheckOrders"),
+            ManageDockyardStationObjective::CheckOrders { .. } => write!(f, "CheckOrders"),
             ManageDockyardStationObjective::PlaceBuyCustomVesselOffer { .. } => {
                 write!(f, "PlaceBuyCustomVesselOffer")
             }

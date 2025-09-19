@@ -335,7 +335,7 @@ impl Person {
                     &mut logger,
                 ) {
                     Ok(ObjectiveStatus::InProgress) => {}
-                    Ok(ObjectiveStatus::Done) => self.objective = None,
+                    Ok(ObjectiveStatus::Done(_)) => self.objective = None,
                     Err(err) => {
                         logger.err(format!("{} failed: {}", objective.type_id(), err));
                         self.objective = None

@@ -93,6 +93,7 @@ impl TradeObjective {
 }
 
 impl Objective for TradeObjective {
+    type Result = ();
     type Error = TradeObjectiveError;
 
     fn pursue(
@@ -102,7 +103,7 @@ impl Objective for TradeObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             Self::SearchVessel => {
                 if tie(this_module, this_vessel)

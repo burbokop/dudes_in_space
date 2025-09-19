@@ -20,6 +20,7 @@ impl MoveToModuleObjective {
 }
 
 impl Objective for MoveToModuleObjective {
+    type Result = ();
     type Error = MoveToModuleObjectiveError;
 
     fn pursue(
@@ -29,7 +30,7 @@ impl Objective for MoveToModuleObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         todo!()
     }
 }

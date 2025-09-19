@@ -67,6 +67,7 @@ impl TradeFromScratchObjective {
 }
 
 impl Objective for TradeFromScratchObjective {
+    type Result = ();
     type Error = TradeFromScratchObjectiveError;
 
     fn pursue(
@@ -76,7 +77,7 @@ impl Objective for TradeFromScratchObjective {
         this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
-    ) -> Result<ObjectiveStatus, Self::Error> {
+    ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
         match self {
             TradeFromScratchObjective::ExecuteTrade {
                 second_attempt,
@@ -124,7 +125,7 @@ impl Objective for TradeFromScratchObjective {
                         }
                     })? {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
-                    ObjectiveStatus::Done => {
+                    ObjectiveStatus::Done(_) => {
                         logger.info("ExecuteTrade");
                         *self = TradeFromScratchObjective::ExecuteTrade {
                             second_attempt: true,
