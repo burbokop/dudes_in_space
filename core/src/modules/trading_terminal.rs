@@ -131,7 +131,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -143,7 +143,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
-        todo!()
+        None
     }
 
     fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
@@ -175,7 +175,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn storages(&self) -> &[ItemStorage] {
-        todo!()
+        &[]
     }
 
     fn storages_mut(&mut self) -> &mut [ItemStorage] {
@@ -271,7 +271,16 @@ impl Module for TradingTerminal {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {

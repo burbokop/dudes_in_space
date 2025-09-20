@@ -7,26 +7,39 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use dudes_in_space_api::finance::Money;
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct CraftModulesObjectiveOptions {
+    pub deploy: bool,
+    pub wait_if_has_no_ingredients: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CraftingProcess {
+    token: ProcessToken,
+    cost_price: Money,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "craft_modules_objective_stage")]
 pub(crate) enum CraftModulesObjective {
     SearchingForCraftingModule {
-        needed_capabilities: Vec<ModuleCapability>,
-        needed_primary_capabilities: Vec<ModuleCapability>,
-        deploy: bool,
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
+        options: CraftModulesObjectiveOptions,
     },
     MovingToCraftingModule {
         dst: ModuleId,
-        needed_capabilities: Vec<ModuleCapability>,
-        needed_primary_capabilities: Vec<ModuleCapability>,
-        deploy: bool,
+        needed_capabilities: BTreeSet<ModuleCapability>,
+        needed_primary_capabilities: BTreeSet<ModuleCapability>,
+        options: CraftModulesObjectiveOptions,
     },
     Crafting {
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        deploy: bool,
-        process_token: Option<ProcessToken>,
+        options: CraftModulesObjectiveOptions,
+        process: Option<CraftingProcess>,
     },
     Done,
 }
@@ -35,7 +48,7 @@ impl CraftModulesObjective {
     pub(crate) fn new(
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        deploy: bool,
+        options: CraftModulesObjectiveOptions,
         logger: &mut PersonLogger,
     ) -> Self {
         logger.info(format!(
@@ -45,35 +58,35 @@ impl CraftModulesObjective {
         Self::SearchingForCraftingModule {
             needed_capabilities: needed_capabilities.into_iter().collect(),
             needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
-            deploy,
+            options,
         }
     }
 
     fn is_recipe_set_suitable(
         recipes: &[AssemblyRecipe],
-        mut needed_capabilities: Vec<ModuleCapability>,
-        mut needed_primary_capabilities: Vec<ModuleCapability>,
+        mut needed_capabilities: BTreeSet<ModuleCapability>,
+        mut needed_primary_capabilities: BTreeSet<ModuleCapability>,
     ) -> bool {
         (|| {
             for r in recipes {
                 for cap in r.output_description().capabilities() {
-                    if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
-                        needed_capabilities.remove(i);
-                    }
+                    needed_capabilities.remove(cap);
                 }
             }
             needed_capabilities.is_empty()
         })() && (|| {
             for r in recipes {
                 for cap in r.output_description().primary_capabilities() {
-                    if let Some(i) = needed_primary_capabilities.iter().position(|x| *x == *cap) {
-                        needed_primary_capabilities.remove(i);
-                    }
+                    needed_primary_capabilities.remove(cap);
                 }
             }
             needed_primary_capabilities.is_empty()
         })()
     }
+}
+
+pub struct CraftModulesObjectiveResult {
+    pub cost_price: Money
 }
 
 impl Objective for CraftModulesObjective {
@@ -92,7 +105,7 @@ impl Objective for CraftModulesObjective {
             Self::SearchingForCraftingModule {
                 needed_capabilities,
                 needed_primary_capabilities,
-                deploy,
+                options,
             } => {
                 if let Some(assembly_console) = this_module.crafting_console() {
                     logger.info(format!(
@@ -112,7 +125,7 @@ impl Objective for CraftModulesObjective {
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,
                             ),
-                            deploy: *deploy,
+                             options: std::mem::take( options),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -139,7 +152,7 @@ impl Objective for CraftModulesObjective {
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,
                             ),
-                            deploy: *deploy,
+                            options: std::mem::take( options),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -150,7 +163,7 @@ impl Objective for CraftModulesObjective {
                 dst,
                 needed_capabilities,
                 needed_primary_capabilities,
-                deploy,
+                options,
             } => {
                 if *dst == this_module.id() {
                     logger.info("Crafting modules...");
@@ -161,7 +174,7 @@ impl Objective for CraftModulesObjective {
                         needed_primary_capabilities: BTreeSet::from_iter(std::mem::take(
                             needed_primary_capabilities,
                         )),
-                        deploy: *deploy,
+                        options: std::mem::take(options),
                         process_token: None,
                     };
                     Ok(ObjectiveStatus::InProgress)
@@ -186,7 +199,7 @@ impl Objective for CraftModulesObjective {
                                 needed_primary_capabilities: std::mem::take(
                                     needed_primary_capabilities,
                                 ),
-                                deploy: *deploy,
+                                options: std::mem::take(options),
                             };
                             Ok(ObjectiveStatus::InProgress)
                         }
@@ -196,16 +209,16 @@ impl Objective for CraftModulesObjective {
             Self::Crafting {
                 needed_capabilities,
                 needed_primary_capabilities,
-                deploy,
-                process_token,
-            } => match process_token {
+                options,
+                process,
+            } => match process {
                 None => {
                     if let Some(cap) = needed_capabilities.first() {
                         let assembly_console = this_module.crafting_console_mut().unwrap();
                         let recipe = assembly_console.recipe_by_output_capability(*cap).unwrap();
                         assert!(assembly_console.has_resources_for_recipe(recipe));
                         assert!(process_token.is_none());
-                        *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
+                        *process_token = Some(assembly_console.start(recipe, options.deploy).unwrap());
 
                         logger.info("Picking recipe for:");
                         for c in assembly_console
@@ -234,7 +247,7 @@ impl Objective for CraftModulesObjective {
                             .unwrap();
                         assert!(assembly_console.has_resources_for_recipe(recipe));
                         assert!(process_token.is_none());
-                        *process_token = Some(assembly_console.start(recipe, *deploy).unwrap());
+                        *process_token = Some(assembly_console.start(recipe, options.deploy).unwrap());
                         logger.info("Picking recipe for:");
                         for c in assembly_console
                             .recipe_output_description(recipe)
@@ -259,8 +272,11 @@ impl Objective for CraftModulesObjective {
                     *self = Self::Done;
                     Ok(ObjectiveStatus::Done(()))
                 }
-                Some(some_process_token) => {
-                    if some_process_token
+                Some(CraftingProcess { token, cost_price }) => {
+                    
+                    todo!("Do something with cost_price");
+                    
+                    if token
                         .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
@@ -271,7 +287,7 @@ impl Objective for CraftModulesObjective {
                             *self = Self::Done;
                             Ok(ObjectiveStatus::Done(()))
                         } else {
-                            *process_token = None;
+                            *process = None;
                             Ok(ObjectiveStatus::InProgress)
                         };
                     }

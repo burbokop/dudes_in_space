@@ -1,4 +1,4 @@
-use crate::objectives::crafting::{CraftModulesObjective, CraftModulesObjectiveError};
+use crate::objectives::crafting::{CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
@@ -62,7 +62,10 @@ impl Objective for RequireModulesObjective {
                     crafting_objective: CraftModulesObjective::new(
                         std::mem::take(needed_capabilities),
                         std::mem::take(needed_primary_capabilities),
-                        true,
+                        CraftModulesObjectiveOptions {
+                            deploy: true,
+                            wait_if_has_no_ingredients: false,
+                        },
                         logger,
                     ),
                 };

@@ -327,6 +327,7 @@ impl Person {
         match &mut self.objective {
             None => self.objective = decider_vault.decide(rng, &info, &mut logger),
             Some(objective) => {
+                info.notes.purchased_items_max_prices_mut().proceed();
                 match objective.pursue_dyn(
                     &mut info,
                     this_module,

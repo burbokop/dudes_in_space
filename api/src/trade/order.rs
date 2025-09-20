@@ -13,6 +13,8 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::{Rc, Weak};
 
+pub type OrderId = NonNilUuid;
+
 #[derive(Debug, Serialize, Deserialize)]
 struct BuyOrderImpl {
     vessel_to_buy_from: VesselId,
@@ -22,7 +24,7 @@ struct BuyOrderImpl {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyOrder {
-    id: NonNilUuid,
+    id: OrderId,
     #[serde(skip)]
     data: Option<Weak<BuyOrderImpl>>,
 }
@@ -41,7 +43,7 @@ impl WeakBuyOrder {
 
 #[derive(Debug)]
 pub struct BuyOrder {
-    id: NonNilUuid,
+    id: OrderId,
     data: Rc<BuyOrderImpl>,
 }
 
@@ -70,7 +72,7 @@ struct SellOrderImpl {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
-    id: NonNilUuid,
+    id: OrderId,
     #[serde(skip)]
     data: Option<Weak<SellOrderImpl>>,
 }
@@ -89,7 +91,7 @@ impl WeakSellOrder {
 
 #[derive(Debug)]
 pub struct SellOrder {
-    id: NonNilUuid,
+    id: OrderId,
     data: Rc<SellOrderImpl>,
 }
 
@@ -135,7 +137,7 @@ pub struct BuyCustomVesselOrderImpl {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyVesselOrder {
-    id: NonNilUuid,
+    id: OrderId,
     #[serde(skip)]
     data: Option<Weak<BuyVesselOrderImpl>>,
 }
@@ -154,7 +156,7 @@ impl WeakBuyVesselOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyCustomVesselOrder {
-    id: NonNilUuid,
+    id: OrderId,
     #[serde(skip)]
     data: Option<Weak<BuyCustomVesselOrderImpl>>,
     process_token: ProcessToken,
@@ -170,6 +172,8 @@ impl WeakBuyCustomVesselOrder {
     pub fn price(&self) -> Option<Money> {
         todo!()
     }
+
+    /// If the order is completed, it means that all vessels are built and waiting to be picked up
     pub fn is_completed(
         &mut self,
         context: &ProcessTokenContext,
@@ -180,13 +184,13 @@ impl WeakBuyCustomVesselOrder {
 
 #[derive(Debug)]
 pub struct BuyVesselOrder {
-    id: NonNilUuid,
+    id: OrderId,
     data: Rc<BuyVesselOrderImpl>,
 }
 
 #[derive(Debug)]
 pub struct BuyCustomVesselOrder {
-    id: NonNilUuid,
+    id: OrderId,
     data: Rc<BuyCustomVesselOrderImpl>,
     process_token: ProcessTokenMut,
 }
@@ -237,7 +241,7 @@ impl Serialize for BuyOrder {
         #[derive(Serialize)]
         struct Impl<'a> {
             data: &'a BuyOrderImpl,
-            id: NonNilUuid,
+            id: OrderId,
         }
 
         Impl {
@@ -258,7 +262,7 @@ impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, BuyOrder> {
         #[derive(Deserialize)]
         struct Impl {
             data: BuyOrderImpl,
-            id: NonNilUuid,
+            id: OrderId,
         }
 
         let Impl { data, id } = Impl::deserialize(deserializer)?;
@@ -274,7 +278,7 @@ impl Serialize for SellOrder {
         #[derive(Serialize)]
         struct Impl<'a> {
             data: &'a SellOrderImpl,
-            id: NonNilUuid,
+            id: OrderId,
         }
 
         Impl {
@@ -295,7 +299,7 @@ impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, SellOrder> {
         #[derive(Deserialize)]
         struct Impl {
             data: SellOrderImpl,
-            id: NonNilUuid,
+            id: OrderId,
         }
 
         let Impl { data, id } = Impl::deserialize(deserializer)?;
@@ -311,7 +315,7 @@ impl Serialize for BuyVesselOrder {
         #[derive(Serialize)]
         struct Impl<'a> {
             data: &'a BuyVesselOrderImpl,
-            id: NonNilUuid,
+            id: OrderId,
         }
 
         Impl {
@@ -332,7 +336,7 @@ impl<'de, 'context> DeserializeSeed<'de> for OrderSeed<'context, BuyVesselOrder>
         #[derive(Deserialize)]
         struct Impl {
             data: BuyVesselOrderImpl,
-            id: NonNilUuid,
+            id: OrderId,
         }
 
         let Impl { data, id } = Impl::deserialize(deserializer)?;
@@ -347,7 +351,7 @@ impl Serialize for BuyCustomVesselOrder {
     {
         #[derive(Serialize)]
         struct Impl<'a> {
-            id: NonNilUuid,
+            id: OrderId,
             data: &'a BuyCustomVesselOrderImpl,
             process_token: &'a ProcessTokenMut,
         }
@@ -371,7 +375,7 @@ impl<'de, 'holder, 'context> DeserializeSeed<'de> for BuyCustomVesselOrderSeed<'
         #[derive(DeserializeSeedXXX)]
         #[deserialize_seed_xxx(seed = ImplSeed::<'context>)]
         struct Impl {
-            id: NonNilUuid,
+            id: OrderId,
             data: BuyCustomVesselOrderImpl,
             #[deserialize_seed_xxx(seed = self.seed.process_token_seed)]
             process_token: ProcessTokenMut,
@@ -415,7 +419,7 @@ impl BuyCustomVesselOrder {
             count,
         });
 
-        let id = NonNilUuid::new_v4();
+        let id = OrderId::new_v4();
         (
             WeakBuyCustomVesselOrder {
                 id,
@@ -428,6 +432,10 @@ impl BuyCustomVesselOrder {
                 process_token: process_token_mut,
             },
         )
+    }
+
+    pub fn id(&self) -> &OrderId {
+        &self.id
     }
 
     pub fn capabilities(&self) -> &BTreeSet<ModuleCapability> {
@@ -453,10 +461,10 @@ impl BuyCustomVesselOrder {
 }
 
 pub struct OrderHolder {
-    buy_orders: RefCell<BTreeMap<NonNilUuid, Weak<BuyOrderImpl>>>,
-    sell_orders: RefCell<BTreeMap<NonNilUuid, Weak<SellOrderImpl>>>,
-    buy_vessel_orders: RefCell<BTreeMap<NonNilUuid, Weak<BuyVesselOrderImpl>>>,
-    buy_custom_vessel_orders: RefCell<BTreeMap<NonNilUuid, Weak<BuyCustomVesselOrderImpl>>>,
+    buy_orders: RefCell<BTreeMap<OrderId, Weak<BuyOrderImpl>>>,
+    sell_orders: RefCell<BTreeMap<OrderId, Weak<SellOrderImpl>>>,
+    buy_vessel_orders: RefCell<BTreeMap<OrderId, Weak<BuyVesselOrderImpl>>>,
+    buy_custom_vessel_orders: RefCell<BTreeMap<OrderId, Weak<BuyCustomVesselOrderImpl>>>,
 }
 
 impl OrderHolder {
@@ -469,7 +477,7 @@ impl OrderHolder {
         }
     }
 
-    fn register_buy_order(&self, data: BuyOrderImpl, id: NonNilUuid) -> BuyOrder {
+    fn register_buy_order(&self, data: BuyOrderImpl, id: OrderId) -> BuyOrder {
         let data = Rc::new(data);
         self.buy_orders
             .borrow_mut()
@@ -478,7 +486,7 @@ impl OrderHolder {
         BuyOrder { data, id }
     }
 
-    fn register_sell_order(&self, data: SellOrderImpl, id: NonNilUuid) -> SellOrder {
+    fn register_sell_order(&self, data: SellOrderImpl, id: OrderId) -> SellOrder {
         let data = Rc::new(data);
         self.sell_orders
             .borrow_mut()
@@ -487,11 +495,7 @@ impl OrderHolder {
         SellOrder { data, id }
     }
 
-    fn register_buy_vessel_order(
-        &self,
-        data: BuyVesselOrderImpl,
-        id: NonNilUuid,
-    ) -> BuyVesselOrder {
+    fn register_buy_vessel_order(&self, data: BuyVesselOrderImpl, id: OrderId) -> BuyVesselOrder {
         let data = Rc::new(data);
         self.buy_vessel_orders
             .borrow_mut()
@@ -502,7 +506,7 @@ impl OrderHolder {
 
     fn register_buy_custom_vessel_order(
         &self,
-        id: NonNilUuid,
+        id: OrderId,
         data: BuyCustomVesselOrderImpl,
         process_token: ProcessTokenMut,
     ) -> BuyCustomVesselOrder {

@@ -1,15 +1,13 @@
-use crate::objectives::crafting::{
-    BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
-    CraftModulesObjectiveError,
-};
+use crate::objectives::crafting::{BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{ BTreeSet};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use dudes_in_space_api::finance::Money;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "craft_vessel_from_scratch_objective_stage")]
@@ -17,36 +15,50 @@ pub(crate) enum CraftVesselFromScratchObjective {
     CheckingAllPrerequisites {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
+        wait_if_has_no_ingredients: bool,
     },
     CraftingDockyard {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
+        wait_if_has_no_ingredients: bool,
         crafting_objective: CraftModulesObjective,
     },
     CraftingVesselModules {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
+        wait_if_has_no_ingredients: bool,
         crafting_objective: CraftModulesObjective,
     },
     BuildingVessel {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
+        wait_if_has_no_ingredients: bool,
         building_objective: BuildVesselObjective,
     },
-    Done,
+    Done {
+        result: CraftVesselFromScratchObjectiveResult
+    },
 }
 
 struct DockyardRef<'x> {
     module_storages: &'x [ModuleStorage],
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CraftVesselFromScratchObjectiveResult {
+   pub cost_price: Money
+}
+
 impl CraftVesselFromScratchObjective {
     pub(crate) fn new(
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
+        wait_if_has_no_ingredients: bool,
     ) -> Self {
         Self::CheckingAllPrerequisites {
             needed_capabilities: needed_capabilities.into_iter().collect(),
             needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
+            wait_if_has_no_ingredients,
         }
     }
 
@@ -73,7 +85,7 @@ impl CraftVesselFromScratchObjective {
 }
 
 impl Objective for CraftVesselFromScratchObjective {
-    type Result = ();
+    type Result = CraftVesselFromScratchObjectiveResult;
     type Error = CraftVesselFromScratchObjectiveError;
 
     fn pursue(
@@ -88,6 +100,7 @@ impl Objective for CraftVesselFromScratchObjective {
             Self::CheckingAllPrerequisites {
                 needed_capabilities,
                 needed_primary_capabilities,
+                wait_if_has_no_ingredients,
             } => {
                 let dockyards = this_vessel.modules_with_capability(ModuleCapability::Dockyard);
 
@@ -112,10 +125,11 @@ impl Objective for CraftVesselFromScratchObjective {
                     *self = Self::CraftingDockyard {
                         needed_capabilities: std::mem::take(needed_capabilities),
                         needed_primary_capabilities: std::mem::take(needed_primary_capabilities),
+                        wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
                         crafting_objective: CraftModulesObjective::new(
                             BTreeSet::from([ModuleCapability::Dockyard]),
                             BTreeSet::from([]),
-                            true,
+                            Default::default(),
                             logger,
                         ),
                     };
@@ -133,12 +147,16 @@ impl Objective for CraftVesselFromScratchObjective {
                     *self = Self::CraftingVesselModules {
                         needed_capabilities: needed_capabilities.clone(),
                         needed_primary_capabilities: needed_primary_capabilities.clone(),
+                        wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
                         crafting_objective: CraftModulesObjective::new(
                             std::mem::take(needed_capabilities).into_iter().collect(),
                             std::mem::take(needed_primary_capabilities)
                                 .into_iter()
                                 .collect(),
-                            false,
+                            CraftModulesObjectiveOptions {
+                                deploy: false,
+                                wait_if_has_no_ingredients: *wait_if_has_no_ingredients,
+                            },
                             logger,
                         ),
                     };
@@ -149,6 +167,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 *self = Self::BuildingVessel {
                     needed_capabilities: needed_capabilities.clone(),
                     needed_primary_capabilities: needed_primary_capabilities.clone(),
+                    wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
                     building_objective: BuildVesselObjective::new(
                         std::mem::take(needed_capabilities),
                         std::mem::take(needed_primary_capabilities),
@@ -159,6 +178,7 @@ impl Objective for CraftVesselFromScratchObjective {
             Self::CraftingDockyard {
                 needed_capabilities,
                 needed_primary_capabilities,
+                wait_if_has_no_ingredients,
                 crafting_objective,
             } => {
                 match crafting_objective
@@ -179,6 +199,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,
                             ),
+                            wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
                         }
                     }
                 }
@@ -188,6 +209,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
                 crafting_objective,
+                wait_if_has_no_ingredients,
             } => {
                 match crafting_objective
                     .pursue(
@@ -209,6 +231,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             needed_primary_capabilities: std::mem::take(
                                 needed_primary_capabilities,
                             ),
+                            wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
                         }
                     }
                 }
@@ -217,6 +240,7 @@ impl Objective for CraftVesselFromScratchObjective {
             Self::BuildingVessel {
                 needed_capabilities,
                 needed_primary_capabilities,
+                wait_if_has_no_ingredients,
                 building_objective,
             } => {
                 match building_objective
@@ -232,12 +256,15 @@ impl Objective for CraftVesselFromScratchObjective {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
                     ObjectiveStatus::Done(_) => {
                         logger.info("Done crafting a vessel from scratch.");
-                        *self = Self::Done;
-                        Ok(ObjectiveStatus::Done(()))
+
+                        let result: CraftVesselFromScratchObjectiveResult = (||todo!())();
+
+                        *self = Self::Done { result: result.clone() };
+                        Ok(ObjectiveStatus::Done(result))
                     }
                 }
             }
-            Self::Done => Ok(ObjectiveStatus::Done(())),
+            Self::Done{result} => Ok(ObjectiveStatus::Done(result.clone())),
         }
     }
 }

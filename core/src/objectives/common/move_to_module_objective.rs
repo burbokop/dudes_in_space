@@ -1,27 +1,25 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::vessel::VesselInternalConsole;
+use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "move_to_module_objective_stage")]
 pub(crate) enum MoveToModuleObjective {
-    Move { module_id: ModuleId },
+    Move { dst: ModuleId },
     Done,
 }
 
 impl MoveToModuleObjective {
-    pub(crate) fn new(module_id: ModuleId) -> Self {
-        Self::Move { module_id }
+    pub(crate) fn new(dst: ModuleId) -> Self {
+        Self::Move { dst }
     }
 }
 
 impl Objective for MoveToModuleObjective {
     type Result = ();
-    type Error = MoveToModuleObjectiveError;
+    type Error = MoveToModuleError;
 
     fn pursue(
         &mut self,
@@ -31,17 +29,32 @@ impl Objective for MoveToModuleObjective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
-        todo!()
+        match self {
+            MoveToModuleObjective::Move { dst } => {
+                if *dst == this_module.id() {
+                    *self = Self::Done;
+                    Ok(ObjectiveStatus::Done(()))
+                } else {
+                    this_vessel.move_person_to_module(
+                        environment_context.subordination_table(),
+                        *this_person.id,
+                        *dst,
+                    )?;
+                    Ok(ObjectiveStatus::InProgress)
+                }
+            }
+            MoveToModuleObjective::Done => Ok(ObjectiveStatus::Done(())),
+        }
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum MoveToModuleObjectiveError {}
-
-impl Display for MoveToModuleObjectiveError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
-    }
-}
-
-impl Error for MoveToModuleObjectiveError {}
+// #[derive(Debug)]
+// pub(crate) struct MoveToModuleObjectiveError(MoveToModuleError);
+//
+// impl Display for MoveToModuleObjectiveError {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         todo!()
+//     }
+// }
+//
+// impl Error for MoveToModuleObjectiveError {}

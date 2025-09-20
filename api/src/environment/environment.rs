@@ -41,6 +41,8 @@ impl<'v> EnvironmentSeed<'v> {
     }
 }
 
+pub type Cycle = u64;
+
 impl Environment {
     pub fn new(vessels: Vec<Vessel>, nebulae: Vec<Nebula>) -> Self {
         Self {

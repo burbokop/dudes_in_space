@@ -78,7 +78,35 @@ impl ItemRecord {
     }
 
     pub(crate) fn average_sell_offer(&self, bank_registry: &BankRegistry) -> Option<Money> {
-        todo!()
+        let count = self.sell_offers.len();
+        let currency = self
+            .sell_offers
+            .first()?
+            .offer
+            .price_per_unit
+            .currency
+            .clone();
+
+        let amount = NonNeg::new(
+            (self
+                .sell_offers
+                .iter()
+                .map(|offer| {
+                    offer
+                        .offer
+                        .price_per_unit
+                        .convert_to_currency(bank_registry, currency.clone())
+                        .unwrap()
+                        .amount
+                        .unwrap()
+                })
+                .sum::<MoneyAmount>() as Float
+                / count as Float)
+                .round() as MoneyAmount,
+        )
+        .unwrap();
+
+        Some(Money { currency, amount })
     }
 
     pub(crate) fn eval_max_profit(

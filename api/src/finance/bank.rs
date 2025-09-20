@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-
-pub type Cycle = u64;
+use crate::environment::Cycle;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BankAccount {

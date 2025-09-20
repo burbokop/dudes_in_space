@@ -1,5 +1,5 @@
 use crate::objectives::common::MoveToModuleObjective;
-use crate::objectives::crafting::{CraftModulesObjectiveError, RequireModulesObjective};
+use crate::objectives::crafting::{ CraftModulesObjectiveError, CraftVesselFromScratchObjective, RequireModulesObjective};
 use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffersObjective};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
@@ -27,6 +27,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+use dudes_in_space_api::trade::OrderId;
 /*
     - Find list of modules you can craft
     - Place available capabilities in vessel selling terminal
@@ -70,6 +71,10 @@ enum ManageDockyardStationObjective {
     },
     CheckOrders {
         move_objective: MoveToModuleObjective,
+    },
+    ProcessOrder {
+        order: OrderId,
+        craft_objective: CraftVesselFromScratchObjective,
     },
 }
 
@@ -350,14 +355,11 @@ impl Objective for ManageDockyardStationObjective {
                 ) {
                     Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                     Ok(ObjectiveStatus::Done(_)) => {
-                        if !this_module
-                            .capabilities()
-                            .contains(&ModuleCapability::VesselSellingTerminal)
-                        {
-                            todo!(
-                                "Move to exact vessel selling terminal the person placed offer in"
-                            )
-                        }
+                        assert!(
+                            this_module
+                                .capabilities()
+                                .contains(&ModuleCapability::VesselSellingTerminal)
+                        );
 
                         let console = this_module.trading_admin_console_mut().unwrap();
 
@@ -371,18 +373,36 @@ impl Objective for ManageDockyardStationObjective {
 
                         if let Some(current_order) = console.buy_custom_vessel_orders().first() {
                             let caps = current_order.primary_capabilities();
+                            
+                            // current_order.
 
                             // - find recipes for caps
                             // - make a list of all input ingredients
                             // - place sell offers for all input ingredients
-
-                            todo!()
+                            
+                            let x = this_person.notes.purchased_items_max_prices().stabilized();
+                            if x.is_empty() {
+                                // wait
+                            } else {
+                                todo!()
+                            }
                         }
 
                         Ok(ObjectiveStatus::InProgress)
                     }
                     Err(_) => todo!(),
                 }
+            }
+            Self::ProcessOrder { order, craft_objective } => match craft_objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done(result)) => todo!("BuildVesselObjective resulted with: {:?}", result),
+                Err(_) => todo!(),
             }
         }
     }
@@ -476,6 +496,7 @@ impl Display for ManageDockyardStationObjective {
                 write!(f, "PlaceBuyCustomVesselOffer")
             }
             ManageDockyardStationObjective::PlaceSellOffers { .. } => write!(f, "PlaceSellOffers"),
+            ManageDockyardStationObjective::ProcessOrder { .. } => todo!(),
         }
     }
 }

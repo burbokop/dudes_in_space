@@ -103,6 +103,7 @@ impl Objective for TradeFromScratchObjective {
                         craft_vessel_objective: CraftVesselFromScratchObjective::new(
                             NEEDED_CAPABILITIES.iter().cloned().collect(),
                             NEEDED_PRIMARY_CAPABILITIES.iter().cloned().collect(),
+                            false,
                         ),
                     };
                     Ok(ObjectiveStatus::InProgress)

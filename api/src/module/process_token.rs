@@ -93,6 +93,10 @@ impl ProcessTokenMut {
     pub fn mark_completed(&mut self, _: &ProcessTokenContext) {
         *self.completed.borrow_mut() = true
     }
+
+    pub fn is_completed(&self) -> bool {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

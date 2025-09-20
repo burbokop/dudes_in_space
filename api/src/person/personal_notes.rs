@@ -3,6 +3,7 @@ use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::Intermediate;
 use std::collections::BTreeMap;
+use crate::person::PurchasedItemsMaxPrices;
 
 static DEFAULT_MARGIN: Float = 2.0;
 static MIN_MARGIN: Float = 1.05;
@@ -17,6 +18,8 @@ pub struct Blueprint {
 pub struct PersonalNotes {
     margin: Float,
     blueprints: Vec<Blueprint>,
+    #[serde(default)]
+    purchased_items_max_prices: PurchasedItemsMaxPrices,
     /// For mods
     custom_data: BTreeMap<String, Intermediate>,
 }
@@ -29,7 +32,23 @@ impl PersonalNotes {
     pub fn margin(&self) -> NonNeg<Float> {
         NonNeg::new(self.margin).unwrap()
     }
+    
+    pub fn custom_data(&self) -> &BTreeMap<String, Intermediate> {
+        &self.custom_data
+    }
 
+    pub fn custom_data_mut(&mut self) -> &mut BTreeMap<String, Intermediate> {
+        &mut self.custom_data
+    }
+
+    pub fn purchased_items_max_prices(&self) -> &PurchasedItemsMaxPrices {
+        &self.purchased_items_max_prices
+    }
+
+    pub fn purchased_items_max_prices_mut(&mut self) -> &mut PurchasedItemsMaxPrices {
+        &mut self.purchased_items_max_prices
+    }
+    
     pub fn increase_margin(&mut self) -> bool {
         self.margin *= MARGIN_CHANGE;
         if self.margin < MIN_MARGIN {
@@ -56,6 +75,7 @@ impl Default for PersonalNotes {
         Self {
             margin: DEFAULT_MARGIN,
             blueprints: Vec::new(),
+            purchased_items_max_prices: Default::default(),
             custom_data: BTreeMap::new(),
         }
     }
