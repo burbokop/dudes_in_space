@@ -346,6 +346,10 @@ impl<'a> CraftingConsole for Console<'a> {
         todo!()
     }
 
+    fn recipe_input(&self, index: usize) -> Option<InputItemRecipe> {
+        todo!()
+    }
+
     fn has_resources_for_recipe(&self, index: usize) -> bool {
         self.storage
             .contains_for_input(self.recipes[index].input().clone())

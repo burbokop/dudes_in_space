@@ -1,4 +1,6 @@
-use crate::objectives::crafting::{CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions};
+use crate::objectives::crafting::{
+    CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions,
+};
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
@@ -71,13 +73,17 @@ impl Objective for RequireModulesObjective {
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
-            Self::Crafting { crafting_objective } => crafting_objective.pursue(
+            Self::Crafting { crafting_objective } => match crafting_objective.pursue(
                 this_person,
                 this_module,
                 this_vessel,
                 environment_context,
                 logger,
-            ),
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
+                Err(_) => todo!(),
+            },
         }
     }
 }

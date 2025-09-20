@@ -1,5 +1,7 @@
 use crate::objectives::common::MoveToModuleObjective;
-use crate::objectives::crafting::{ CraftModulesObjectiveError, CraftVesselFromScratchObjective, RequireModulesObjective};
+use crate::objectives::crafting::{
+    CraftModulesObjectiveError, CraftVesselFromScratchObjective, RequireModulesObjective,
+};
 use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffersObjective};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
@@ -11,6 +13,7 @@ use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     ThisVessel, tie,
 };
+use dudes_in_space_api::trade::OrderId;
 use dudes_in_space_api::utils::math::{NonNeg, map_into_range};
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
@@ -27,7 +30,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
-use dudes_in_space_api::trade::OrderId;
 /*
     - Find list of modules you can craft
     - Place available capabilities in vessel selling terminal
@@ -373,13 +375,13 @@ impl Objective for ManageDockyardStationObjective {
 
                         if let Some(current_order) = console.buy_custom_vessel_orders().first() {
                             let caps = current_order.primary_capabilities();
-                            
+
                             // current_order.
 
                             // - find recipes for caps
                             // - make a list of all input ingredients
                             // - place sell offers for all input ingredients
-                            
+
                             let x = this_person.notes.purchased_items_max_prices().stabilized();
                             if x.is_empty() {
                                 // wait
@@ -393,7 +395,10 @@ impl Objective for ManageDockyardStationObjective {
                     Err(_) => todo!(),
                 }
             }
-            Self::ProcessOrder { order, craft_objective } => match craft_objective.pursue(
+            Self::ProcessOrder {
+                order,
+                craft_objective,
+            } => match craft_objective.pursue(
                 this_person,
                 this_module,
                 this_vessel,
@@ -401,9 +406,11 @@ impl Objective for ManageDockyardStationObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done(result)) => todo!("BuildVesselObjective resulted with: {:?}", result),
+                Ok(ObjectiveStatus::Done(result)) => {
+                    todo!("BuildVesselObjective resulted with: {:?}", result)
+                }
                 Err(_) => todo!(),
-            }
+            },
         }
     }
 }

@@ -1,9 +1,9 @@
+use crate::person::PurchasedItemsMaxPrices;
 use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::Intermediate;
 use std::collections::BTreeMap;
-use crate::person::PurchasedItemsMaxPrices;
 
 static DEFAULT_MARGIN: Float = 2.0;
 static MIN_MARGIN: Float = 1.05;
@@ -32,7 +32,7 @@ impl PersonalNotes {
     pub fn margin(&self) -> NonNeg<Float> {
         NonNeg::new(self.margin).unwrap()
     }
-    
+
     pub fn custom_data(&self) -> &BTreeMap<String, Intermediate> {
         &self.custom_data
     }
@@ -48,7 +48,7 @@ impl PersonalNotes {
     pub fn purchased_items_max_prices_mut(&mut self) -> &mut PurchasedItemsMaxPrices {
         &mut self.purchased_items_max_prices
     }
-    
+
     pub fn increase_margin(&mut self) -> bool {
         self.margin *= MARGIN_CHANGE;
         if self.margin < MIN_MARGIN {

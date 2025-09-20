@@ -44,8 +44,8 @@ impl ItemStack {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemRefStack {
-    pub(crate) id: ItemId,
-    pub(crate) count: ItemCount,
+    pub id: ItemId,
+    pub count: ItemCount,
 }
 
 impl ItemRefStack {

@@ -104,6 +104,8 @@ impl Objective for TradeFromScratchObjective {
                             NEEDED_CAPABILITIES.iter().cloned().collect(),
                             NEEDED_PRIMARY_CAPABILITIES.iter().cloned().collect(),
                             false,
+                            this_person,
+                            environment_context,
                         ),
                     };
                     Ok(ObjectiveStatus::InProgress)

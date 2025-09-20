@@ -179,6 +179,7 @@ pub trait CraftingConsole {
 
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription;
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
+    fn recipe_input(&self, index: usize) -> Option<InputItemRecipe>;
 
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;

@@ -1,13 +1,18 @@
-use crate::objectives::crafting::{BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions};
+use crate::objectives::crafting::{
+    BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
+    CraftModulesObjectiveError, CraftModulesObjectiveOptions,
+};
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::{Bank, Money};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
+use dudes_in_space_api::utils::math::Zero;
 use dudes_in_space_api::vessel::VesselInternalConsole;
+use rand::rng;
 use serde::{Deserialize, Serialize};
-use std::collections::{ BTreeSet};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use dudes_in_space_api::finance::Money;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "craft_vessel_from_scratch_objective_stage")]
@@ -16,27 +21,31 @@ pub(crate) enum CraftVesselFromScratchObjective {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
+        total_cost_price: Money,
     },
     CraftingDockyard {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
         crafting_objective: CraftModulesObjective,
+        total_cost_price: Money,
     },
     CraftingVesselModules {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
         crafting_objective: CraftModulesObjective,
+        total_cost_price: Money,
     },
     BuildingVessel {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
         building_objective: BuildVesselObjective,
+        total_cost_price: Money,
     },
     Done {
-        result: CraftVesselFromScratchObjectiveResult
+        result: CraftVesselFromScratchObjectiveResult,
     },
 }
 
@@ -46,7 +55,7 @@ struct DockyardRef<'x> {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CraftVesselFromScratchObjectiveResult {
-   pub cost_price: Money
+    pub cost_price: Money,
 }
 
 impl CraftVesselFromScratchObjective {
@@ -54,11 +63,29 @@ impl CraftVesselFromScratchObjective {
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
+        this_person: &mut ThisPerson,
+        environment_context: &EnvironmentContext,
     ) -> Self {
+        let this_person_wallet_id = this_person.finance.wallet().id().clone();
         Self::CheckingAllPrerequisites {
             needed_capabilities: needed_capabilities.into_iter().collect(),
             needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
             wait_if_has_no_ingredients,
+            total_cost_price: Money {
+                currency: this_person.finance.preferred_currency_or_create(
+                    environment_context.bank_registry(),
+                    Bank::new(
+                        this_person.id.clone(),
+                        this_person_wallet_id,
+                        environment_context.currency_generator().generate_name(
+                            &mut rng(),
+                            environment_context.bank_registry(),
+                            this_person,
+                        ),
+                    ),
+                ),
+                amount: Zero::zero(),
+            },
         }
     }
 
@@ -101,6 +128,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_capabilities,
                 needed_primary_capabilities,
                 wait_if_has_no_ingredients,
+                total_cost_price,
             } => {
                 let dockyards = this_vessel.modules_with_capability(ModuleCapability::Dockyard);
 
@@ -132,6 +160,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             Default::default(),
                             logger,
                         ),
+                        total_cost_price: total_cost_price.clone(),
                     };
                     return Ok(ObjectiveStatus::InProgress);
                 }
@@ -159,6 +188,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             },
                             logger,
                         ),
+                        total_cost_price: total_cost_price.clone(),
                     };
                     return Ok(ObjectiveStatus::InProgress);
                 }
@@ -172,6 +202,7 @@ impl Objective for CraftVesselFromScratchObjective {
                         std::mem::take(needed_capabilities),
                         std::mem::take(needed_primary_capabilities),
                     ),
+                    total_cost_price: total_cost_price.clone(),
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
@@ -180,6 +211,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_primary_capabilities,
                 wait_if_has_no_ingredients,
                 crafting_objective,
+                total_cost_price,
             } => {
                 match crafting_objective
                     .pursue(
@@ -192,7 +224,11 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
-                    ObjectiveStatus::Done(()) => {
+                    ObjectiveStatus::Done(result) => {
+                        total_cost_price
+                            .add_assign_same_currency(result.cost_price)
+                            .unwrap();
+
                         logger.info("CraftVesselFromScratchObjective::CraftingDockyard::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
                             needed_capabilities: std::mem::take(needed_capabilities),
@@ -200,6 +236,7 @@ impl Objective for CraftVesselFromScratchObjective {
                                 needed_primary_capabilities,
                             ),
                             wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
+                            total_cost_price: total_cost_price.clone(),
                         }
                     }
                 }
@@ -210,6 +247,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_primary_capabilities,
                 crafting_objective,
                 wait_if_has_no_ingredients,
+                total_cost_price,
             } => {
                 match crafting_objective
                     .pursue(
@@ -222,7 +260,10 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
-                    ObjectiveStatus::Done(_) => {
+                    ObjectiveStatus::Done(result) => {
+                        total_cost_price
+                            .add_assign_same_currency(result.cost_price)
+                            .unwrap();
                         logger.info(
                             "Checking all prerequisites for crafting a vessel from scratch...",
                         );
@@ -232,6 +273,7 @@ impl Objective for CraftVesselFromScratchObjective {
                                 needed_primary_capabilities,
                             ),
                             wait_if_has_no_ingredients: std::mem::take(wait_if_has_no_ingredients),
+                            total_cost_price: total_cost_price.clone(),
                         }
                     }
                 }
@@ -242,6 +284,7 @@ impl Objective for CraftVesselFromScratchObjective {
                 needed_primary_capabilities,
                 wait_if_has_no_ingredients,
                 building_objective,
+                total_cost_price,
             } => {
                 match building_objective
                     .pursue(
@@ -257,14 +300,16 @@ impl Objective for CraftVesselFromScratchObjective {
                     ObjectiveStatus::Done(_) => {
                         logger.info("Done crafting a vessel from scratch.");
 
-                        let result: CraftVesselFromScratchObjectiveResult = (||todo!())();
+                        let result: CraftVesselFromScratchObjectiveResult = (|| todo!())();
 
-                        *self = Self::Done { result: result.clone() };
+                        *self = Self::Done {
+                            result: result.clone(),
+                        };
                         Ok(ObjectiveStatus::Done(result))
                     }
                 }
             }
-            Self::Done{result} => Ok(ObjectiveStatus::Done(result.clone())),
+            Self::Done { result } => Ok(ObjectiveStatus::Done(result.clone())),
         }
     }
 }

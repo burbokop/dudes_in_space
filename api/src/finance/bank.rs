@@ -1,3 +1,4 @@
+use crate::environment::Cycle;
 use crate::finance::{Currency, Money, MoneyAmount, Wallet, WalletId};
 use crate::person::PersonId;
 use crate::utils::math::{NonNeg, Zero, noneg_float};
@@ -6,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use crate::environment::Cycle;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BankAccount {

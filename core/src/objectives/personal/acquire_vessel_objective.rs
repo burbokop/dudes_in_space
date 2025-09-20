@@ -1,4 +1,6 @@
-use crate::objectives::crafting::{ CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError};
+use crate::objectives::crafting::{
+    CraftVesselFromScratchObjective, CraftVesselFromScratchObjectiveError,
+};
 use crate::objectives::trade::{
     BuyVesselObjective, BuyVesselObjectiveError, BuyVesselObjectiveSeed,
 };
@@ -9,7 +11,7 @@ use dudes_in_space_api::utils::request::ReqContext;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
-use std::collections::{ BTreeSet};
+use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -91,6 +93,8 @@ impl Objective for AcquireVesselObjective {
                         std::mem::take(needed_capabilities),
                         std::mem::take(needed_primary_capabilities),
                         false,
+                        this_person,
+                        environment_context,
                     ),
                 };
                 Ok(ObjectiveStatus::InProgress)
