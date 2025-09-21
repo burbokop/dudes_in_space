@@ -1,4 +1,4 @@
-use super::{Abs, Floor, IsNeg, Pi, Sqrt, Zero};
+use super::{Abs, Floor, IsNeg, Pi, Positive, Sqrt, Zero};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::ops::{DivAssign, MulAssign, SubAssign};
@@ -8,10 +8,10 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Sub},
 };
 
-/// Can not store negative numbers
+/// Cannot store negative numbers
 #[derive(Clone, Copy, Debug, Ord)]
 pub struct NonNeg<T> {
-    value: T,
+    pub(super) value: T,
 }
 
 impl<T: Serialize> Serialize for NonNeg<T> {
@@ -153,6 +153,15 @@ where
     }
 }
 
+impl<T, U> PartialEq<Positive<U>> for NonNeg<T>
+where
+    T: PartialEq<U>,
+{
+    fn eq(&self, other: &Positive<U>) -> bool {
+        self.value.eq(&other.value)
+    }
+}
+
 impl<T> Eq for NonNeg<T>
 where
     T: Eq,
@@ -171,6 +180,15 @@ where
     }
 }
 
+impl<T, U> PartialOrd<Positive<U>> for NonNeg<T>
+where
+    T: PartialOrd<U>,
+{
+    fn partial_cmp(&self, other: &Positive<U>) -> Option<std::cmp::Ordering> {
+        self.value.partial_cmp(&other.value)
+    }
+}
+
 impl<T, U> Add<NonNeg<U>> for NonNeg<T>
 where
     T: Add<U>,
@@ -178,6 +196,19 @@ where
     type Output = NonNeg<<T as Add<U>>::Output>;
 
     fn add(self, rhs: NonNeg<U>) -> Self::Output {
+        Self::Output {
+            value: self.value + rhs.value,
+        }
+    }
+}
+
+impl<T, U> Add<Positive<U>> for NonNeg<T>
+where
+    T: Add<U>,
+{
+    type Output = Positive<<T as Add<U>>::Output>;
+
+    fn add(self, rhs: Positive<U>) -> Self::Output {
         Self::Output {
             value: self.value + rhs.value,
         }
@@ -200,6 +231,17 @@ where
     type Output = <T as Sub<U>>::Output;
 
     fn sub(self, rhs: NonNeg<U>) -> Self::Output {
+        self.value - rhs.value
+    }
+}
+
+impl<T, U> Sub<Positive<U>> for NonNeg<T>
+where
+    T: Sub<U>,
+{
+    type Output = <T as Sub<U>>::Output;
+
+    fn sub(self, rhs: Positive<U>) -> Self::Output {
         self.value - rhs.value
     }
 }
@@ -287,6 +329,12 @@ impl<T: Zero> Default for NonNeg<T> {
     }
 }
 
+impl<T> From<Positive<T>> for NonNeg<T> {
+    fn from(value: Positive<T>) -> Self {
+        todo!()
+    }
+}
+
 impl From<u32> for NonNeg<i64> {
     fn from(value: u32) -> Self {
         Self {
@@ -295,16 +343,19 @@ impl From<u32> for NonNeg<i64> {
     }
 }
 
+/// TODO: replace with macro
 pub(crate) const fn noneg_f32(value: f32) -> NonNeg<f32> {
     assert!(value >= 0.);
     NonNeg { value }
 }
 
+/// TODO: replace with macro
 pub(crate) const fn noneg_f64(value: f64) -> NonNeg<f64> {
     assert!(value >= 0.);
     NonNeg { value }
 }
 
+/// TODO: replace with macro
 pub const fn noneg_float(value: Float) -> NonNeg<Float> {
     assert!(value >= 0.);
     NonNeg { value }

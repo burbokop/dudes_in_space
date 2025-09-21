@@ -384,7 +384,9 @@ impl Objective for ManageDockyardStationObjective {
 
                             let x = this_person.notes.purchased_items_max_prices().stabilized();
                             if x.is_empty() {
-                                // wait
+                                println!(
+                                    "Wait until this_person.notes.purchased_items_max_prices fill up"
+                                )
                             } else {
                                 todo!()
                             }

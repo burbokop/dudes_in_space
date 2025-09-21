@@ -1,5 +1,5 @@
 use crate::finance::{BankRegistry, Currency, Money, MoneyAmount};
-use crate::utils::math::{NonNeg, Zero};
+use crate::utils::math::{NonNeg, Positive, Zero};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -12,7 +12,7 @@ pub type WalletId = NonNilUuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Wallet {
-    content: BTreeMap<Currency, NonNeg<MoneyAmount>>,
+    content: BTreeMap<Currency, Positive<MoneyAmount>>,
     id: WalletId,
 }
 
@@ -33,7 +33,7 @@ impl Wallet {
             .iter()
             .map(|(currency, amount)| Money {
                 currency: currency.clone(),
-                amount: *amount,
+                amount: amount.clone().into(),
             })
             .max_by(|a, b| a.cmp(bank_registry, b))
     }
@@ -44,7 +44,7 @@ impl Wallet {
             bank_registry,
             self.content.iter().map(|(currency, amount)| Money {
                 currency: currency.clone(),
-                amount: amount.clone(),
+                amount: amount.clone().into(),
             }),
             currency,
         )
@@ -63,22 +63,36 @@ impl Wallet {
 
     /// Do not make it public. (Does not preserve the whole amount of money in the system) Should be used only in wallet and bank modules
     pub(crate) fn put(&mut self, m: Money) {
-        *self.content.entry(m.currency).or_default() += m.amount;
+        if let Some(g) = self.content.get_mut(&m.currency) {
+            *g += m.amount
+        } else {
+            self.content
+                .insert(m.currency, m.amount.try_into().unwrap());
+        }
     }
 
     pub(crate) fn amount(&self, c: Currency) -> NonNeg<MoneyAmount> {
         match self.content.get(&c) {
             None => Zero::zero(),
-            Some(x) => *x,
+            Some(x) => x.clone().into(),
         }
     }
 
     /// Do not make it public. (Does not preserve the whole amount of money in the system) Should be used only in wallet and bank modules
     pub(crate) fn take(&mut self, m: Money) -> Result<(), NotEnoughMoneyInWallet> {
-        let x = self.content.entry(m.currency).or_default();
-        if *x >= m.amount {
-            Ok(x.sub_assign(m.amount).unwrap())
+        if let Some(x) = self.content.get_mut(&m.currency) {
+            if x.unwrap() >= m.amount.unwrap() {
+                if x.unwrap() > m.amount.unwrap() {
+                    *x = Positive::new(*x - m.amount).unwrap();
+                } else {
+                    self.content.remove(&m.currency);
+                }
+                Ok(())
+            } else {
+                Err(NotEnoughMoneyInWallet)
+            }
         } else {
+            assert!(m.amount > NonNeg::zero());
             Err(NotEnoughMoneyInWallet)
         }
     }
@@ -97,6 +111,8 @@ impl Wallet {
         wallet_registry: &WalletRegistry,
         target_currency: Currency,
     ) {
+        println!("content: {:#?}", self.content);
+
         for (currency, amount) in self.content.clone() {
             if currency == target_currency {
                 continue;
@@ -104,7 +120,7 @@ impl Wallet {
 
             let current_money = Money {
                 currency: currency.clone(),
-                amount: amount.clone(),
+                amount: amount.clone().into(),
             };
 
             let bank_registry = bank_registry.borrow();
@@ -123,7 +139,7 @@ impl Wallet {
             let current_bank_owner_wallet = current_bank_owner_wallet.borrow_mut();
 
             let target_amount = current_bank
-                .sell_this_currency_price(&target_bank, amount)
+                .sell_this_currency_price(&target_bank, amount.into())
                 .unwrap();
 
             target_bank.buy_currency(
@@ -135,11 +151,12 @@ impl Wallet {
         }
     }
 
-    pub(crate) fn missing(&mut self, money: Money) -> Option<NonNeg<MoneyAmount>> {
+    pub(crate) fn missing(&self, money: Money) -> Option<NonNeg<MoneyAmount>> {
         let amount_containing = self
             .content
             .get(&money.currency)
             .cloned()
+            .map(NonNeg::from)
             .unwrap_or(Zero::zero());
         NonNeg::new(money.amount - amount_containing).ok()
     }
@@ -159,7 +176,7 @@ impl Wallet {
             bank_registry,
             self.content.iter().map(|(currency, amount)| Money {
                 currency: currency.clone(),
-                amount: amount.clone(),
+                amount: amount.clone().into(),
             }),
             money.currency.clone(),
         )
@@ -222,20 +239,19 @@ impl Wallet {
                     .content
                     .get(&target_money.currency)
                     .cloned()
+                    .map(NonNeg::from)
                     .unwrap_or(Zero::zero());
 
                 let delta = NonNeg::new(target_money.amount - current_amount_of_target_currency);
 
                 match delta.ok().and_then(|delta| {
-                    if delta == Zero::zero() {
+                    if delta == NonNeg::zero() {
                         None
                     } else {
                         Some(delta)
                     }
                 }) {
                     None => {
-                        self.content.retain(|_, a| *a != Zero::zero());
-
                         break 'l true;
                     }
                     Some(delta) => {
@@ -253,7 +269,7 @@ impl Wallet {
 
                         let current_money = Money {
                             currency: currency.clone(),
-                            amount: amount.clone(),
+                            amount: amount.clone().into(),
                         };
 
                         let current_money_in_target_currency = current_money

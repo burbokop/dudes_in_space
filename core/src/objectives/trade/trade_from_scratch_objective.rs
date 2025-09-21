@@ -218,8 +218,10 @@ impl Error for TradeFromScratchObjectiveError {}
 impl Display for TradeFromScratchObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TradeFromScratchObjective::ExecuteTrade { .. } => write!(f, "ExecuteTrade"),
-            TradeFromScratchObjective::CraftVessel { .. } => write!(f, "CraftVessel"),
+            Self::ExecuteTrade {
+                trade_objective, ..
+            } => write!(f, "ExecuteTrade -> {}", trade_objective),
+            Self::CraftVessel { .. } => write!(f, "CraftVessel"),
         }
     }
 }

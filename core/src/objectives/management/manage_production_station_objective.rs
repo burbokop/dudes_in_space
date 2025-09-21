@@ -18,11 +18,13 @@ use dyn_serde::{
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+use dudes_in_space_api::finance::Money;
+use dudes_in_space_api::item::ItemId;
 
 /*
     - Find available crafts across all crafters
@@ -34,6 +36,23 @@ use std::rc::Rc;
     - Place sell offer
     - Craft item
     - Place buy offer
+    
+    Example:    
+        There are selling offers for `steel` and `microelectronics` found.
+        There is a buy offer for `microelectronics` found.
+        No buy offers for `steel` are found.
+        The `objective` prioritizes steel because nobody produces it yet.
+        The `objective` checks if it can produce `steel`.
+        Yes -> Goes for it.
+        No -> Tries `microelectronics`
+        
+    Example:
+        There are selling offers for `steel` and `microelectronics` found.
+        There are buying offers for `steel` and `microelectronics` found.
+        The `objective` checks if it can produce `steel` and `microelectronics`.
+        Yes -> Chooses one that gives more profit.
+        Can produce only `steal` -> Goes for it.
+        
 */
 
 static TYPE_ID: &str = "ManageProductionStationObjective";
@@ -146,15 +165,19 @@ impl Objective for ManageProductionStationObjective {
                     if search_result.max_profit_sell_offers.is_empty() {
                         Err(Self::Error::NoSellOffersFound)
                     } else {
-                        logger.info(format!(
-                            "Trade scan summary: {:#?}",
-                            (
-                                recipes_to_consider,
-                                input_recipes_to_consider,
-                                output_recipes_to_consider,
-                                &search_result
-                            )
-                        ));
+                        println!("recipes_to_consider: {:#?}", recipes_to_consider,);
+                        println!(
+                            "input_recipes_to_consider: {:#?}",
+                            input_recipes_to_consider,
+                        );
+
+                        println!(
+                            "output_recipes_to_consider: {:#?}",
+                            output_recipes_to_consider,
+                        );
+                        
+                        println!("search_result.max_profit_sell_offers: {:#?}", search_result.max_profit_sell_offers.iter().map(|(item, offer)|(item.clone(), offer.offer.price_per_unit.clone())).collect::<BTreeMap<ItemId, Money>>());
+                        println!("search_result.average_sell_offers: {:#?}", search_result.average_sell_offers);
 
                         todo!()
                     }
@@ -163,7 +186,17 @@ impl Objective for ManageProductionStationObjective {
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
             Self::ExecuteProduction { craft_objective } => {
-                todo!()
+                match craft_objective.pursue(
+                    this_person,
+                    this_module,
+                    this_vessel,
+                    environment_context,
+                    logger,
+                ) {
+                    Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                    Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
+                    Err(err) => todo!("err: {:?}", err),
+                }
             }
             Self::AssembleCrafter { craft_objective } => match craft_objective.pursue(
                 this_person,
@@ -264,6 +297,13 @@ impl Error for ManageProductionStationObjectiveError {}
 
 impl Display for ManageProductionStationObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            Self::CollectAllAvailableRecipes => write!(f, "CollectAllAvailableRecipes"),
+            Self::FindBestOffersAndDecideBestRecipe { .. } => {
+                write!(f, "FindBestOffersAndDecideBestRecipe")
+            }
+            Self::AssembleCrafter { .. } => write!(f, "AssembleCrafter"),
+            Self::ExecuteProduction { .. } => write!(f, "ExecuteProduction"),
+        }
     }
 }

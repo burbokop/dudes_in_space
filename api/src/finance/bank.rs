@@ -251,7 +251,7 @@ impl Bank {
         target_amount: NonNeg<MoneyAmount>,
     ) {
         assert_ne!(target_amount.unwrap(), 0);
-        assert_ne!(self.money_created, Zero::zero());
+        assert_ne!(self.money_created, NonNeg::zero());
 
         let source_amount = self
             .sell_this_currency_price(source_currency_bank, target_amount)

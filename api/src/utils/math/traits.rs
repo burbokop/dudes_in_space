@@ -330,6 +330,28 @@ impl IsNeg for i64 {
     }
 }
 
+pub trait IsPositive {
+    fn is_positive(&self) -> bool;
+}
+
+impl IsPositive for f32 {
+    fn is_positive(&self) -> bool {
+        *self > 0.
+    }
+}
+
+impl IsPositive for f64 {
+    fn is_positive(&self) -> bool {
+        *self > 0.
+    }
+}
+
+impl IsPositive for i64 {
+    fn is_positive(&self) -> bool {
+        *self > 0
+    }
+}
+
 pub(crate) trait RadToDeg {
     type Output;
     fn rad_to_deg(self) -> Self::Output;

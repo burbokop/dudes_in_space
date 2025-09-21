@@ -2,6 +2,7 @@ use crate::objectives::crafting::{
     CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::vessel::VesselInternalConsole;
@@ -18,6 +19,14 @@ pub(crate) enum RequireModulesObjective {
     Crafting {
         crafting_objective: CraftModulesObjective,
     },
+    Done {
+        result: RequireModulesObjectiveResult,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RequireModulesObjectiveResult {
+    pub cost_price: Money,
 }
 
 impl RequireModulesObjective {
@@ -38,7 +47,7 @@ impl RequireModulesObjective {
 }
 
 impl Objective for RequireModulesObjective {
-    type Result = ();
+    type Result = RequireModulesObjectiveResult;
     type Error = CraftModulesObjectiveError;
 
     fn pursue(
@@ -81,9 +90,18 @@ impl Objective for RequireModulesObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
+                Ok(ObjectiveStatus::Done(result)) => {
+                    let result = RequireModulesObjectiveResult {
+                        cost_price: result.cost_price,
+                    };
+                    *self = Self::Done {
+                        result: result.clone(),
+                    };
+                    Ok(ObjectiveStatus::Done(result))
+                }
                 Err(_) => todo!(),
             },
+            Self::Done { result } => todo!("result: {:?}", result),
         }
     }
 }

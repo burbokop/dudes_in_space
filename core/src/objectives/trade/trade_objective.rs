@@ -286,6 +286,15 @@ impl Error for TradeObjectiveError {}
 
 impl Display for TradeObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            Self::SearchVessel => todo!(),
+            Self::MoveToVessel { .. } => todo!(),
+            Self::SearchForCockpit => todo!(),
+            Self::MoveToCockpit { .. } => todo!(),
+            Self::SearchForBuyOffers { .. } => write!(f, "SearchForBuyOffers"),
+            Self::MoveToVesselToBuy { .. } => todo!(),
+            Self::SearchForSellOffers => todo!(),
+            Self::MoveToVesselToSell { .. } => todo!(),
+        }
     }
 }
