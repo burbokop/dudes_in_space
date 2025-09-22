@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::iter;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct ItemRecipe {
     pub input: InputItemRecipe,
     pub output: OutputItemRecipe,
@@ -25,7 +26,15 @@ impl Display for CraftingError {
 
 impl Error for CraftingError {}
 
+pub type ItemRecipeHash = u64;
+
 impl ItemRecipe {
+    pub fn default_hash(&self) -> ItemRecipeHash {
+        let mut s = DefaultHasher::new();
+        self.hash(&mut s);
+        s.finish()
+    }
+
     pub fn items(&self) -> impl Iterator<Item = &ItemId> {
         iter::chain(self.input.iter(), self.output.iter()).map(|(id, _)| id)
     }
@@ -50,7 +59,7 @@ impl ItemRecipe {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct InputItemRecipe {
     #[serde(flatten)]
     input: BTreeMap<ItemId, ItemCount>,
@@ -68,6 +77,10 @@ impl<'a> IntoIterator for &'a InputItemRecipe {
 impl InputItemRecipe {
     pub fn len(&self) -> usize {
         self.input.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.input.is_empty()
     }
 
     pub fn items(&self) -> impl Iterator<Item = &ItemId> {
@@ -143,7 +156,7 @@ impl Display for InputItemRecipe {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct OutputItemRecipe {
     #[serde(flatten)]
     output: BTreeMap<ItemId, ItemCount>,

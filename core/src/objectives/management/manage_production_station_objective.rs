@@ -1,15 +1,18 @@
 use crate::objectives::crafting::{
-    CraftItemsObjective, CraftModulesObjective, CraftModulesObjectiveError,
+    CraftItemsByHashObjective, CraftItemsObjective, CraftModulesObjective,
+    CraftModulesObjectiveError,
 };
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
+use dudes_in_space_api::finance::Money;
+use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
 };
-use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
+use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
@@ -23,9 +26,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
-use dudes_in_space_api::finance::Money;
-use dudes_in_space_api::item::ItemId;
-
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -36,8 +36,8 @@ use dudes_in_space_api::item::ItemId;
     - Place sell offer
     - Craft item
     - Place buy offer
-    
-    Example:    
+
+    Example:
         There are selling offers for `steel` and `microelectronics` found.
         There is a buy offer for `microelectronics` found.
         No buy offers for `steel` are found.
@@ -45,14 +45,14 @@ use dudes_in_space_api::item::ItemId;
         The `objective` checks if it can produce `steel`.
         Yes -> Goes for it.
         No -> Tries `microelectronics`
-        
+
     Example:
         There are selling offers for `steel` and `microelectronics` found.
         There are buying offers for `steel` and `microelectronics` found.
         The `objective` checks if it can produce `steel` and `microelectronics`.
         Yes -> Chooses one that gives more profit.
         Can produce only `steal` -> Goes for it.
-        
+
 */
 
 static TYPE_ID: &str = "ManageProductionStationObjective";
@@ -73,7 +73,7 @@ pub(crate) enum ManageProductionStationObjective {
         craft_objective: CraftModulesObjective,
     },
     ExecuteProduction {
-        craft_objective: CraftItemsObjective,
+        craft_objective: CraftItemsByHashObjective,
     },
 }
 
@@ -161,28 +161,41 @@ impl Objective for ManageProductionStationObjective {
                 input_recipes_to_consider,
                 output_recipes_to_consider,
             } => match future.take() {
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Ok(search_result) => {
                     if search_result.max_profit_sell_offers.is_empty() {
                         Err(Self::Error::NoSellOffersFound)
                     } else {
-                        println!("recipes_to_consider: {:#?}", recipes_to_consider,);
-                        println!(
-                            "input_recipes_to_consider: {:#?}",
-                            input_recipes_to_consider,
-                        );
+                        // println!("recipes_to_consider: {:#?}", recipes_to_consider,);
+                        // println!(
+                        //     "input_recipes_to_consider: {:#?}",
+                        //     input_recipes_to_consider,
+                        // );
+                        //
+                        // println!(
+                        //     "output_recipes_to_consider: {:#?}",
+                        //     output_recipes_to_consider,
+                        // );
 
-                        println!(
-                            "output_recipes_to_consider: {:#?}",
-                            output_recipes_to_consider,
-                        );
-                        
-                        println!("search_result.max_profit_sell_offers: {:#?}", search_result.max_profit_sell_offers.iter().map(|(item, offer)|(item.clone(), offer.offer.price_per_unit.clone())).collect::<BTreeMap<ItemId, Money>>());
-                        println!("search_result.average_sell_offers: {:#?}", search_result.average_sell_offers);
-
-                        todo!()
+                        match choose_item_to_produce(
+                            &search_result,
+                            &output_recipes_to_consider,
+                            &recipes_to_consider,
+                        ) {
+                            ChooseItemToProduceResult::Craft { .. } => {
+                                *self = Self::ExecuteProduction {
+                                    craft_objective: CraftItemsByHashObjective::new(
+                                        todo!(),
+                                        logger,
+                                    ),
+                                };
+                                Ok(ObjectiveStatus::InProgress)
+                            }
+                            ChooseItemToProduceResult::ProduceFromEnvironment { .. } => todo!(),
+                            ChooseItemToProduceResult::NotFound => todo!(),
+                        }
                     }
                 }
-                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
             Self::ExecuteProduction { craft_objective } => {
@@ -305,5 +318,148 @@ impl Display for ManageProductionStationObjective {
             Self::AssembleCrafter { .. } => write!(f, "AssembleCrafter"),
             Self::ExecuteProduction { .. } => write!(f, "ExecuteProduction"),
         }
+    }
+}
+
+fn calc_items_in_demand(
+    search_result: &FindBestOffersForItemsResult,
+    output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
+) -> BTreeMap<ItemId, Money> {
+    search_result
+        .average_sell_offers
+        .clone()
+        .into_iter()
+        .filter(|(item, _)| {
+            output_recipes_to_consider
+                .iter()
+                .find(|recipe| {
+                    recipe
+                        .items()
+                        .find(|recipe_item| *recipe_item == item)
+                        .is_some()
+                })
+                .is_some()
+        })
+        .collect()
+}
+
+fn calc_items_in_demand_that_no_one_produces(
+    search_result: &FindBestOffersForItemsResult,
+    items_in_demand: BTreeMap<ItemId, Money>,
+) -> BTreeMap<ItemId, Money> {
+    items_in_demand
+        .into_iter()
+        .filter(|(item, _)| {
+            search_result
+                .average_buy_offers
+                .iter()
+                .find(|(offer_item, _)| *offer_item == item)
+                .is_none()
+        })
+        .collect()
+}
+
+fn calc_items_in_demand_that_no_one_produces_and_ingredients_are_on_market(
+    search_result: &FindBestOffersForItemsResult,
+    items_in_demand_that_no_one_produces: BTreeMap<ItemId, Money>,
+    recipes_to_consider: &BTreeSet<ItemRecipe>,
+) -> BTreeMap<ItemId, Money> {
+    items_in_demand_that_no_one_produces
+        .into_iter()
+        .filter(|(item, _)| {
+            match recipes_to_consider.iter().find(|recipe| {
+                recipe
+                    .output
+                    .items()
+                    .find(|recipe_item| *recipe_item == item)
+                    .is_some()
+            }) {
+                None => {
+                    // Should check if the output recipe requires some action to produce
+                    // if not return true
+                    // if yes, check if it can do this action (for example, mine asteroids or collect gas from nebula, or some other natural occurring resource)
+                    todo!("has only and output recipe")
+                }
+                Some(recipe) => {
+                    assert!(!recipe.input.is_empty());
+
+                    let has_all_ingredients_on_market = recipe.input.items().all(|item| {
+                        search_result
+                            .average_buy_offers
+                            .iter()
+                            .find(|(offer_item, _)| *offer_item == item)
+                            .is_some()
+                    });
+
+                    has_all_ingredients_on_market
+                }
+            }
+        })
+        .collect()
+}
+
+enum ChooseItemToProduceResult {
+    Craft {
+        item: ItemId,
+        recipe: ItemRecipeHash,
+    },
+    ProduceFromEnvironment {
+        // TODO for example: mine, collect gas, collect solar energy, etc.
+    },
+    NotFound,
+}
+
+fn choose_item_to_produce(
+    search_result: &FindBestOffersForItemsResult,
+    output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
+    recipes_to_consider: &BTreeSet<ItemRecipe>,
+) -> ChooseItemToProduceResult {
+    // println!("search_result.max_profit_sell_offers: {:#?}", search_result.max_profit_sell_offers.iter().map(|(item, offer)|(item.clone(), offer.offer.price_per_unit.clone())).collect::<BTreeMap<ItemId, Money>>());
+    // println!("search_result.average_sell_offers: {:#?}", search_result.average_sell_offers);
+
+    let items_in_demand = calc_items_in_demand(&search_result, &output_recipes_to_consider);
+
+    if !items_in_demand.is_empty() {
+        // items_in_demand.iter().for_each(|(item, _)| {
+        //     println!("items_in_demand: {:?}", item);
+        // });
+
+        let items_in_demand_that_no_one_produces =
+            calc_items_in_demand_that_no_one_produces(&search_result, items_in_demand);
+        if !items_in_demand_that_no_one_produces.is_empty() {
+            // for (i, _) in &items_in_demand_that_no_one_produces {
+            //     println!("items_in_demand_that_no_one_produces: {:?}", i);
+            // }
+
+            let items_in_demand_that_no_one_produces_and_ingredients_are_on_market =
+                calc_items_in_demand_that_no_one_produces_and_ingredients_are_on_market(
+                    &search_result,
+                    items_in_demand_that_no_one_produces.clone(),
+                    recipes_to_consider,
+                );
+            if !items_in_demand_that_no_one_produces_and_ingredients_are_on_market.is_empty() {
+                // items_in_demand_that_no_one_produces_and_ingredients_are_on_market.iter().for_each(|(item, _)| {
+                //     println!("items_in_demand_that_no_one_produces_and_ingredients_are_on_market: {:?}", item);
+                // });
+
+                todo!(
+                    "Pick first item in list items_in_demand_that_no_one_produces_and_ingredients_are_on_market"
+                )
+            } else {
+                let (item, _) = items_in_demand_that_no_one_produces
+                    .first_key_value()
+                    .unwrap();
+                ChooseItemToProduceResult::Craft {
+                    item: item.clone(),
+                    recipe: todo!(),
+                }
+            }
+        } else {
+            todo!(
+                "Find item with best profit setting buy price as cheap as possible while sustaining margin"
+            )
+        }
+    } else {
+        todo!("Has no items in demand. wait until some items are needed")
     }
 }
