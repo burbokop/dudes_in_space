@@ -46,15 +46,15 @@ impl ItemStack {
             count,
         })
     }
-    
+
     pub fn id(&self) -> ItemId {
         self.item.upgrade().unwrap().id.clone()
     }
-    
+
     pub fn count(&self) -> ItemCount {
         self.count
     }
-    
+
     pub(crate) fn volume(&self) -> ItemVolume {
         let item = self.item.upgrade().unwrap();
         item.volume * self.count

@@ -1,13 +1,13 @@
+use crate::objectives::crafting::CraftItemsByHashObjectiveArgs;
 use crate::objectives::crafting::{
-    CraftItemsByHashObjective, CraftItemsObjective, CraftModulesObjective,
-    CraftModulesObjectiveError,
+    CraftItemsByHashObjective, CraftModulesObjective, CraftModulesObjectiveError,
 };
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
 use dudes_in_space_api::finance::Money;
-use dudes_in_space_api::item::ItemId;
-use dudes_in_space_api::module::ModuleConsole;
+use dudes_in_space_api::item::{ ItemId};
+use dudes_in_space_api::module::{ModuleConsole};
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
@@ -26,6 +26,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -182,14 +183,34 @@ impl Objective for ManageProductionStationObjective {
                             &output_recipes_to_consider,
                             &recipes_to_consider,
                         ) {
-                            ChooseItemToProduceResult::Craft { .. } => {
-                                *self = Self::ExecuteProduction {
-                                    craft_objective: CraftItemsByHashObjective::new(
-                                        todo!(),
-                                        logger,
-                                    ),
-                                };
-                                Ok(ObjectiveStatus::InProgress)
+                            ChooseItemToProduceResult::Craft {
+                                item,
+                                recipe,
+                            } => {
+
+                                match tie(
+                                    this_module,
+                                    this_vessel,
+                                ).find_item_recipe(recipe) {
+                                    None => todo!("Assemble crafter"),
+                                    Some((module, recipe )) => {
+
+                                        let items_limit = (||todo!("Extract output capacity from crafter module"))();
+
+                                        *self = Self::ExecuteProduction {
+                                            craft_objective: CraftItemsByHashObjective::new(
+                                                CraftItemsByHashObjectiveArgs {
+                                                    recipe: recipe.default_hash(),
+                                                    items_limit,
+                                                    done_if_reached_limit: false,
+                                                    err_if_lack_ingredients: false,
+                                                },
+                                                logger,
+                                            ),
+                                        };
+                                        Ok(ObjectiveStatus::InProgress)
+                                    }
+                                }
                             }
                             ChooseItemToProduceResult::ProduceFromEnvironment { .. } => todo!(),
                             ChooseItemToProduceResult::NotFound => todo!(),
@@ -221,10 +242,18 @@ impl Objective for ManageProductionStationObjective {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                 Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("Checking all prerequisites to managing production station...");
+
+                    let recipe = (|| todo!())();
+                    let items_limit = (|| todo!())();
+
                     *self = Self::ExecuteProduction {
-                        craft_objective: CraftItemsObjective::new(
-                            todo!(),
-                            #[allow(unreachable_code)]
+                        craft_objective: CraftItemsByHashObjective::new(
+                            CraftItemsByHashObjectiveArgs {
+                                recipe,
+                                items_limit,
+                                done_if_reached_limit: false,
+                                err_if_lack_ingredients: false,
+                            },
                             logger,
                         ),
                     };
@@ -449,9 +478,18 @@ fn choose_item_to_produce(
                 let (item, _) = items_in_demand_that_no_one_produces
                     .first_key_value()
                     .unwrap();
+
+                let item_recipe = recipes_to_consider
+                    .iter()
+                    .find(|recipe| recipe.output.contains(item))
+                    .unwrap();
+
+                // TODO: if `item_recipe` not found try:
+                // output_recipes_to_consider.iter().find(|recipe| recipe.contains(item))
+
                 ChooseItemToProduceResult::Craft {
                     item: item.clone(),
-                    recipe: todo!(),
+                    recipe: item_recipe.default_hash(),
                 }
             }
         } else {

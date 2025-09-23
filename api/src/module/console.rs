@@ -3,7 +3,10 @@ use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactoryOutputDescription, OutputItemRecipe};
+use crate::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactoryOutputDescription,
+    OutputItemRecipe,
+};
 use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
     BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,

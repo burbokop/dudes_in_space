@@ -175,6 +175,10 @@ impl OutputItemRecipe {
         self.output.iter().map(|(item, _)| item)
     }
 
+    pub fn contains(&self, item: &ItemId) -> bool {
+        self.output.contains_key(item)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {
         self.output.iter()
     }

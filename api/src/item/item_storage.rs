@@ -135,7 +135,8 @@ impl ItemStorage {
         let mut result = Self::new(volume);
         for v in value {
             result
-                .content.0
+                .content
+                .0
                 .try_insert(v.item.upgrade().unwrap().id.clone(), v)
                 .map_err(|_| ItemStorageFromVecError::DuplicateItem)?;
         }

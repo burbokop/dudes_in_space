@@ -1,6 +1,6 @@
 use crate::item::{ItemStorage, ItemVolume};
 use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId};
-use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
+use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe};
 use crate::utils::physics::M3;
 use crate::vessel::{DockingClamp, DockingClampConnection, VesselConsole, VesselInternalConsole};
 use std::cell::Ref;
@@ -109,6 +109,27 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
                 )
             })
             .try_for_each(f)
+    }
+
+    pub fn find_item_recipe(
+        &self,
+        recipe: ItemRecipeHash,
+    ) -> Option<(ModuleId, ItemRecipe)> {
+        self.this_vessel
+            .modules_with_capability(ModuleCapability::ItemCrafting)
+            .iter()
+            .map(|m| m.item_recipes().iter().map(|c| (m.id(), c)))
+            .flatten()
+            .chain(
+                self.this_module
+                    .crafting_console().map(|x|x.item_recipes().iter()).unwrap_or([].iter())
+                    .map(|c| (self.this_module.id(), c)),
+            )
+            .find_map(|(a, b)|
+                if b.default_hash() == recipe {
+                    Some((a,b.clone())
+                    )
+                }else {None})
     }
 
     pub fn find_map_docking_clamp<T>(
