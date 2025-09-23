@@ -3,9 +3,7 @@ use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactoryOutputDescription, OutputItemRecipe,
-};
+use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactoryOutputDescription, OutputItemRecipe};
 use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
     BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
@@ -176,6 +174,7 @@ pub trait CraftingConsole {
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize>;
+    fn recipe_by_hash(&self, item: ItemRecipeHash) -> Option<usize>;
 
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription;
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;

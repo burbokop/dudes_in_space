@@ -17,10 +17,7 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, AssemblyRecipeSeed, InputItemRecipe, ItemRecipe, ModuleFactory,
-    ModuleFactoryOutputDescription, OutputItemRecipe,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -335,6 +332,10 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_by_hash(&self, item: ItemRecipeHash) -> Option<usize> {
         todo!()
     }
 

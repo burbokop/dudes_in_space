@@ -31,11 +31,30 @@ impl Item {
 
 #[derive(Debug, Clone)]
 pub struct ItemStack {
-    pub(crate) item: Weak<Item>,
-    pub(crate) count: ItemCount,
+    pub(super) item: Weak<Item>,
+    pub(super) count: ItemCount,
 }
 
 impl ItemStack {
+    pub fn new(
+        vault: &ItemVault,
+        id: ItemId,
+        count: ItemCount,
+    ) -> Result<Self, ItemNotFoundInVaultError> {
+        Ok(Self {
+            item: vault.get(id)?,
+            count,
+        })
+    }
+    
+    pub fn id(&self) -> ItemId {
+        self.item.upgrade().unwrap().id.clone()
+    }
+    
+    pub fn count(&self) -> ItemCount {
+        self.count
+    }
+    
     pub(crate) fn volume(&self) -> ItemVolume {
         let item = self.item.upgrade().unwrap();
         item.volume * self.count
@@ -101,25 +120,6 @@ impl<'de, 'v> DeserializeSeed<'de> for ItemStackSeed<'v> {
             item: self.vault.get(id).map_err(serde::de::Error::custom)?,
             count,
         })
-    }
-}
-
-impl ItemStack {
-    pub fn new(
-        vault: &ItemVault,
-        id: ItemId,
-        count: ItemCount,
-    ) -> Result<Self, ItemNotFoundInVaultError> {
-        Ok(Self {
-            item: vault.get(id)?,
-            count,
-        })
-    }
-    pub fn id(&self) -> ItemId {
-        self.item.upgrade().unwrap().id.clone()
-    }
-    pub fn count(&self) -> ItemCount {
-        self.count
     }
 }
 

@@ -1,5 +1,6 @@
+use std::collections::BTreeMap;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemCount};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::recipe::{ItemRecipe, ItemRecipeHash};
@@ -12,7 +13,7 @@ use std::fmt::{Display, Formatter};
 pub struct CraftItemsByHashObjectiveArgs {
     recipe_hash: ItemRecipeHash,
     /// Stop producing when reached the limit
-    items_limit: Vec<ItemCount>,
+    items_limit: BTreeMap<ItemId, ItemCount>,
     /// Wait indefinitely if false
     done_if_reached_limit: bool,
     /// Wait indefinitely if false
@@ -131,44 +132,41 @@ impl Objective for CraftItemsByHashObjective {
                 process_token,
             } => match process_token {
                 None => {
-                    if let Some((item, _)) = needed_items.first_key_value() {
-                        let crafting_console = this_module.crafting_console_mut().unwrap();
-                        let recipe = crafting_console
-                            .recipe_by_output_item(item.clone())
-                            .unwrap();
-                        assert!(crafting_console.has_resources_for_recipe(recipe));
-                        assert!(process_token.is_none());
-                        *process_token = Some(crafting_console.start(recipe, false).unwrap());
-
-                        logger.info("Picking recipe for:");
-                        for (item, count) in crafting_console.recipe_item_output(recipe).unwrap() {
-                            if let Some(needed_count) = needed_items.get_mut(&item) {
-                                logger.info(format!("    {:?}", item));
-                                if *needed_count > count {
-                                    *needed_count -= count;
-                                } else {
-                                    needed_items.remove(&item);
-                                }
-                            }
-                        }
-                        return Ok(ObjectiveStatus::InProgress);
+                    let all_storages_content: ItemStorageContent = this_module.storages().iter().map(|x|x.content()).cloned().sum();
+                    
+                    if limit_reached(&all_storages_content, args.items_limit.clone()) {
+                        return Ok(if args.done_if_reached_limit {
+                            ObjectiveStatus::Done(*self = Self::Done)
+                        } else {
+                            ObjectiveStatus::InProgress
+                        })
                     }
+                    
+                    let crafting_console = this_module.crafting_console_mut().unwrap();
+                    let recipe_index = crafting_console
+                        .recipe_by_hash(args.recipe_hash)
+                        .unwrap();
 
-                    todo!()
+                    if !crafting_console.has_resources_for_recipe(recipe_index) {
+                        return if args.err_if_lack_ingredients {
+                            Err(CraftItemsByHashObjectiveError::LackIngredients)
+                        } else {
+                            Ok(ObjectiveStatus::InProgress)
+                        }
+                    }
+                    
+                    assert!(process_token.is_none());
+                    *process_token = Some(crafting_console.start(recipe_index, false).unwrap());
+
+                    Ok(ObjectiveStatus::InProgress)
                 }
                 Some(some_process_token) => {
                     if some_process_token
                         .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
-                        return if needed_items.is_empty() {
-                            logger.info("Done crafting modules.");
-                            *self = Self::Done;
-                            Ok(ObjectiveStatus::Done(()))
-                        } else {
-                            *process_token = None;
-                            Ok(ObjectiveStatus::InProgress)
-                        };
+                        *process_token = None;
+                        return Ok(ObjectiveStatus::InProgress)
                     }
 
                     assert!(this_module.in_progress());
@@ -189,6 +187,7 @@ impl Objective for CraftItemsByHashObjective {
 #[derive(Debug)]
 pub(crate) enum CraftItemsByHashObjectiveError {
     CanNotFindCraftingModule,
+    LackIngredients,
 }
 
 impl Display for CraftItemsByHashObjectiveError {
@@ -198,3 +197,10 @@ impl Display for CraftItemsByHashObjectiveError {
 }
 
 impl Error for CraftItemsByHashObjectiveError {}
+
+fn limit_reached(
+    content: &ItemStorageContent,
+    items_limit: BTreeMap<ItemId, ItemCount>,
+) -> bool {
+    todo!()
+}
