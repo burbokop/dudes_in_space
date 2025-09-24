@@ -1,7 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
-use dudes_in_space_api::item::{ItemSafe, ItemStorage};
+use dudes_in_space_api::item::{ItemSafe, ItemStorage, StorageRole};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
     PackageId, TradingConsole,
@@ -222,6 +222,14 @@ impl Module for Shuttle {
     }
 
     fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 }

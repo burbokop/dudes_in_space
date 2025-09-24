@@ -1,7 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
-use dudes_in_space_api::item::{ItemSafe, ItemStorage};
+use dudes_in_space_api::item::{ItemSafe, ItemStorage, StorageRole};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleStorageSeed, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
@@ -226,11 +226,19 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
-    fn storages(&self) -> &[ItemStorage] {
+    fn storages(&self) -> Vec<&ItemStorage> {
         todo!()
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -432,6 +440,14 @@ impl Module for Dockyard {
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 

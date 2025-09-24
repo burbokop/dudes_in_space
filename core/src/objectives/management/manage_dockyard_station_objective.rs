@@ -7,7 +7,7 @@ use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
 };
 use dudes_in_space_api::finance::{Bank, Currency, Money};
-use dudes_in_space_api::item::{ItemCount, ItemId};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemVolume};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
@@ -30,6 +30,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+
 /*
     - Find list of modules you can craft
     - Place available capabilities in vessel selling terminal
@@ -142,7 +143,7 @@ impl Objective for ManageDockyardStationObjective {
                             *c = ItemCount::max(*c, *count);
                         });
 
-                    let sum_volume = min_counts
+                    let sum_volume: ItemVolume = min_counts
                         .clone()
                         .into_iter()
                         .map(|(item, count)| {
@@ -175,8 +176,9 @@ impl Objective for ManageDockyardStationObjective {
                         let item = environment_context.item_vault().get_ref(item).unwrap();
 
                         let item_volume = item.volume * count;
-                        let portion = item_volume / sum_volume;
-                        let cap_for_item = capacity_dedicated_for_this_objective * portion;
+                        let portion: f32 = item_volume / sum_volume;
+                        let cap_for_item: ItemVolume =
+                            capacity_dedicated_for_this_objective * portion;
                         let capacity_for_item = (cap_for_item / item.volume) as ItemCount;
 
                         let this_person_wallet_id = this_person.finance.wallet().id().clone();

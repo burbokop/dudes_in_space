@@ -20,6 +20,7 @@ impl ItemStorageRenderModel {
     ) -> Result<(), RenderError> {
         let layout: GridLayout<_> = storage
             .content()
+            .stacks()
             .map(|stack| {
                 |renderer: &mut Renderer<T>, bounding_box| {
                     let stack = stack.clone();

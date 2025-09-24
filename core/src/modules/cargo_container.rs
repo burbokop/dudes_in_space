@@ -1,6 +1,8 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
+use dudes_in_space_api::item::{
+    ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
+};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
@@ -135,6 +137,14 @@ impl Module for CargoContainer {
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 

@@ -10,6 +10,23 @@ use std::fmt::{Display, Formatter};
 use std::iter::Sum;
 use std::rc::Weak;
 
+macro_rules! validate {
+    ($this:ident) => {
+        debug_assert_eq!(
+            $this.total_occupied_volume,
+            Self::eval_total_occupied_volume(&$this.content.0)
+        );
+        debug_assert!($this.total_occupied_volume <= $this.volume);
+    };
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum StorageRole {
+    Input,
+    Output,
+    NoRole,
+}
+
 #[derive(Debug, Clone)]
 pub struct ItemStorageContent(BTreeMap<ItemId, ItemStack>);
 
@@ -149,79 +166,47 @@ impl ItemStorage {
         }
     }
 
-    pub fn capacity(&self) -> ItemCount {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
-        todo!()
+    pub fn capacity(&self) -> ItemVolume {
+        validate!(self);
+        self.volume
     }
 
     pub fn free_space(&self) -> ItemVolume {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         self.volume - self.total_occupied_volume
     }
 
     /// returns the rest that did not fit inside storage space
     pub fn add(&mut self, _stack: ItemStack) -> ItemStack {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         todo!()
     }
 
     /// returns true if an item was added, false if not due to full storage
     pub fn try_add_item(&mut self, _item: ItemStack) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         todo!()
     }
 
     /// remove as many items as possible
     pub fn remove_item(&mut self, _item_id: ItemId, _count: ItemCount) -> ItemStack {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         todo!()
     }
 
     /// returns true if an item was removed, false if not due to not enough item count in storage
     pub fn try_remove_item(&mut self, _item_id: ItemId, _count: ItemCount) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         todo!()
     }
 
     pub fn count(&self, id: ItemId) -> ItemCount {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         self.content.0.get(&id).map(|v| v.count).unwrap_or(0)
     }
 
     pub fn contains(&self, id: ItemId, count: ItemCount) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         match self.content.0.get(&id) {
             None => false,
             Some(stack) => stack.count >= count,
@@ -229,22 +214,14 @@ impl ItemStorage {
     }
 
     pub fn contains_for_input(&self, input: InputItemRecipe) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         input
             .into_iter()
             .all(|ItemRefStack { id, count }| self.contains(id, count))
     }
 
     pub fn try_consume(&mut self, input: InputItemRecipe) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         let ok = self.contains_for_input(input.clone());
         if !ok {
             return false;
@@ -262,20 +239,12 @@ impl ItemStorage {
     }
 
     pub fn has_space_for_output(&self, output: OutputItemRecipe) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         todo!()
     }
 
     pub fn try_insert_output(&mut self, output: OutputItemRecipe) -> bool {
-        debug_assert_eq!(
-            self.total_occupied_volume,
-            Self::eval_total_occupied_volume(&self.content.0)
-        );
-        debug_assert!(self.total_occupied_volume <= self.volume);
+        validate!(self);
         todo!()
     }
 

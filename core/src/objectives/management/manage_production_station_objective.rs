@@ -6,8 +6,8 @@ use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
 use dudes_in_space_api::finance::Money;
-use dudes_in_space_api::item::{ ItemId};
-use dudes_in_space_api::module::{ModuleConsole};
+use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
+use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
@@ -74,6 +74,7 @@ pub(crate) enum ManageProductionStationObjective {
         craft_objective: CraftModulesObjective,
     },
     ExecuteProduction {
+        input_limit: BTreeMap<ItemId, ItemCount>,
         craft_objective: CraftItemsByHashObjective,
     },
 }
@@ -183,27 +184,68 @@ impl Objective for ManageProductionStationObjective {
                             &output_recipes_to_consider,
                             &recipes_to_consider,
                         ) {
-                            ChooseItemToProduceResult::Craft {
-                                item,
-                                recipe,
-                            } => {
-
-                                match tie(
-                                    this_module,
-                                    this_vessel,
-                                ).find_item_recipe(recipe) {
+                            ChooseItemToProduceResult::Craft { item, recipe_hash } => {
+                                match tie(this_module, this_vessel).find_item_recipe(recipe_hash) {
                                     None => todo!("Assemble crafter"),
-                                    Some((module, recipe )) => {
+                                    Some((module, recipe)) => {
+                                        let input_storages =
+                                            module.storages_by_role(StorageRole::Input);
+                                        let output_storages =
+                                            module.storages_by_role(StorageRole::Output);
 
-                                        let items_limit = (||todo!("Extract output capacity from crafter module"))();
+                                        let input_storage = input_storages.first().unwrap();
+                                        let output_storage = output_storages.first().unwrap();
+
+                                        let single_input_capacity =
+                                            input_storage.capacity() / recipe.input.len();
+                                        let single_output_capacity =
+                                            output_storage.capacity() / recipe.output.len();
+
+                                        let mut input_limit: BTreeMap<ItemId, ItemCount> =
+                                            Default::default();
+                                        for stack in recipe.input {
+                                            println!("stack: {:#?}", stack);
+                                            let item = environment_context
+                                                .item_vault()
+                                                .get_ref(stack.id)
+                                                .unwrap();
+                                            println!("item.volume: {}", item.volume);
+                                            let item_max_count =
+                                                (single_input_capacity / item.volume).ceil()
+                                                    as ItemCount;
+                                            println!("item_max_count: {}", item_max_count);
+                                            assert!(stack.count <= item_max_count);
+                                            input_limit
+                                                .try_insert(item.id.clone(), item_max_count)
+                                                .unwrap();
+                                        }
+
+                                        let mut output_limit: BTreeMap<ItemId, ItemCount> =
+                                            Default::default();
+                                        for (item, recipe_count) in recipe.output {
+                                            let item = environment_context
+                                                .item_vault()
+                                                .get_ref(item)
+                                                .unwrap();
+                                            let item_max_count =
+                                                (single_output_capacity / item.volume).ceil()
+                                                    as ItemCount;
+                                            assert!(recipe_count <= item_max_count);
+                                            output_limit
+                                                .try_insert(item.id.clone(), item_max_count)
+                                                .unwrap();
+                                        }
 
                                         *self = Self::ExecuteProduction {
+                                            input_limit,
                                             craft_objective: CraftItemsByHashObjective::new(
                                                 CraftItemsByHashObjectiveArgs {
-                                                    recipe: recipe.default_hash(),
-                                                    items_limit,
+                                                    recipe_hash,
+                                                    output_limit,
                                                     done_if_reached_limit: false,
                                                     err_if_lack_ingredients: false,
+                                                    interrupt_after_each_craft: true,
+                                                    start_interrupted: true,
                                                 },
                                                 logger,
                                             ),
@@ -219,7 +261,7 @@ impl Objective for ManageProductionStationObjective {
                 }
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::ExecuteProduction { craft_objective } => {
+            Self::ExecuteProduction { input_limit, craft_objective } => {
                 match craft_objective.pursue(
                     this_person,
                     this_module,
@@ -227,7 +269,13 @@ impl Objective for ManageProductionStationObjective {
                     environment_context,
                     logger,
                 ) {
-                    Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                    Ok(ObjectiveStatus::InProgress) => {
+                        if craft_objective.is_interrupted() {
+                            todo!("Move to trading terminal and update offers. than return to this module and call `craft_objective.resume()`")
+                        }
+                        
+                        Ok(ObjectiveStatus::InProgress)
+                    },
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(err) => todo!("err: {:?}", err),
                 }
@@ -243,16 +291,20 @@ impl Objective for ManageProductionStationObjective {
                 Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("Checking all prerequisites to managing production station...");
 
-                    let recipe = (|| todo!())();
-                    let items_limit = (|| todo!())();
+                    let recipe_hash = (|| todo!())();
+                    let output_limit = (|| todo!())();
+                    let input_limit= (|| todo!())();
 
                     *self = Self::ExecuteProduction {
+                        input_limit,
                         craft_objective: CraftItemsByHashObjective::new(
                             CraftItemsByHashObjectiveArgs {
-                                recipe,
-                                items_limit,
+                                recipe_hash,
+                                output_limit,
                                 done_if_reached_limit: false,
                                 err_if_lack_ingredients: false,
+                                interrupt_after_each_craft: true,
+                                start_interrupted: true,
                             },
                             logger,
                         ),
@@ -430,7 +482,7 @@ fn calc_items_in_demand_that_no_one_produces_and_ingredients_are_on_market(
 enum ChooseItemToProduceResult {
     Craft {
         item: ItemId,
-        recipe: ItemRecipeHash,
+        recipe_hash: ItemRecipeHash,
     },
     ProduceFromEnvironment {
         // TODO for example: mine, collect gas, collect solar energy, etc.
@@ -489,7 +541,7 @@ fn choose_item_to_produce(
 
                 ChooseItemToProduceResult::Craft {
                     item: item.clone(),
-                    recipe: item_recipe.default_hash(),
+                    recipe_hash: item_recipe.default_hash(),
                 }
             }
         } else {

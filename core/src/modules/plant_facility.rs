@@ -1,5 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVolume};
+use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVolume, StorageRole};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
@@ -119,6 +119,14 @@ impl Module for PlantFacility {
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 

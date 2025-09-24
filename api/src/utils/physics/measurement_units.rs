@@ -1,5 +1,6 @@
 use crate::utils::math::{One, Rational};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -41,6 +42,14 @@ impl Div for M3<u64> {
 
     fn div(self, rhs: Self) -> Self::Output {
         self.0 as f64 / rhs.0 as f64
+    }
+}
+
+impl Div<usize> for M3<u32> {
+    type Output = M3<u32>;
+
+    fn div(self, rhs: usize) -> Self::Output {
+        M3(self.0 / rhs as u32)
     }
 }
 
@@ -108,7 +117,13 @@ impl<T: One> One for M3<T> {
     }
 }
 
-/// g/cm³
+impl<T: Display> Display for M3<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} m³", self.0)
+    }
+}
+
+/// kg/m³
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct KgPerM3<T>(pub Rational<Kg<T>, M3<T>>);

@@ -11,13 +11,15 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub(crate) struct CraftItemsByHashObjectiveArgs {
-    pub(crate) recipe: ItemRecipeHash,
+    pub(crate) recipe_hash: ItemRecipeHash,
     /// Stop producing when reached the limit
-    pub(crate) items_limit: BTreeMap<ItemId, ItemCount>,
+    pub(crate) output_limit: BTreeMap<ItemId, ItemCount>,
     /// Wait indefinitely if false
     pub(crate) done_if_reached_limit: bool,
     /// Wait indefinitely if false
     pub(crate) err_if_lack_ingredients: bool,
+    pub(crate) interrupt_after_each_craft: bool,
+    pub(crate) start_interrupted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -33,6 +35,7 @@ pub(crate) enum CraftItemsByHashObjective {
     Crafting {
         args: CraftItemsByHashObjectiveArgs,
         process_token: Option<ProcessToken>,
+        interrupted: bool,
     },
     Done,
 }
@@ -48,6 +51,20 @@ impl CraftItemsByHashObjective {
 
     fn is_recipe_set_suitable(recipes: &[ItemRecipe], hash: ItemRecipeHash) -> bool {
         recipes.iter().find(|r| r.default_hash() == hash).is_some()
+    }
+    
+    pub(crate) fn is_interrupted(&self) -> bool {
+        match self {
+            Self::Crafting { interrupted, .. } => *interrupted,
+            _ => false,
+        }
+    }
+    
+    pub (crate) fn resume(&mut self) {
+        match self {
+            Self::Crafting { interrupted, .. } => *interrupted = false,
+            _ => {},
+        }
     }
 }
 
@@ -66,7 +83,7 @@ impl Objective for CraftItemsByHashObjective {
         match self {
             Self::SearchingForCraftingModule { args } => {
                 if let Some(console) = this_module.crafting_console() {
-                    if Self::is_recipe_set_suitable(console.item_recipes(), args.recipe) {
+                    if Self::is_recipe_set_suitable(console.item_recipes(), args.recipe_hash) {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
                             dst: this_module.id(),
@@ -79,8 +96,10 @@ impl Objective for CraftItemsByHashObjective {
                 for crafting_module in
                     this_vessel.modules_with_capability(ModuleCapability::ItemCrafting)
                 {
-                    if Self::is_recipe_set_suitable(crafting_module.item_recipes(), args.recipe)
-                        && crafting_module.free_person_slots_count() > 0
+                    if Self::is_recipe_set_suitable(
+                        crafting_module.item_recipes(),
+                        args.recipe_hash,
+                    ) && crafting_module.free_person_slots_count() > 0
                     {
                         logger.info("Moving to crafting module...");
                         *self = Self::MovingToCraftingModule {
@@ -98,6 +117,7 @@ impl Objective for CraftItemsByHashObjective {
                     *self = Self::Crafting {
                         args: std::mem::take(args),
                         process_token: None,
+                        interrupted: args.start_interrupted,
                     };
                 } else {
                     logger.info("Entering crafting module...");
@@ -125,8 +145,13 @@ impl Objective for CraftItemsByHashObjective {
             Self::Crafting {
                 args,
                 process_token,
+                interrupted,
             } => match process_token {
                 None => {
+                    if *interrupted {
+                        return Ok(ObjectiveStatus::InProgress)
+                    }
+                    
                     let all_storages_content: ItemStorageContent = this_module
                         .storages()
                         .iter()
@@ -134,7 +159,7 @@ impl Objective for CraftItemsByHashObjective {
                         .cloned()
                         .sum();
 
-                    if limit_reached(&all_storages_content, args.items_limit.clone()) {
+                    if limit_reached(&all_storages_content, args.output_limit.clone()) {
                         return Ok(if args.done_if_reached_limit {
                             ObjectiveStatus::Done(*self = Self::Done)
                         } else {
@@ -143,7 +168,7 @@ impl Objective for CraftItemsByHashObjective {
                     }
 
                     let crafting_console = this_module.crafting_console_mut().unwrap();
-                    let recipe_index = crafting_console.recipe_by_hash(args.recipe).unwrap();
+                    let recipe_index = crafting_console.recipe_by_hash(args.recipe_hash).unwrap();
 
                     if !crafting_console.has_resources_for_recipe(recipe_index) {
                         return if args.err_if_lack_ingredients {
@@ -159,11 +184,18 @@ impl Objective for CraftItemsByHashObjective {
                     Ok(ObjectiveStatus::InProgress)
                 }
                 Some(some_process_token) => {
+                    if *interrupted {
+                        return Ok(ObjectiveStatus::InProgress)
+                    }
+
                     if some_process_token
                         .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
                         *process_token = None;
+                        if args.interrupt_after_each_craft {
+                            *interrupted = true;
+                        }
                         return Ok(ObjectiveStatus::InProgress);
                     }
 

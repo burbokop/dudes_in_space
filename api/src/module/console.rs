@@ -1,5 +1,5 @@
 use crate::finance::{Money, NotEnoughMoneyInWallet, Wallet};
-use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
+use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
@@ -43,8 +43,11 @@ pub trait ModuleConsole {
     fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole>;
     fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole>;
 
-    fn storages(&self) -> &[ItemStorage];
-    fn storages_mut(&mut self) -> &mut [ItemStorage];
+    fn storages(&self) -> Vec<&ItemStorage>;
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage>;
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage>;
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage>;
 
     fn safes(&self) -> &[ItemSafe];
     fn safes_mut(&mut self) -> &mut [ItemSafe];
@@ -137,11 +140,19 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
         todo!()
     }
 
-    fn storages(&self) -> &[ItemStorage] {
+    fn storages(&self) -> Vec<&ItemStorage> {
         todo!()
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -182,6 +193,7 @@ pub trait CraftingConsole {
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription;
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
     fn recipe_input(&self, index: usize) -> Option<InputItemRecipe>;
+    fn item_recipe(&self, index: usize) -> Option<ItemRecipe>;
 
     // returns index in array. TODO replace with uuid
     fn has_resources_for_recipe(&self, index: usize) -> bool;

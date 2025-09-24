@@ -18,6 +18,7 @@ use std::fmt::{Debug, Display};
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus<R> {
     InProgress,
+    // TODO: add Interrupted status
     Done(R),
 }
 

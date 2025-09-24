@@ -1,6 +1,8 @@
-use crate::item::{ItemStorage, ItemVolume};
+use crate::item::{ItemStorage, ItemVolume, StorageRole};
 use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId};
-use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe};
+use crate::recipe::{
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe,
+};
 use crate::utils::physics::M3;
 use crate::vessel::{DockingClamp, DockingClampConnection, VesselConsole, VesselInternalConsole};
 use std::cell::Ref;
@@ -21,6 +23,25 @@ impl<'a, 'b, T> Deref for MaybeCellRef<'a, 'b, T> {
             MaybeCellRef::CellRef(r) => r.deref(),
         }
     }
+}
+
+pub enum ModuleRef<'a, 'b> {
+    This(&'a dyn ModuleConsole),
+    Other(Ref<'b, dyn Module>),
+}
+
+impl<'a, 'b> ModuleRef<'a, 'b> {
+    pub fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        match self {
+            ModuleRef::This(console) => console.storages_by_role(role),
+            ModuleRef::Other(module) => module.storages_by_role(role),
+        }
+    }
+}
+
+pub enum ModuleRefMut<'a, 'b> {
+    This(&'a mut dyn ModuleConsole),
+    Other(Ref<'b, dyn Module>),
 }
 
 pub struct ThisVessel<'a, 'b> {
@@ -111,25 +132,53 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
             .try_for_each(f)
     }
 
-    pub fn find_item_recipe(
-        &self,
+    pub fn find_item_recipe<'q>(
+        &'q self,
         recipe: ItemRecipeHash,
-    ) -> Option<(ModuleId, ItemRecipe)> {
-        self.this_vessel
+    ) -> Option<(ModuleRef<'a, 'b>, ItemRecipe)>
+    where
+        'q: 'a + 'b,
+    {
+        if let Some(crafting_console) = self.this_module.crafting_console() {
+            if let Some(index) = crafting_console.recipe_by_hash(recipe) {
+                return Some((
+                    ModuleRef::This(self.this_module),
+                    crafting_console.item_recipe(index).unwrap(),
+                ));
+            }
+        }
+
+        for module in self
+            .this_vessel
             .modules_with_capability(ModuleCapability::ItemCrafting)
-            .iter()
-            .map(|m| m.item_recipes().iter().map(|c| (m.id(), c)))
-            .flatten()
-            .chain(
-                self.this_module
-                    .crafting_console().map(|x|x.item_recipes().iter()).unwrap_or([].iter())
-                    .map(|c| (self.this_module.id(), c)),
-            )
-            .find_map(|(a, b)|
-                if b.default_hash() == recipe {
-                    Some((a,b.clone())
-                    )
-                }else {None})
+        {
+            for r in module.item_recipes() {
+                if r.default_hash() == recipe {
+                    let r = r.clone();
+                    return Some((ModuleRef::Other(module), r));
+                }
+            }
+        }
+
+        None
+
+        // self.this_vessel
+        //     .modules_with_capability(ModuleCapability::ItemCrafting)
+        //     .into_iter()
+        //     .map(|mo| {
+        //         let m = ModuleRef::Other(mo);
+        //         mo.item_recipes().iter().map(|c| (m, c))})
+        //     .flatten()
+        //     .chain(
+        //         self.this_module
+        //             .crafting_console().map(|x|x.item_recipes().iter()).unwrap_or([].iter())
+        //             .map(|c| (ModuleRef::This(self.this_module), c)),
+        //     )
+        //     .find_map(|(a, b)|
+        //         if b.default_hash() == recipe {
+        //             Some((a,b.clone())
+        //             )
+        //         }else {None})
     }
 
     pub fn find_map_docking_clamp<T>(

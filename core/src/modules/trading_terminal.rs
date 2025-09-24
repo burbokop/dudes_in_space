@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{
     BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
 };
-use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
@@ -174,11 +174,19 @@ impl<'a> ModuleConsole for Console<'a> {
         Some(self)
     }
 
-    fn storages(&self) -> &[ItemStorage] {
-        &[]
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -323,6 +331,14 @@ impl Module for TradingTerminal {
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 

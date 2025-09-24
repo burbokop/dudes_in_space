@@ -1,5 +1,5 @@
 use crate::environment::EnvironmentContext;
-use crate::item::{ItemSafe, ItemStorage};
+use crate::item::{ItemSafe, ItemStorage, StorageRole};
 use crate::module::{ModuleCapability, ModuleStorage, TradingConsole};
 use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
 use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
@@ -48,6 +48,10 @@ pub trait Module: Debug + DynSerialize {
     /// storage
     fn storages(&self) -> Vec<&ItemStorage>;
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage>;
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage>;
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage>;
+
     fn safes(&self) -> &[ItemSafe];
     fn safes_mut(&mut self) -> &mut [ItemSafe];
 

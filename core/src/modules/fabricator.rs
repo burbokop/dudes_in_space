@@ -1,7 +1,9 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
-use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume};
+use dudes_in_space_api::item::{
+    ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
+};
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
     ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, ProcessTokenMut,
@@ -182,7 +184,7 @@ struct Console<'a> {
 
 impl ModuleConsole for Console<'_> {
     fn id(&self) -> ModuleId {
-        todo!()
+        self.id
     }
 
     fn type_id(&self) -> ModuleTypeId {
@@ -241,11 +243,19 @@ impl ModuleConsole for Console<'_> {
         todo!()
     }
 
-    fn storages(&self) -> &[ItemStorage] {
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![self.input_storage, self.output_storage]
+    }
+
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 
@@ -365,7 +375,12 @@ impl Module for Fabricator {
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
+        if self.operator.is_none() {
+            self.operator = Some(person);
+            true
+        } else {
+            false
+        }
     }
 
     fn free_person_slots_count(&self) -> usize {
@@ -399,6 +414,18 @@ impl Module for Fabricator {
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        match role {
+            StorageRole::Input => vec![&self.input_storage],
+            StorageRole::Output => vec![&self.output_storage],
+            StorageRole::NoRole => vec![],
+        }
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 

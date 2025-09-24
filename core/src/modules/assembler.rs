@@ -7,7 +7,7 @@ use crate::modules::{
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{
-    ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault,
+    ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, StorageRole,
 };
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
@@ -282,12 +282,20 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
-    fn storages(&self) -> &[ItemStorage] {
-        std::slice::from_ref(&self.storage)
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![&self.storage]
     }
 
-    fn storages_mut(&mut self) -> &mut [ItemStorage] {
-        std::slice::from_mut(&mut self.storage)
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        vec![&mut self.storage]
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
+        todo!()
     }
 
     fn safes(&self) -> &[ItemSafe] {
@@ -351,6 +359,10 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_input(&self, index: usize) -> Option<InputItemRecipe> {
+        todo!()
+    }
+
+    fn item_recipe(&self, index: usize) -> Option<ItemRecipe> {
         todo!()
     }
 
@@ -552,6 +564,14 @@ impl Module for Assembler {
     }
 
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
 

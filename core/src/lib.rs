@@ -1,3 +1,4 @@
+#![feature(map_try_insert)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
