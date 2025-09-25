@@ -23,21 +23,23 @@ pub(crate) struct CraftItemsByHashObjectiveArgs {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "craft_items_by_hash_objective_stage")]
-pub(crate) enum CraftItemsByHashObjective {
-    SearchingForCraftingModule {
-        args: CraftItemsByHashObjectiveArgs,
-    },
+#[serde(tag = "state")]
+enum State {
+    SearchingForCraftingModule,
     MovingToCraftingModule {
-        args: CraftItemsByHashObjectiveArgs,
         dst: ModuleId,
     },
     Crafting {
-        args: CraftItemsByHashObjectiveArgs,
         process_token: Option<ProcessToken>,
         interrupted: bool,
     },
     Done,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct CraftItemsByHashObjective {
+    args: CraftItemsByHashObjectiveArgs,
+    state: State,
 }
 
 impl CraftItemsByHashObjective {
@@ -46,23 +48,30 @@ impl CraftItemsByHashObjective {
             "Switched to craft items by hash objective (args: {:?})",
             args,
         ));
-        Self::SearchingForCraftingModule { args }
+        Self {
+            args,
+            state: State::SearchingForCraftingModule,
+        }
     }
 
     fn is_recipe_set_suitable(recipes: &[ItemRecipe], hash: ItemRecipeHash) -> bool {
         recipes.iter().find(|r| r.default_hash() == hash).is_some()
     }
 
+    pub(crate) fn args(&self) -> &CraftItemsByHashObjectiveArgs {
+        &self.args
+    }
+
     pub(crate) fn is_interrupted(&self) -> bool {
-        match self {
-            Self::Crafting { interrupted, .. } => *interrupted,
+        match &self.state {
+            State::Crafting { interrupted, .. } => *interrupted,
             _ => false,
         }
     }
 
     pub(crate) fn resume(&mut self) {
-        match self {
-            Self::Crafting { interrupted, .. } => *interrupted = false,
+        match &mut self.state {
+            State::Crafting { interrupted, .. } => *interrupted = false,
             _ => {}
         }
     }
@@ -80,14 +89,13 @@ impl Objective for CraftItemsByHashObjective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
-        match self {
-            Self::SearchingForCraftingModule { args } => {
+        match &mut self.state {
+            State::SearchingForCraftingModule => {
                 if let Some(console) = this_module.crafting_console() {
-                    if Self::is_recipe_set_suitable(console.item_recipes(), args.recipe_hash) {
+                    if Self::is_recipe_set_suitable(console.item_recipes(), self.args.recipe_hash) {
                         logger.info("Moving to crafting module...");
-                        *self = Self::MovingToCraftingModule {
+                        self.state = State::MovingToCraftingModule {
                             dst: this_module.id(),
-                            args: std::mem::take(args),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -98,27 +106,26 @@ impl Objective for CraftItemsByHashObjective {
                 {
                     if Self::is_recipe_set_suitable(
                         crafting_module.item_recipes(),
-                        args.recipe_hash,
+                        self.args.recipe_hash,
                     ) && crafting_module.free_person_slots_count() > 0
                     {
                         logger.info("Moving to crafting module...");
-                        *self = Self::MovingToCraftingModule {
+                        self.state = State::MovingToCraftingModule {
                             dst: crafting_module.id(),
-                            args: std::mem::take(args),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
                 }
                 Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule)
             }
-            Self::MovingToCraftingModule { dst, args } => {
+            State::MovingToCraftingModule { dst } => {
                 if *dst == this_module.id() {
                     logger.info("Crafting modules...");
-                    *self = Self::Crafting {
-                        interrupted: args.start_interrupted,
-                        args: std::mem::take(args),
+                    self.state = State::Crafting {
+                        interrupted: self.args.start_interrupted,
                         process_token: None,
                     };
+                    Ok(ObjectiveStatus::InProgress)
                 } else {
                     logger.info("Entering crafting module...");
                     match this_vessel.move_person_to_module(
@@ -126,24 +133,22 @@ impl Objective for CraftItemsByHashObjective {
                         *this_person.id,
                         *dst,
                     ) {
-                        Ok(_) => {}
-                        Err(MoveToModuleError::ModuleNotFound) => todo!(),
+                        Ok(_) => Ok(ObjectiveStatus::InProgress),
+                        Err(MoveToModuleError::ModuleNotFound) => {
+                            Err(Self::Error::CanNotFindCraftingModule)
+                        }
                         Err(MoveToModuleError::PermissionDenied) => todo!(),
                         Err(MoveToModuleError::NotEnoughSpace) => {
                             logger.info(
                                 "Not enough space in crafting module. Searching another one...",
                             );
-                            *self = Self::SearchingForCraftingModule {
-                                args: std::mem::take(args),
-                            };
-                            return Ok(ObjectiveStatus::InProgress);
+                            self.state = State::SearchingForCraftingModule;
+                            Ok(ObjectiveStatus::InProgress)
                         }
                     }
                 }
-                Ok(ObjectiveStatus::InProgress)
             }
-            Self::Crafting {
-                args,
+            State::Crafting {
                 process_token,
                 interrupted,
             } => match process_token {
@@ -159,19 +164,21 @@ impl Objective for CraftItemsByHashObjective {
                         .cloned()
                         .sum();
 
-                    if limit_reached(&all_storages_content, args.output_limit.clone()) {
-                        return Ok(if args.done_if_reached_limit {
-                            ObjectiveStatus::Done(*self = Self::Done)
+                    if limit_reached(&all_storages_content, self.args.output_limit.clone()) {
+                        return Ok(if self.args.done_if_reached_limit {
+                            ObjectiveStatus::Done(self.state = State::Done)
                         } else {
                             ObjectiveStatus::InProgress
                         });
                     }
 
                     let crafting_console = this_module.crafting_console_mut().unwrap();
-                    let recipe_index = crafting_console.recipe_by_hash(args.recipe_hash).unwrap();
+                    let recipe_index = crafting_console
+                        .recipe_by_hash(self.args.recipe_hash)
+                        .unwrap();
 
                     if !crafting_console.has_resources_for_recipe(recipe_index) {
-                        return if args.err_if_lack_ingredients {
+                        return if self.args.err_if_lack_ingredients {
                             Err(CraftItemsByHashObjectiveError::LackIngredients)
                         } else {
                             Ok(ObjectiveStatus::InProgress)
@@ -193,7 +200,7 @@ impl Objective for CraftItemsByHashObjective {
                         .unwrap_or(true)
                     {
                         *process_token = None;
-                        if args.interrupt_after_each_craft {
+                        if self.args.interrupt_after_each_craft {
                             *interrupted = true;
                         }
                         return Ok(ObjectiveStatus::InProgress);
@@ -209,7 +216,7 @@ impl Objective for CraftItemsByHashObjective {
                     }
                 }
             },
-            Self::Done => Ok(ObjectiveStatus::Done(())),
+            State::Done => Ok(ObjectiveStatus::Done(())),
         }
     }
 }
@@ -230,17 +237,17 @@ impl Error for CraftItemsByHashObjectiveError {}
 
 impl Display for CraftItemsByHashObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),
-            Self::MovingToCraftingModule { .. } => write!(f, "MovingToCraftingModule"),
-            Self::Crafting { interrupted, .. } => {
+        match &self.state {
+            State::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),
+            State::MovingToCraftingModule { .. } => write!(f, "MovingToCraftingModule"),
+            State::Crafting { interrupted, .. } => {
                 if *interrupted {
                     write!(f, "Crafting (interrupted)")
                 } else {
                     write!(f, "Crafting")
                 }
             }
-            Self::Done => write!(f, "Done"),
+            State::Done => write!(f, "Done"),
         }
     }
 }

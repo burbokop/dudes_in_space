@@ -4,6 +4,7 @@ use crate::finance::{
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
 
+#[derive(Debug)]
 pub struct ThisPerson<'a> {
     pub id: &'a PersonId,
     pub age: &'a u8,

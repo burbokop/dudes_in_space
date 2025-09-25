@@ -144,7 +144,7 @@ impl Wallet {
                 &mut target_bank_owner_wallet,
                 self,
                 &mut current_bank,
-                target_amount,
+                target_amount.try_into().unwrap(),
             );
         }
     }
@@ -295,7 +295,7 @@ impl Wallet {
                             &mut target_bank_owner_wallet,
                             self,
                             &mut current_bank,
-                            min.amount,
+                            min.amount.try_into().unwrap(),
                         );
 
                         if self.content.get(&target_money.currency).unwrap().clone()

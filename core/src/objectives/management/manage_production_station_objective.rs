@@ -1,7 +1,8 @@
 use crate::objectives::common::MoveToModuleObjective;
-use crate::objectives::crafting::CraftItemsByHashObjectiveArgs;
+use crate::objectives::crafting::{CraftItemsByHashObjective, CraftModulesObjectiveError};
 use crate::objectives::crafting::{
-    CraftItemsByHashObjective, CraftModulesObjective, CraftModulesObjectiveError,
+    CraftItemsByHashObjectiveArgs, CraftItemsByHashObjectiveError, CraftModulesObjective,
+    CraftModulesObjectiveOptions, RequireModulesObjective,
 };
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
@@ -27,6 +28,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -57,6 +59,10 @@ use std::rc::Rc;
 */
 
 static TYPE_ID: &str = "ManageProductionStationObjective";
+static REQUIRED_CAPS: [ModuleCapability; 2] = [
+    ModuleCapability::ItemCrafting,
+    ModuleCapability::TradingTerminal,
+];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "manage_production_station_objective_stage")]
@@ -70,7 +76,13 @@ pub(crate) enum ManageProductionStationObjective {
         input_recipes_to_consider: BTreeSet<InputItemRecipe>,
         output_recipes_to_consider: BTreeSet<OutputItemRecipe>,
     },
-    AssembleCrafter {
+    RequireModules {
+        objective: RequireModulesObjective,
+        recipe_hash: ItemRecipeHash,
+        output_limit: BTreeMap<ItemId, ItemCount>,
+        input_limit: BTreeMap<ItemId, ItemCount>,
+    },
+    AssembleSpecificCrafter {
         craft_objective: CraftModulesObjective,
     },
     ExecuteProduction {
@@ -188,7 +200,21 @@ impl Objective for ManageProductionStationObjective {
                             ChooseItemToProduceResult::Craft { item, recipe_hash } => {
                                 let tied_vessel = tie(this_module, this_vessel);
                                 match tied_vessel.find_item_recipe(recipe_hash) {
-                                    None => todo!("Assemble crafter"),
+                                    None => {
+                                        // TODO craft specific module for this recipe
+                                        *self = Self::AssembleSpecificCrafter {
+                                            craft_objective: CraftModulesObjective::new(
+                                                REQUIRED_CAPS.into(),
+                                                [].into(),
+                                                CraftModulesObjectiveOptions {
+                                                    deploy: true,
+                                                    wait_if_has_no_ingredients: false,
+                                                },
+                                                logger,
+                                            ),
+                                        };
+                                        Ok(ObjectiveStatus::InProgress)
+                                    }
                                     Some((module, recipe)) => {
                                         let input_storages =
                                             module.storages_by_role(StorageRole::Input);
@@ -241,23 +267,15 @@ impl Objective for ManageProductionStationObjective {
                                             ModuleCapability::TradingTerminal,
                                         );
 
-                                        *self = Self::ExecuteProduction {
+                                        *self = Self::RequireModules {
                                             input_limit,
-                                            craft_objective: CraftItemsByHashObjective::new(
-                                                CraftItemsByHashObjectiveArgs {
-                                                    recipe_hash,
-                                                    output_limit,
-                                                    done_if_reached_limit: false,
-                                                    err_if_lack_ingredients: false,
-                                                    interrupt_after_each_craft: true,
-                                                    start_interrupted: true,
-                                                },
+                                            output_limit,
+                                            recipe_hash,
+                                            objective: RequireModulesObjective::new(
+                                                REQUIRED_CAPS.into(),
+                                                [].into(),
                                                 logger,
                                             ),
-                                            move_to_trading_terminal_objective:
-                                                MoveToModuleObjective::new(
-                                                    terminals.first().unwrap().id(),
-                                                ),
                                         };
                                         Ok(ObjectiveStatus::InProgress)
                                     }
@@ -269,6 +287,63 @@ impl Objective for ManageProductionStationObjective {
                     }
                 }
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
+            },
+            Self::RequireModules {
+                objective,
+                recipe_hash,
+                output_limit,
+                input_limit,
+            } => match objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done(_)) => {
+                    logger.info("Checking all prerequisites to managing production station...");
+
+                    let tied_vessel = tie(this_module, this_vessel);
+
+                    let terminals =
+                        tied_vessel.modules_with_capability(ModuleCapability::TradingTerminal);
+
+                    *self = Self::ExecuteProduction {
+                        input_limit: std::mem::take(input_limit),
+                        craft_objective: CraftItemsByHashObjective::new(
+                            CraftItemsByHashObjectiveArgs {
+                                recipe_hash: std::mem::take(recipe_hash),
+                                output_limit: std::mem::take(output_limit),
+                                done_if_reached_limit: false,
+                                err_if_lack_ingredients: false,
+                                interrupt_after_each_craft: true,
+                                start_interrupted: true,
+                            },
+                            logger,
+                        ),
+                        move_to_trading_terminal_objective: MoveToModuleObjective::new(
+                            terminals.first().unwrap().id(),
+                        ),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+                Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
+            },
+            Self::AssembleSpecificCrafter { craft_objective } => match craft_objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Done(_)) => {
+                    logger.info("collect all available recipes to managing production station...");
+                    *self = Self::CollectAllAvailableRecipes;
+                    Ok(ObjectiveStatus::InProgress)
+                }
+                Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
             },
             Self::ExecuteProduction {
                 input_limit,
@@ -292,50 +367,24 @@ impl Objective for ManageProductionStationObjective {
                         Ok(ObjectiveStatus::InProgress)
                     }
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
-                    Err(err) => todo!("err: {:?}", err),
+                    Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule) => {
+                        *self = Self::RequireModules {
+                            input_limit: std::mem::take(input_limit),
+                            output_limit: craft_objective.args().output_limit.clone(),
+                            recipe_hash: craft_objective.args().recipe_hash,
+                            objective: RequireModulesObjective::new(
+                                REQUIRED_CAPS.into(),
+                                [].into(),
+                                logger,
+                            ),
+                        };
+                        Ok(ObjectiveStatus::InProgress)
+                    }
+                    Err(CraftItemsByHashObjectiveError::LackIngredients) => {
+                        unreachable!("Cuz err_if_lack_ingredients is set to false")
+                    }
                 }
             }
-            Self::AssembleCrafter { craft_objective } => match craft_objective.pursue(
-                this_person,
-                this_module,
-                this_vessel,
-                environment_context,
-                logger,
-            ) {
-                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
-                Ok(ObjectiveStatus::Done(_)) => {
-                    logger.info("Checking all prerequisites to managing production station...");
-
-                    let recipe_hash = (|| todo!())();
-                    let output_limit = (|| todo!())();
-                    let input_limit = (|| todo!())();
-
-                    let tied_vessel = tie(this_module, this_vessel);
-                    
-                    let terminals =
-                        tied_vessel.modules_with_capability(ModuleCapability::TradingTerminal);
-
-                    *self = Self::ExecuteProduction {
-                        input_limit,
-                        craft_objective: CraftItemsByHashObjective::new(
-                            CraftItemsByHashObjectiveArgs {
-                                recipe_hash,
-                                output_limit,
-                                done_if_reached_limit: false,
-                                err_if_lack_ingredients: false,
-                                interrupt_after_each_craft: true,
-                                start_interrupted: true,
-                            },
-                            logger,
-                        ),
-                        move_to_trading_terminal_objective: MoveToModuleObjective::new(
-                            terminals.first().unwrap().id(),
-                        ),
-                    };
-                    Ok(ObjectiveStatus::InProgress)
-                }
-                Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
-            },
         }
     }
 }
@@ -419,7 +468,10 @@ impl Display for ManageProductionStationObjective {
             Self::FindBestOffersAndDecideBestRecipe { .. } => {
                 write!(f, "FindBestOffersAndDecideBestRecipe")
             }
-            Self::AssembleCrafter { .. } => write!(f, "AssembleCrafter"),
+            Self::RequireModules { objective, .. } => write!(f, "RequireModules -> {}", objective),
+            Self::AssembleSpecificCrafter { craft_objective } => {
+                write!(f, "RequireModules -> {}", craft_objective)
+            }
             Self::ExecuteProduction {
                 craft_objective, ..
             } => write!(f, "ExecuteProduction -> {}", craft_objective),

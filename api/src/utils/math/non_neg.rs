@@ -331,7 +331,7 @@ impl<T: Zero> Default for NonNeg<T> {
 
 impl<T> From<Positive<T>> for NonNeg<T> {
     fn from(value: Positive<T>) -> Self {
-        todo!()
+        Self { value: value.value }
     }
 }
 

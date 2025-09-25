@@ -1,7 +1,7 @@
 use crate::environment::Cycle;
 use crate::finance::{Currency, Money, MoneyAmount, Wallet, WalletId};
 use crate::person::PersonId;
-use crate::utils::math::{NonNeg, Zero, noneg_float};
+use crate::utils::math::{NonNeg, Positive, Zero, noneg_float};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -248,18 +248,17 @@ impl Bank {
         bank_owner_wallet: &mut Wallet,
         wallet: &mut Wallet,
         source_currency_bank: &Bank,
-        target_amount: NonNeg<MoneyAmount>,
+        target_amount: Positive<MoneyAmount>,
     ) {
-        assert_ne!(target_amount.unwrap(), 0);
         assert_ne!(self.money_created, NonNeg::zero());
 
         let source_amount = self
-            .sell_this_currency_price(source_currency_bank, target_amount)
+            .sell_this_currency_price(source_currency_bank, target_amount.into())
             .unwrap();
 
         let money_to_take_from_bank_owner = Money {
             currency: self.currency.clone(),
-            amount: target_amount,
+            amount: target_amount.into(),
         };
 
         let money_to_take_from_customer = Money {

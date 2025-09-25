@@ -8,6 +8,7 @@ use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisP
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "require_modules_objective_stage")]
@@ -103,5 +104,11 @@ impl Objective for RequireModulesObjective {
             },
             Self::Done { result } => todo!("result: {:?}", result),
         }
+    }
+}
+
+impl Display for RequireModulesObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

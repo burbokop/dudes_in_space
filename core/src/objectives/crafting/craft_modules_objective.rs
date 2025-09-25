@@ -391,3 +391,9 @@ fn calculate_cost_price(input: InputItemRecipe, prices: &PurchasedItemsMaxPrices
     }))
     .unwrap()
 }
+
+impl Display for CraftModulesObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

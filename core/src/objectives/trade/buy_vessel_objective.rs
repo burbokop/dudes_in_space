@@ -148,7 +148,7 @@ impl Objective for BuyVesselObjective {
                                 };
                                 return Ok(ObjectiveStatus::InProgress);
                             }
-                            Err(WithdrawalError::InDebt) => todo!(),
+                            Err(WithdrawalError::InDebt) => todo!("person: {:?}", this_person),
                         }
 
                         match person::utils::place_buy_vessel_order(
