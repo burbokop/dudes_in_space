@@ -2,19 +2,19 @@ use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{
-    ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
+    ItemId, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
 };
 use dudes_in_space_api::module::{
     CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, ProcessTokenMut,
+    ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
     ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
-    OutputItemRecipe,
+    AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactory,
+    ModuleFactoryOutputDescription, OutputItemRecipe,
 };
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
@@ -175,7 +175,6 @@ enum FabricatorRequest {
 
 struct Console<'a> {
     id: ModuleId,
-    recipes: &'a [ItemRecipe],
     requests: Vec<FabricatorRequest>,
     state: &'a mut FabricatorState,
     input_storage: &'a mut ItemStorage,
@@ -196,7 +195,7 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        CAPABILITIES
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
@@ -212,11 +211,11 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
-        todo!()
+        Some(self)
     }
 
     fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
-        todo!()
+        Some(self)
     }
 
     fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
@@ -252,7 +251,11 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
-        todo!()
+        match role {
+            StorageRole::Input => vec![self.input_storage],
+            StorageRole::Output => vec![self.output_storage],
+            StorageRole::NoRole => vec![],
+        }
     }
 
     fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
@@ -284,6 +287,70 @@ impl ModuleConsole for Console<'_> {
     }
 }
 
+impl<'a> CraftingConsole for Console<'a> {
+    fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_by_output_item(&self, item: ItemId) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_by_hash(&self, hash: ItemRecipeHash) -> Option<usize> {
+        RECIPES.iter().position(|r| r.default_hash() == hash)
+    }
+
+    fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription {
+        todo!()
+    }
+
+    fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe> {
+        todo!()
+    }
+
+    fn recipe_input(&self, index: usize) -> Option<InputItemRecipe> {
+        todo!()
+    }
+
+    fn item_recipe(&self, index: usize) -> Option<ItemRecipe> {
+        RECIPES.get(index).cloned()
+    }
+
+    fn has_resources_for_recipe(&self, index: usize) -> bool {
+        assert!(index < RECIPES.len());
+        self.input_storage
+            .contains_for_input(RECIPES[index].input.clone())
+    }
+
+    fn active_recipe(&self) -> Option<usize> {
+        todo!()
+    }
+
+    fn start(&mut self, index: usize, deploy: bool) -> Option<ProcessToken> {
+        todo!()
+    }
+
+    fn item_recipes(&self) -> &[ItemRecipe] {
+        RECIPES.as_ref()
+    }
+
+    fn input_item_recipes(&self) -> &[InputItemRecipe] {
+        INPUT_RECIPES.as_ref()
+    }
+
+    fn output_item_recipes(&self) -> &[OutputItemRecipe] {
+        OUTPUT_RECIPES.as_ref()
+    }
+
+    fn assembly_recipes(&self) -> &[AssemblyRecipe] {
+        &[]
+    }
+}
+
 impl Module for Fabricator {
     fn id(&self) -> ModuleId {
         self.id
@@ -310,7 +377,6 @@ impl Module for Fabricator {
     ) {
         let mut console = Console {
             id: self.id,
-            recipes: RECIPES.as_ref(),
             requests: vec![],
             state: &mut self.state,
             input_storage: &mut self.input_storage,

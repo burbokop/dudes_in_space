@@ -111,8 +111,6 @@ impl Wallet {
         wallet_registry: &WalletRegistry,
         target_currency: Currency,
     ) {
-        println!("content: {:#?}", self.content);
-
         for (currency, amount) in self.content.clone() {
             if currency == target_currency {
                 continue;

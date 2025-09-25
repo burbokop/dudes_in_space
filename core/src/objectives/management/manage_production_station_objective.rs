@@ -1,3 +1,4 @@
+use crate::objectives::common::MoveToModuleObjective;
 use crate::objectives::crafting::CraftItemsByHashObjectiveArgs;
 use crate::objectives::crafting::{
     CraftItemsByHashObjective, CraftModulesObjective, CraftModulesObjectiveError,
@@ -7,7 +8,7 @@ use dudes_in_space_api::environment::{
 };
 use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
-use dudes_in_space_api::module::ModuleConsole;
+use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
@@ -26,7 +27,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
-
 /*
     - Find available crafts across all crafters
         - get list of all recipes of all crafters awailable to assemble
@@ -76,6 +76,7 @@ pub(crate) enum ManageProductionStationObjective {
     ExecuteProduction {
         input_limit: BTreeMap<ItemId, ItemCount>,
         craft_objective: CraftItemsByHashObjective,
+        move_to_trading_terminal_objective: MoveToModuleObjective,
     },
 }
 
@@ -185,7 +186,8 @@ impl Objective for ManageProductionStationObjective {
                             &recipes_to_consider,
                         ) {
                             ChooseItemToProduceResult::Craft { item, recipe_hash } => {
-                                match tie(this_module, this_vessel).find_item_recipe(recipe_hash) {
+                                let tied_vessel = tie(this_module, this_vessel);
+                                match tied_vessel.find_item_recipe(recipe_hash) {
                                     None => todo!("Assemble crafter"),
                                     Some((module, recipe)) => {
                                         let input_storages =
@@ -204,16 +206,15 @@ impl Objective for ManageProductionStationObjective {
                                         let mut input_limit: BTreeMap<ItemId, ItemCount> =
                                             Default::default();
                                         for stack in recipe.input {
-                                            println!("stack: {:#?}", stack);
                                             let item = environment_context
                                                 .item_vault()
                                                 .get_ref(stack.id)
                                                 .unwrap();
-                                            println!("item.volume: {}", item.volume);
+
                                             let item_max_count =
                                                 (single_input_capacity / item.volume).ceil()
                                                     as ItemCount;
-                                            println!("item_max_count: {}", item_max_count);
+
                                             assert!(stack.count <= item_max_count);
                                             input_limit
                                                 .try_insert(item.id.clone(), item_max_count)
@@ -236,6 +237,10 @@ impl Objective for ManageProductionStationObjective {
                                                 .unwrap();
                                         }
 
+                                        let terminals = tied_vessel.modules_with_capability(
+                                            ModuleCapability::TradingTerminal,
+                                        );
+
                                         *self = Self::ExecuteProduction {
                                             input_limit,
                                             craft_objective: CraftItemsByHashObjective::new(
@@ -249,6 +254,10 @@ impl Objective for ManageProductionStationObjective {
                                                 },
                                                 logger,
                                             ),
+                                            move_to_trading_terminal_objective:
+                                                MoveToModuleObjective::new(
+                                                    terminals.first().unwrap().id(),
+                                                ),
                                         };
                                         Ok(ObjectiveStatus::InProgress)
                                     }
@@ -261,7 +270,11 @@ impl Objective for ManageProductionStationObjective {
                 }
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::ExecuteProduction { input_limit, craft_objective } => {
+            Self::ExecuteProduction {
+                input_limit,
+                craft_objective,
+                move_to_trading_terminal_objective,
+            } => {
                 match craft_objective.pursue(
                     this_person,
                     this_module,
@@ -271,11 +284,13 @@ impl Objective for ManageProductionStationObjective {
                 ) {
                     Ok(ObjectiveStatus::InProgress) => {
                         if craft_objective.is_interrupted() {
-                            todo!("Move to trading terminal and update offers. than return to this module and call `craft_objective.resume()`")
+                            todo!(
+                                "Move to trading terminal and update offers. than return to this module and call `craft_objective.resume()`"
+                            )
                         }
-                        
+
                         Ok(ObjectiveStatus::InProgress)
-                    },
+                    }
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(err) => todo!("err: {:?}", err),
                 }
@@ -293,7 +308,12 @@ impl Objective for ManageProductionStationObjective {
 
                     let recipe_hash = (|| todo!())();
                     let output_limit = (|| todo!())();
-                    let input_limit= (|| todo!())();
+                    let input_limit = (|| todo!())();
+
+                    let tied_vessel = tie(this_module, this_vessel);
+                    
+                    let terminals =
+                        tied_vessel.modules_with_capability(ModuleCapability::TradingTerminal);
 
                     *self = Self::ExecuteProduction {
                         input_limit,
@@ -307,6 +327,9 @@ impl Objective for ManageProductionStationObjective {
                                 start_interrupted: true,
                             },
                             logger,
+                        ),
+                        move_to_trading_terminal_objective: MoveToModuleObjective::new(
+                            terminals.first().unwrap().id(),
                         ),
                     };
                     Ok(ObjectiveStatus::InProgress)
@@ -397,7 +420,9 @@ impl Display for ManageProductionStationObjective {
                 write!(f, "FindBestOffersAndDecideBestRecipe")
             }
             Self::AssembleCrafter { .. } => write!(f, "AssembleCrafter"),
-            Self::ExecuteProduction { .. } => write!(f, "ExecuteProduction"),
+            Self::ExecuteProduction {
+                craft_objective, ..
+            } => write!(f, "ExecuteProduction -> {}", craft_objective),
         }
     }
 }

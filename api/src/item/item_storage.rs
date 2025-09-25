@@ -34,6 +34,10 @@ impl ItemStorageContent {
     pub fn stacks(&self) -> impl Iterator<Item = &ItemStack> {
         self.0.values()
     }
+
+    pub fn count(&self, id: ItemId) -> ItemCount {
+        self.0.get(&id).map(|v| v.count).unwrap_or(0)
+    }
 }
 
 impl Sum for ItemStorageContent {

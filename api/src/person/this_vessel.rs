@@ -31,6 +31,13 @@ pub enum ModuleRef<'a, 'b> {
 }
 
 impl<'a, 'b> ModuleRef<'a, 'b> {
+    pub fn id(&self) -> ModuleId {
+        match self {
+            ModuleRef::This(console) => console.id(),
+            ModuleRef::Other(module) => module.id(),
+        }
+    }
+
     pub fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
         match self {
             ModuleRef::This(console) => console.storages_by_role(role),
@@ -95,6 +102,28 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
         needed_caps
             .into_iter()
             .all(|cap| this_vessel_caps.contains(&cap))
+    }
+
+    pub fn modules_with_capability<'q>(
+        &'q self,
+        capability: ModuleCapability,
+    ) -> Vec<ModuleRef<'a, 'b>>
+    where
+        'q: 'a + 'b,
+    {
+        let mut result: Vec<ModuleRef<'a, 'b>> = Vec::new();
+        if self.this_module.capabilities().contains(&capability) {
+            result.push(ModuleRef::This(self.this_module));
+        }
+
+        for module in self
+            .this_vessel
+            .modules_with_capability(ModuleCapability::ItemCrafting)
+        {
+            result.push(ModuleRef::Other(module));
+        }
+
+        result
     }
 
     pub fn for_each_docking_clamps_with_vessel_which_has_caps<F, R>(

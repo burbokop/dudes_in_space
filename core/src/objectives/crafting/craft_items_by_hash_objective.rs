@@ -1,5 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent, StorageRole};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::recipe::{ItemRecipe, ItemRecipeHash};
@@ -52,18 +52,18 @@ impl CraftItemsByHashObjective {
     fn is_recipe_set_suitable(recipes: &[ItemRecipe], hash: ItemRecipeHash) -> bool {
         recipes.iter().find(|r| r.default_hash() == hash).is_some()
     }
-    
+
     pub(crate) fn is_interrupted(&self) -> bool {
         match self {
             Self::Crafting { interrupted, .. } => *interrupted,
             _ => false,
         }
     }
-    
-    pub (crate) fn resume(&mut self) {
+
+    pub(crate) fn resume(&mut self) {
         match self {
             Self::Crafting { interrupted, .. } => *interrupted = false,
-            _ => {},
+            _ => {}
         }
     }
 }
@@ -115,9 +115,9 @@ impl Objective for CraftItemsByHashObjective {
                 if *dst == this_module.id() {
                     logger.info("Crafting modules...");
                     *self = Self::Crafting {
+                        interrupted: args.start_interrupted,
                         args: std::mem::take(args),
                         process_token: None,
-                        interrupted: args.start_interrupted,
                     };
                 } else {
                     logger.info("Entering crafting module...");
@@ -149,11 +149,11 @@ impl Objective for CraftItemsByHashObjective {
             } => match process_token {
                 None => {
                     if *interrupted {
-                        return Ok(ObjectiveStatus::InProgress)
+                        return Ok(ObjectiveStatus::InProgress);
                     }
-                    
+
                     let all_storages_content: ItemStorageContent = this_module
-                        .storages()
+                        .storages_by_role(StorageRole::Output)
                         .iter()
                         .map(|x| x.content())
                         .cloned()
@@ -185,7 +185,7 @@ impl Objective for CraftItemsByHashObjective {
                 }
                 Some(some_process_token) => {
                     if *interrupted {
-                        return Ok(ObjectiveStatus::InProgress)
+                        return Ok(ObjectiveStatus::InProgress);
                     }
 
                     if some_process_token
@@ -228,6 +228,25 @@ impl Display for CraftItemsByHashObjectiveError {
 
 impl Error for CraftItemsByHashObjectiveError {}
 
+impl Display for CraftItemsByHashObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),
+            Self::MovingToCraftingModule { .. } => write!(f, "MovingToCraftingModule"),
+            Self::Crafting { interrupted, .. } => {
+                if *interrupted {
+                    write!(f, "Crafting (interrupted)")
+                } else {
+                    write!(f, "Crafting")
+                }
+            }
+            Self::Done => write!(f, "Done"),
+        }
+    }
+}
+
 fn limit_reached(content: &ItemStorageContent, items_limit: BTreeMap<ItemId, ItemCount>) -> bool {
-    todo!()
+    items_limit
+        .into_iter()
+        .any(|(item, limit)| content.count(item) >= limit)
 }
