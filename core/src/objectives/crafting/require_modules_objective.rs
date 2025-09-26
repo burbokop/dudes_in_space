@@ -1,5 +1,5 @@
 use crate::objectives::crafting::{
-    CraftModulesObjective, CraftModulesObjectiveError, CraftModulesObjectiveOptions,
+    CraftModulesObjective, CraftModulesObjectiveArgs, CraftModulesObjectiveError,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::Money;
@@ -27,7 +27,9 @@ pub(crate) enum RequireModulesObjective {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequireModulesObjectiveResult {
-    pub cost_price: Money,
+    // None if failed to calculate
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    pub cost_price: Option<Money>,
 }
 
 impl RequireModulesObjective {
@@ -74,7 +76,7 @@ impl Objective for RequireModulesObjective {
                     crafting_objective: CraftModulesObjective::new(
                         std::mem::take(needed_capabilities),
                         std::mem::take(needed_primary_capabilities),
-                        CraftModulesObjectiveOptions {
+                        CraftModulesObjectiveArgs {
                             deploy: true,
                             wait_if_has_no_ingredients: false,
                         },

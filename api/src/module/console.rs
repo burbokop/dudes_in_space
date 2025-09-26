@@ -9,8 +9,8 @@ use crate::recipe::{
 };
 use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
-    BuyVesselOffer, BuyVesselOrder, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
-    WeakBuyVesselOrder, WeakSellOrder,
+    BuyVesselOffer, BuyVesselOrder, OfferId, SellOffer, SellOrder, WeakBuyCustomVesselOrder,
+    WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::utils::math::Vector;
 use crate::utils::range::Range;
@@ -40,8 +40,8 @@ pub trait ModuleConsole {
     fn trading_console(&self) -> Option<&dyn TradingConsole>;
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole>;
 
-    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole>;
-    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole>;
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole>;
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole>;
 
     fn storages(&self) -> Vec<&ItemStorage>;
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage>;
@@ -132,11 +132,11 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
         todo!()
     }
 
-    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole> {
         todo!()
     }
 
-    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
         todo!()
     }
 
@@ -242,20 +242,38 @@ pub trait TradingConsole {
     ) -> Result<WeakBuyCustomVesselOrder, NotEnoughMoneyInWallet>;
 }
 
-pub trait TradingAdminConsole {
+pub trait AdminTradingConsole {
     fn place_buy_offer(
         &mut self,
         item: ItemId,
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer>;
+
+    fn update_buy_offer(
+        &mut self,
+        id: OfferId,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer>;
+
     fn place_buy_vessel_offer(
         &mut self,
         primary_caps: Vec<ModuleCapability>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer>;
+
     fn place_sell_offer(
         &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&SellOffer>;
+
+    fn update_sell_offer(
+        &mut self,
+        id: OfferId,
         item: ItemId,
         count_range: Range<ItemCount>,
         price_per_unit: Money,
@@ -267,6 +285,8 @@ pub trait TradingAdminConsole {
         primary_capabilities: BTreeMap<ModuleCapability, Money>,
     ) -> BuyCustomVesselOffer;
 
+    fn buy_offers(&self) -> &[BuyOffer];
+    fn sell_offers(&self) -> &[SellOffer];
     fn buy_orders(&self) -> &[BuyOrder];
     fn sell_orders(&self) -> &[SellOrder];
     fn buy_vessel_orders(&self) -> &[BuyVesselOrder];

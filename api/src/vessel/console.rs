@@ -50,6 +50,9 @@ pub trait VesselInternalConsole: VesselConsole {
         person_id: PersonId,
         connector_id: DockingConnectorId,
     ) -> Result<(), MoveToDockedVesselError>;
+
+    fn module_by_id<'a>(&'a self, module_id: ModuleId) -> Option<Ref<'a, dyn Module>>;
+    fn module_by_id_mut<'a>(&'a self, module_id: ModuleId) -> Option<RefMut<'a, dyn Module>>;
 }
 
 #[derive(Debug)]

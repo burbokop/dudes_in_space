@@ -1,11 +1,13 @@
 use crate::item::{ItemStorage, ItemVolume, StorageRole};
-use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleTypeId};
+use crate::module::{
+    ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleTypeId,
+};
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe,
 };
 use crate::utils::physics::M3;
 use crate::vessel::{DockingClamp, DockingClampConnection, VesselConsole, VesselInternalConsole};
-use std::cell::Ref;
+use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
 use std::ops::{Deref, Try};
 
@@ -37,7 +39,7 @@ impl<'a, 'b> ModuleRef<'a, 'b> {
             ModuleRef::Other(module) => module.id(),
         }
     }
-    
+
     pub fn type_id(&self) -> ModuleTypeId {
         match self {
             ModuleRef::This(console) => console.type_id(),
@@ -55,7 +57,7 @@ impl<'a, 'b> ModuleRef<'a, 'b> {
 
 pub enum ModuleRefMut<'a, 'b> {
     This(&'a mut dyn ModuleConsole),
-    Other(Ref<'b, dyn Module>),
+    Other(RefMut<'b, dyn Module>),
 }
 
 pub struct ThisVessel<'a, 'b> {
@@ -123,14 +125,41 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
             result.push(ModuleRef::This(self.this_module));
         }
 
-        for module in self
-            .this_vessel
-            .modules_with_capability(capability)
-        {
+        for module in self.this_vessel.modules_with_capability(capability) {
             result.push(ModuleRef::Other(module));
         }
 
         result
+    }
+
+    pub fn module_by_id<'q>(&'q self, id: ModuleId) -> Option<ModuleRef<'a, 'b>>
+    where
+        'q: 'a + 'b,
+    {
+        if self.this_module.id() == id {
+            return Some(ModuleRef::This(self.this_module));
+        }
+
+        if let Some(module) = self.this_vessel.module_by_id(id) {
+            return Some(ModuleRef::Other(module));
+        }
+
+        None
+    }
+
+    pub fn module_by_id_mut<'q>(&'q mut self, id: ModuleId) -> Option<ModuleRefMut<'a, 'b>>
+    where
+        'q: 'a + 'b,
+    {
+        if self.this_module.id() == id {
+            return Some(ModuleRefMut::This(self.this_module));
+        }
+
+        if let Some(module) = self.this_vessel.module_by_id_mut(id) {
+            return Some(ModuleRefMut::Other(module));
+        }
+
+        None
     }
 
     pub fn for_each_docking_clamps_with_vessel_which_has_caps<F, R>(

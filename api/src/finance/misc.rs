@@ -1,6 +1,6 @@
 use crate::finance::TargetBankDidNotCreateAnyMoneyError;
 use crate::finance::bank_registry::BankRegistry;
-use crate::utils::math::NonNeg;
+use crate::utils::math::{NonNeg, Positive, Zero};
 use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -29,6 +29,13 @@ impl Mul<u32> for Money {
 }
 
 impl Money {
+    pub fn zero(currency: Currency) -> Self {
+        Self {
+            currency,
+            amount: Zero::zero(),
+        }
+    }
+
     pub fn cmp_same_currency(&self, other: &Money) -> Result<Ordering, DifferentCurrenciesError> {
         if self.currency != other.currency {
             return Err(DifferentCurrenciesError);
@@ -182,6 +189,28 @@ impl Money {
             amount: NonNeg::new(v.into_iter().map(|x| x.amount.unwrap()).sum()).unwrap(),
         })
     }
+
+    pub fn try_sum_same_currency<E>(
+        iter: impl Iterator<Item = Result<Money, E>>,
+    ) -> Result<Option<Money>, E> {
+        let v: Result<Vec<_>, _> = iter.collect();
+        let v = v?;
+
+        let currency = match v.first() {
+            None => unreachable!(),
+            Some(money) => money.currency.clone(),
+        };
+
+        for money in v.iter() {
+            // TODO: return error (not option because it is ambiguous)
+            assert_eq!(money.currency, currency)
+        }
+
+        Ok(Some(Money {
+            currency,
+            amount: NonNeg::new(v.into_iter().map(|x| x.amount.unwrap()).sum()).unwrap(),
+        }))
+    }
 }
 
 impl Mul<Float> for Money {
@@ -191,6 +220,30 @@ impl Mul<Float> for Money {
         Self {
             currency: self.currency,
             amount: NonNeg::new((self.amount.unwrap() as Float * rhs) as MoneyAmount).unwrap(),
+        }
+    }
+}
+
+impl Mul<NonNeg<Float>> for Money {
+    type Output = Self;
+
+    fn mul(self, rhs: NonNeg<Float>) -> Self::Output {
+        Self {
+            currency: self.currency,
+            amount: NonNeg::new((self.amount.unwrap() as Float * rhs.unwrap()) as MoneyAmount)
+                .unwrap(),
+        }
+    }
+}
+
+impl Mul<Positive<Float>> for Money {
+    type Output = Self;
+
+    fn mul(self, rhs: Positive<Float>) -> Self::Output {
+        Self {
+            currency: self.currency,
+            amount: NonNeg::new((self.amount.unwrap() as Float * rhs.unwrap()) as MoneyAmount)
+                .unwrap(),
         }
     }
 }

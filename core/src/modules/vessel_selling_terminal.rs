@@ -5,9 +5,8 @@ use dudes_in_space_api::finance::{
 };
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use dudes_in_space_api::module::{
-    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingAdminConsole,
-    TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
+    ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -162,11 +161,11 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
-    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole> {
         Some(self)
     }
 
-    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
         Some(self)
     }
 
@@ -211,9 +210,19 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 }
 
-impl<'a> TradingAdminConsole for Console<'a> {
+impl<'a> AdminTradingConsole for Console<'a> {
     fn place_buy_offer(
         &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer> {
+        todo!()
+    }
+
+    fn update_buy_offer(
+        &mut self,
+        id: OfferId,
         item: ItemId,
         count_range: Range<ItemCount>,
         price_per_unit: Money,
@@ -238,6 +247,16 @@ impl<'a> TradingAdminConsole for Console<'a> {
         todo!()
     }
 
+    fn update_sell_offer(
+        &mut self,
+        id: OfferId,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&SellOffer> {
+        todo!()
+    }
+
     fn place_buy_custom_vessel_offer(
         &mut self,
         capabilities: BTreeMap<ModuleCapability, Money>,
@@ -250,6 +269,14 @@ impl<'a> TradingAdminConsole for Console<'a> {
         };
         *self.buy_custom_vessel_offer = Some(offer.clone());
         offer
+    }
+
+    fn buy_offers(&self) -> &[BuyOffer] {
+        todo!()
+    }
+
+    fn sell_offers(&self) -> &[SellOffer] {
+        todo!()
     }
 
     fn buy_orders(&self) -> &[BuyOrder] {

@@ -5,8 +5,8 @@ use dudes_in_space_api::finance::{
 };
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use dudes_in_space_api::module::{
-    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleTypeId, PackageId, TradingAdminConsole, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
+    ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -166,11 +166,11 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
-    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole> {
         todo!()
     }
 
-    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
         Some(self)
     }
 
@@ -432,9 +432,19 @@ impl TradingConsole for TradingTerminal {
     }
 }
 
-impl<'a> TradingAdminConsole for Console<'a> {
+impl<'a> AdminTradingConsole for Console<'a> {
     fn place_buy_offer(
         &mut self,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&BuyOffer> {
+        todo!()
+    }
+
+    fn update_buy_offer(
+        &mut self,
+        id: OfferId,
         item: ItemId,
         count_range: Range<ItemCount>,
         price_per_unit: Money,
@@ -466,11 +476,29 @@ impl<'a> TradingAdminConsole for Console<'a> {
         self.sell_offers.last()
     }
 
+    fn update_sell_offer(
+        &mut self,
+        id: OfferId,
+        item: ItemId,
+        count_range: Range<ItemCount>,
+        price_per_unit: Money,
+    ) -> Option<&SellOffer> {
+        todo!()
+    }
+
     fn place_buy_custom_vessel_offer(
         &mut self,
         capabilities: BTreeMap<ModuleCapability, Money>,
         primary_capabilities: BTreeMap<ModuleCapability, Money>,
     ) -> BuyCustomVesselOffer {
+        todo!()
+    }
+
+    fn buy_offers(&self) -> &[BuyOffer] {
+        todo!()
+    }
+
+    fn sell_offers(&self) -> &[SellOffer] {
         todo!()
     }
 

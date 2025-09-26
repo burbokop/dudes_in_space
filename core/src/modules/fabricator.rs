@@ -5,9 +5,9 @@ use dudes_in_space_api::item::{
     ItemId, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
 };
 use dudes_in_space_api::module::{
-    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
-    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
+    ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
+    ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -234,11 +234,11 @@ impl ModuleConsole for Console<'_> {
         todo!()
     }
 
-    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole> {
         todo!()
     }
 
-    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
         todo!()
     }
 

@@ -1,6 +1,6 @@
 use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
-    CraftModulesObjectiveError, CraftModulesObjectiveOptions,
+    CraftModulesObjectiveArgs, CraftModulesObjectiveError,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{Bank, Money};
@@ -21,28 +21,28 @@ pub(crate) enum CraftVesselFromScratchObjective {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
-        total_cost_price: Money,
+        total_cost_price: Option<Money>,
     },
     CraftingDockyard {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
         crafting_objective: CraftModulesObjective,
-        total_cost_price: Money,
+        total_cost_price: Option<Money>,
     },
     CraftingVesselModules {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
         crafting_objective: CraftModulesObjective,
-        total_cost_price: Money,
+        total_cost_price: Option<Money>,
     },
     BuildingVessel {
         needed_capabilities: Vec<ModuleCapability>,
         needed_primary_capabilities: Vec<ModuleCapability>,
         wait_if_has_no_ingredients: bool,
         building_objective: BuildVesselObjective,
-        total_cost_price: Money,
+        total_cost_price: Option<Money>,
     },
     Done {
         result: CraftVesselFromScratchObjectiveResult,
@@ -71,7 +71,7 @@ impl CraftVesselFromScratchObjective {
             needed_capabilities: needed_capabilities.into_iter().collect(),
             needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
             wait_if_has_no_ingredients,
-            total_cost_price: Money {
+            total_cost_price: Some(Money {
                 currency: this_person.finance.preferred_currency_or_create(
                     environment_context.bank_registry(),
                     Bank::new(
@@ -85,7 +85,7 @@ impl CraftVesselFromScratchObjective {
                     ),
                 ),
                 amount: Zero::zero(),
-            },
+            }),
         }
     }
 
@@ -182,7 +182,7 @@ impl Objective for CraftVesselFromScratchObjective {
                             std::mem::take(needed_primary_capabilities)
                                 .into_iter()
                                 .collect(),
-                            CraftModulesObjectiveOptions {
+                            CraftModulesObjectiveArgs {
                                 deploy: false,
                                 wait_if_has_no_ingredients: *wait_if_has_no_ingredients,
                             },
@@ -225,9 +225,15 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done(result) => {
-                        total_cost_price
-                            .add_assign_same_currency(result.cost_price)
-                            .unwrap();
+                        if let (Some(cost_price), Some(total_cost_price)) =
+                            (result.cost_price, total_cost_price.as_mut())
+                        {
+                            total_cost_price
+                                .add_assign_same_currency(cost_price.clone())
+                                .unwrap();
+                        } else {
+                            *total_cost_price = None
+                        }
 
                         logger.info("CraftVesselFromScratchObjective::CraftingDockyard::CheckingAllPrerequisites");
                         *self = Self::CheckingAllPrerequisites {
@@ -261,9 +267,16 @@ impl Objective for CraftVesselFromScratchObjective {
                 {
                     ObjectiveStatus::InProgress => {}
                     ObjectiveStatus::Done(result) => {
-                        total_cost_price
-                            .add_assign_same_currency(result.cost_price)
-                            .unwrap();
+                        if let (Some(cost_price), Some(total_cost_price)) =
+                            (result.cost_price, total_cost_price.as_mut())
+                        {
+                            total_cost_price
+                                .add_assign_same_currency(cost_price.clone())
+                                .unwrap();
+                        } else {
+                            *total_cost_price = None
+                        }
+
                         logger.info(
                             "Checking all prerequisites for crafting a vessel from scratch...",
                         );

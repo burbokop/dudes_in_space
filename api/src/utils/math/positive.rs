@@ -1,4 +1,4 @@
-use super::{Floor, IsNeg, IsPositive, NonNeg, Pi, Sqrt};
+use super::{Floor, IsPositive, NonNeg, Pi, Sqrt};
 use serde::{Deserialize, Serialize};
 use std::ops::{DivAssign, MulAssign, SubAssign};
 use std::{
@@ -22,19 +22,19 @@ impl<T: Serialize> Serialize for Positive<T> {
     }
 }
 
-impl<'de, T: Deserialize<'de> + IsNeg + Debug> Deserialize<'de> for Positive<T> {
+impl<'de, T: Deserialize<'de> + IsPositive + Debug> Deserialize<'de> for Positive<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let value = T::deserialize(deserializer)?;
-        if value.is_neg() {
+        if value.is_positive() {
+            Ok(Self { value })
+        } else {
             Err(serde::de::Error::custom(&format!(
-                "Can not deserialize {:?} as NoNeg because it is negative.",
+                "Can not deserialize {:?} as Positive because it is not a positive number.",
                 value
             )))
-        } else {
-            Ok(Self { value })
         }
     }
 }

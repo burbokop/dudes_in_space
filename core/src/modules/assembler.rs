@@ -10,9 +10,9 @@ use dudes_in_space_api::item::{
     ItemId, ItemRefStack, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, StorageRole,
 };
 use dudes_in_space_api::module::{
-    CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole, ModuleId,
-    ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut,
-    ProcessTokenMutSeed, TradingAdminConsole, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
+    ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
+    ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -274,11 +274,11 @@ impl<'a> ModuleConsole for Console<'a> {
         todo!()
     }
 
-    fn trading_admin_console(&self) -> Option<&dyn TradingAdminConsole> {
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole> {
         todo!()
     }
 
-    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn TradingAdminConsole> {
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
         todo!()
     }
 
@@ -347,7 +347,7 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_by_hash(&self, item: ItemRecipeHash) -> Option<usize> {
-        todo!()
+        None
     }
 
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription {
@@ -359,7 +359,7 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_input(&self, index: usize) -> Option<InputItemRecipe> {
-        todo!()
+        self.input_recipes.get(index).cloned()
     }
 
     fn item_recipe(&self, index: usize) -> Option<ItemRecipe> {

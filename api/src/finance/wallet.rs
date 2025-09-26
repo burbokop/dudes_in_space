@@ -112,6 +112,8 @@ impl Wallet {
         target_currency: Currency,
     ) {
         for (currency, amount) in self.content.clone() {
+            println!("amount: {}", amount);
+
             if currency == target_currency {
                 continue;
             }
@@ -139,6 +141,11 @@ impl Wallet {
             let target_amount = current_bank
                 .sell_this_currency_price(&target_bank, amount.into())
                 .unwrap();
+
+            println!(
+                "{:#?} -> {:#?} ({}, {})",
+                current_bank, target_bank, amount, target_amount
+            );
 
             target_bank.buy_currency(
                 &mut target_bank_owner_wallet,

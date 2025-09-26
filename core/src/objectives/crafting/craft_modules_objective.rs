@@ -1,5 +1,6 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{Bank, Money};
+use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{
     Objective, ObjectiveStatus, PersonLogger, PurchasedItemsMaxPrices, ThisPerson,
@@ -14,7 +15,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct CraftModulesObjectiveOptions {
+pub struct CraftModulesObjectiveArgs {
     pub deploy: bool,
     pub wait_if_has_no_ingredients: bool,
 }
@@ -22,50 +23,51 @@ pub struct CraftModulesObjectiveOptions {
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct CraftingProcess {
     token: ProcessToken,
-    cost_price: Money,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    cost_price: Option<Money>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "craft_modules_objective_stage")]
-pub(crate) enum CraftModulesObjective {
-    SearchingForCraftingModule {
-        needed_capabilities: BTreeSet<ModuleCapability>,
-        needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        options: CraftModulesObjectiveOptions,
-    },
+#[serde(tag = "state")]
+enum State {
+    SearchingForCraftingModule,
     MovingToCraftingModule {
         dst: ModuleId,
-        needed_capabilities: BTreeSet<ModuleCapability>,
-        needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        options: CraftModulesObjectiveOptions,
     },
     Crafting {
-        needed_capabilities: BTreeSet<ModuleCapability>,
-        needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        options: CraftModulesObjectiveOptions,
         process: Option<CraftingProcess>,
-        total_cost_price: Money,
+        #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+        total_cost_price: Option<Money>,
     },
     Done {
         result: CraftModulesObjectiveResult,
     },
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct CraftModulesObjective {
+    args: CraftModulesObjectiveArgs,
+    needed_capabilities: BTreeSet<ModuleCapability>,
+    needed_primary_capabilities: BTreeSet<ModuleCapability>,
+    state: State,
+}
+
 impl CraftModulesObjective {
     pub(crate) fn new(
         needed_capabilities: BTreeSet<ModuleCapability>,
         needed_primary_capabilities: BTreeSet<ModuleCapability>,
-        options: CraftModulesObjectiveOptions,
+        args: CraftModulesObjectiveArgs,
         logger: &mut PersonLogger,
     ) -> Self {
         logger.info(format!(
             "Switched to craft modules objective (caps: {:?}, primary caps: {:?})",
             needed_capabilities, needed_primary_capabilities
         ));
-        Self::SearchingForCraftingModule {
-            needed_capabilities: needed_capabilities.into_iter().collect(),
-            needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
-            options,
+        Self {
+            needed_capabilities,
+            needed_primary_capabilities,
+            args,
+            state: State::SearchingForCraftingModule,
         }
     }
 
@@ -94,7 +96,9 @@ impl CraftModulesObjective {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CraftModulesObjectiveResult {
-    pub cost_price: Money,
+    // None if failed to calculate
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    pub cost_price: Option<Money>,
 }
 
 impl Objective for CraftModulesObjective {
@@ -109,12 +113,8 @@ impl Objective for CraftModulesObjective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
-        match self {
-            Self::SearchingForCraftingModule {
-                needed_capabilities,
-                needed_primary_capabilities,
-                options,
-            } => {
+        match &mut self.state {
+            State::SearchingForCraftingModule => {
                 if let Some(assembly_console) = this_module.crafting_console() {
                     logger.info(format!(
                         "Checking if module (id: {}, type: {}) is suitable for crafting modules...",
@@ -123,17 +123,12 @@ impl Objective for CraftModulesObjective {
                     ));
                     if Self::is_recipe_set_suitable(
                         assembly_console.assembly_recipes(),
-                        needed_capabilities.clone(),
-                        needed_primary_capabilities.clone(),
+                        self.needed_capabilities.clone(),
+                        self.needed_primary_capabilities.clone(),
                     ) {
                         logger.info("Moving to crafting module...");
-                        *self = Self::MovingToCraftingModule {
+                        self.state = State::MovingToCraftingModule {
                             dst: this_module.id(),
-                            needed_capabilities: std::mem::take(needed_capabilities),
-                            needed_primary_capabilities: std::mem::take(
-                                needed_primary_capabilities,
-                            ),
-                            options: std::mem::take(options),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
@@ -149,43 +144,26 @@ impl Objective for CraftModulesObjective {
                     ));
                     if Self::is_recipe_set_suitable(
                         crafting_module.assembly_recipes(),
-                        needed_capabilities.clone(),
-                        needed_primary_capabilities.clone(),
+                        self.needed_capabilities.clone(),
+                        self.needed_primary_capabilities.clone(),
                     ) && crafting_module.free_person_slots_count() > 0
                     {
                         logger.info("Moving to crafting module...");
-                        *self = Self::MovingToCraftingModule {
+                        self.state = State::MovingToCraftingModule {
                             dst: crafting_module.id(),
-                            needed_capabilities: std::mem::take(needed_capabilities),
-                            needed_primary_capabilities: std::mem::take(
-                                needed_primary_capabilities,
-                            ),
-                            options: std::mem::take(options),
                         };
                         return Ok(ObjectiveStatus::InProgress);
                     }
                 }
                 Err(CraftModulesObjectiveError::CanNotFindCraftingModule)
             }
-            Self::MovingToCraftingModule {
-                dst,
-                needed_capabilities,
-                needed_primary_capabilities,
-                options,
-            } => {
+            State::MovingToCraftingModule { dst } => {
                 if *dst == this_module.id() {
                     logger.info("Crafting modules...");
                     let this_person_wallet_id = this_person.finance.wallet().id().clone();
-                    *self = Self::Crafting {
-                        needed_capabilities: BTreeSet::from_iter(std::mem::take(
-                            needed_capabilities,
-                        )),
-                        needed_primary_capabilities: BTreeSet::from_iter(std::mem::take(
-                            needed_primary_capabilities,
-                        )),
-                        options: std::mem::take(options),
+                    self.state = State::Crafting {
                         process: None,
-                        total_cost_price: Money {
+                        total_cost_price: Some(Money {
                             currency: this_person.finance.preferred_currency_or_create(
                                 environment_context.bank_registry(),
                                 Bank::new(
@@ -199,7 +177,7 @@ impl Objective for CraftModulesObjective {
                                 ),
                             ),
                             amount: Zero::zero(),
-                        },
+                        }),
                     };
                     Ok(ObjectiveStatus::InProgress)
                 } else {
@@ -218,27 +196,18 @@ impl Objective for CraftModulesObjective {
                             logger.info(
                                 "Not enough space in crafting module. Searching another one...",
                             );
-                            *self = Self::SearchingForCraftingModule {
-                                needed_capabilities: std::mem::take(needed_capabilities),
-                                needed_primary_capabilities: std::mem::take(
-                                    needed_primary_capabilities,
-                                ),
-                                options: std::mem::take(options),
-                            };
+                            self.state = State::SearchingForCraftingModule;
                             Ok(ObjectiveStatus::InProgress)
                         }
                     }
                 }
             }
-            Self::Crafting {
-                needed_capabilities,
-                needed_primary_capabilities,
-                options,
+            State::Crafting {
                 process,
                 total_cost_price,
             } => match process {
                 None => {
-                    if let Some(cap) = needed_capabilities.first() {
+                    if let Some(cap) = self.needed_capabilities.first() {
                         let assembly_console = this_module.crafting_console_mut().unwrap();
                         let recipe_index =
                             assembly_console.recipe_by_output_capability(*cap).unwrap();
@@ -247,12 +216,13 @@ impl Objective for CraftModulesObjective {
 
                         *process = Some(CraftingProcess {
                             token: assembly_console
-                                .start(recipe_index, options.deploy)
+                                .start(recipe_index, self.args.deploy)
                                 .unwrap(),
                             cost_price: calculate_cost_price(
                                 assembly_console.recipe_input(recipe_index).unwrap(),
                                 this_person.notes.purchased_items_max_prices(),
-                            ),
+                            )
+                            .ok(),
                         });
 
                         logger.info("Picking recipe for:");
@@ -260,7 +230,7 @@ impl Objective for CraftModulesObjective {
                             .recipe_output_description(recipe_index)
                             .capabilities()
                         {
-                            if needed_capabilities.remove(c) {
+                            if self.needed_capabilities.remove(c) {
                                 logger.info(format!("    {:?}", c));
                             }
                         }
@@ -268,14 +238,14 @@ impl Objective for CraftModulesObjective {
                             .recipe_output_description(recipe_index)
                             .primary_capabilities()
                         {
-                            if needed_primary_capabilities.remove(c) {
+                            if self.needed_primary_capabilities.remove(c) {
                                 logger.info(format!("    {:?} (primary)", c));
                             }
                         }
                         return Ok(ObjectiveStatus::InProgress);
                     }
 
-                    if let Some(cap) = needed_primary_capabilities.first() {
+                    if let Some(cap) = self.needed_primary_capabilities.first() {
                         let assembly_console = this_module.crafting_console_mut().unwrap();
                         let recipe_index = assembly_console
                             .recipe_by_output_primary_capability(*cap)
@@ -285,12 +255,13 @@ impl Objective for CraftModulesObjective {
 
                         *process = Some(CraftingProcess {
                             token: assembly_console
-                                .start(recipe_index, options.deploy)
+                                .start(recipe_index, self.args.deploy)
                                 .unwrap(),
                             cost_price: calculate_cost_price(
                                 assembly_console.recipe_input(recipe_index).unwrap(),
                                 this_person.notes.purchased_items_max_prices(),
-                            ),
+                            )
+                            .ok(),
                         });
 
                         logger.info("Picking recipe for:");
@@ -298,7 +269,7 @@ impl Objective for CraftModulesObjective {
                             .recipe_output_description(recipe_index)
                             .capabilities()
                         {
-                            if needed_capabilities.remove(c) {
+                            if self.needed_capabilities.remove(c) {
                                 logger.info(format!("    {:?}", c));
                             }
                         }
@@ -306,7 +277,7 @@ impl Objective for CraftModulesObjective {
                             .recipe_output_description(recipe_index)
                             .primary_capabilities()
                         {
-                            if needed_primary_capabilities.remove(c) {
+                            if self.needed_primary_capabilities.remove(c) {
                                 logger.info(format!("    {:?} (primary)", c));
                             }
                         }
@@ -315,7 +286,7 @@ impl Objective for CraftModulesObjective {
 
                     logger.info("Done crafting modules.");
                     let total_cost_price = total_cost_price.clone();
-                    *self = Self::Done {
+                    self.state = State::Done {
                         result: Self::Result {
                             cost_price: total_cost_price.clone(),
                         },
@@ -329,15 +300,22 @@ impl Objective for CraftModulesObjective {
                         .is_completed(environment_context.process_token_context())
                         .unwrap_or(true)
                     {
-                        total_cost_price
-                            .add_assign_same_currency(cost_price.clone())
-                            .unwrap();
-                        return if needed_capabilities.is_empty()
-                            && needed_primary_capabilities.is_empty()
+                        if let (Some(cost_price), Some(total_cost_price)) =
+                            (cost_price, total_cost_price.as_mut())
+                        {
+                            total_cost_price
+                                .add_assign_same_currency(cost_price.clone())
+                                .unwrap();
+                        } else {
+                            *total_cost_price = None
+                        }
+
+                        return if self.needed_capabilities.is_empty()
+                            && self.needed_primary_capabilities.is_empty()
                         {
                             logger.info("Done crafting modules.");
                             let total_cost_price = total_cost_price.clone();
-                            *self = Self::Done {
+                            self.state = State::Done {
                                 result: Self::Result {
                                     cost_price: total_cost_price.clone(),
                                 },
@@ -361,7 +339,7 @@ impl Objective for CraftModulesObjective {
                     }
                 }
             },
-            Self::Done { result } => Ok(ObjectiveStatus::Done(result.clone())),
+            State::Done { result } => Ok(ObjectiveStatus::Done(result.clone())),
         }
     }
 }
@@ -380,16 +358,33 @@ impl Display for CraftModulesObjectiveError {
 
 impl Error for CraftModulesObjectiveError {}
 
-fn calculate_cost_price(input: InputItemRecipe, prices: &PurchasedItemsMaxPrices) -> Money {
+#[derive(Debug)]
+enum CalculateCostPriceError {
+    EmptyInput,
+    ItemIsNotPurchased { item: ItemId },
+}
+
+impl Display for CalculateCostPriceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for CalculateCostPriceError {}
+
+fn calculate_cost_price(
+    input: InputItemRecipe,
+    prices: &PurchasedItemsMaxPrices,
+) -> Result<Money, CalculateCostPriceError> {
     // maybe should be `Money::sum_as`
-    Money::sum_same_currency(input.into_iter().map(|stack| {
+    Money::try_sum_same_currency(input.into_iter().map(|stack| {
         if let Some(price) = prices.stabilized().get(&stack.id) {
-            price.clone() * stack.count
+            Ok(price.clone() * stack.count)
         } else {
-            todo!()
+            Err(CalculateCostPriceError::ItemIsNotPurchased { item: stack.id })
         }
     }))
-    .unwrap()
+    .and_then(|x| x.ok_or(CalculateCostPriceError::EmptyInput))
 }
 
 impl Display for CraftModulesObjective {

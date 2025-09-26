@@ -1,3 +1,4 @@
+use crate::finance::Money;
 use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack, ItemStorage};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
@@ -89,6 +90,10 @@ impl InputItemRecipe {
 
     pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {
         self.input.iter()
+    }
+
+    pub fn cost(&self, money_per_unit: &BTreeMap<ItemId, Money>) -> Option<Money> {
+        todo!()
     }
 }
 
@@ -219,5 +224,11 @@ impl Display for OutputItemRecipe {
             write!(f, "{}:{}", id, count)?;
         }
         write!(f, "]")
+    }
+}
+
+impl Display for ItemRecipe {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} -> {}", self.input, self.output)
     }
 }

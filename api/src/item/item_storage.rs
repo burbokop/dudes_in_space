@@ -35,8 +35,22 @@ impl ItemStorageContent {
         self.0.values()
     }
 
-    pub fn count(&self, id: ItemId) -> ItemCount {
-        self.0.get(&id).map(|v| v.count).unwrap_or(0)
+    pub fn count(&self, id: &ItemId) -> ItemCount {
+        self.0.get(id).map(|v| v.count).unwrap_or(0)
+    }
+
+    /// Returns how much is needed to add to this storage to reach the limits
+    pub fn lack(&self, mut limits: BTreeMap<ItemId, ItemCount>) -> BTreeMap<ItemId, ItemCount> {
+        for (k, v) in &self.0 {
+            if !limits.contains_key(k) {
+                limits.try_insert(k.clone(), 0).unwrap();
+            }
+        }
+
+        limits
+            .iter()
+            .map(|(k, v)| (k.clone(), v.saturating_sub(self.count(k))))
+            .collect()
     }
 }
 

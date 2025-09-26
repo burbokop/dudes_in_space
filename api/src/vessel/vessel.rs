@@ -710,4 +710,12 @@ impl VesselInternalConsole for Vessel {
 
         Ok(())
     }
+
+    fn module_by_id<'a>(&'a self, module_id: ModuleId) -> Option<Ref<'a, dyn Module>> {
+        todo!()
+    }
+
+    fn module_by_id_mut<'a>(&'a self, module_id: ModuleId) -> Option<RefMut<'a, dyn Module>> {
+        todo!()
+    }
 }

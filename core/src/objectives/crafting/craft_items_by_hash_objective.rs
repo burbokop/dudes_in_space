@@ -40,6 +40,7 @@ enum State {
 pub(crate) struct CraftItemsByHashObjective {
     args: CraftItemsByHashObjectiveArgs,
     state: State,
+    crafting_module: Option<ModuleId>,
 }
 
 impl CraftItemsByHashObjective {
@@ -51,6 +52,7 @@ impl CraftItemsByHashObjective {
         Self {
             args,
             state: State::SearchingForCraftingModule,
+            crafting_module: None,
         }
     }
 
@@ -60,6 +62,10 @@ impl CraftItemsByHashObjective {
 
     pub(crate) fn args(&self) -> &CraftItemsByHashObjectiveArgs {
         &self.args
+    }
+
+    pub(crate) fn crafting_module(&self) -> Option<ModuleId> {
+        self.crafting_module
     }
 
     pub(crate) fn is_interrupted(&self) -> bool {
@@ -121,6 +127,7 @@ impl Objective for CraftItemsByHashObjective {
             State::MovingToCraftingModule { dst } => {
                 if *dst == this_module.id() {
                     logger.info("Crafting modules...");
+                    self.crafting_module = Some(*dst);
                     self.state = State::Crafting {
                         interrupted: self.args.start_interrupted,
                         process_token: None,
@@ -164,8 +171,9 @@ impl Objective for CraftItemsByHashObjective {
                         .cloned()
                         .sum();
 
-                    if limit_reached(&all_storages_content, self.args.output_limit.clone()) {
+                    if limit_reached(&all_storages_content, &self.args.output_limit) {
                         return Ok(if self.args.done_if_reached_limit {
+                            self.crafting_module = None;
                             ObjectiveStatus::Done(self.state = State::Done)
                         } else {
                             ObjectiveStatus::InProgress
@@ -252,8 +260,8 @@ impl Display for CraftItemsByHashObjective {
     }
 }
 
-fn limit_reached(content: &ItemStorageContent, items_limit: BTreeMap<ItemId, ItemCount>) -> bool {
+fn limit_reached(content: &ItemStorageContent, items_limit: &BTreeMap<ItemId, ItemCount>) -> bool {
     items_limit
         .into_iter()
-        .any(|(item, limit)| content.count(item) >= limit)
+        .any(|(item, limit)| content.count(item) >= *limit)
 }
