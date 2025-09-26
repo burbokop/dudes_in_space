@@ -1,5 +1,5 @@
 use crate::item::{ItemStorage, ItemVolume, StorageRole};
-use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId};
+use crate::module::{ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleTypeId};
 use crate::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe,
 };
@@ -35,6 +35,13 @@ impl<'a, 'b> ModuleRef<'a, 'b> {
         match self {
             ModuleRef::This(console) => console.id(),
             ModuleRef::Other(module) => module.id(),
+        }
+    }
+    
+    pub fn type_id(&self) -> ModuleTypeId {
+        match self {
+            ModuleRef::This(console) => console.type_id(),
+            ModuleRef::Other(module) => module.type_id(),
         }
     }
 
@@ -118,7 +125,7 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
 
         for module in self
             .this_vessel
-            .modules_with_capability(ModuleCapability::ItemCrafting)
+            .modules_with_capability(capability)
         {
             result.push(ModuleRef::Other(module));
         }

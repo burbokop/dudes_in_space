@@ -16,7 +16,7 @@ use dudes_in_space_api::person::{
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe};
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
-use dudes_in_space_api::vessel::VesselInternalConsole;
+use dudes_in_space_api::vessel::{ VesselInternalConsole};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -28,6 +28,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter;
 use std::rc::Rc;
+use dudes_in_space_api::trade::{ OfferId};
 
 /*
     - Find available crafts across all crafters
@@ -89,6 +90,10 @@ pub(crate) enum ManageProductionStationObjective {
         input_limit: BTreeMap<ItemId, ItemCount>,
         craft_objective: CraftItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
+        /// TODO: save placed offers here so u can know what to update
+        sell_offers: BTreeMap<ItemId, OfferId>,
+        /// TODO: save placed offers here so u can know what to update
+        buy_offers: BTreeMap<ItemId, OfferId>,
     },
 }
 
@@ -204,7 +209,7 @@ impl Objective for ManageProductionStationObjective {
                                         // TODO craft specific module for this recipe
                                         *self = Self::AssembleSpecificCrafter {
                                             craft_objective: CraftModulesObjective::new(
-                                                REQUIRED_CAPS.into(),
+                                                [ModuleCapability::ItemCrafting].into(),
                                                 [].into(),
                                                 CraftModulesObjectiveOptions {
                                                     deploy: true,
@@ -349,6 +354,8 @@ impl Objective for ManageProductionStationObjective {
                 input_limit,
                 craft_objective,
                 move_to_trading_terminal_objective,
+                buy_offers,
+                sell_offers,
             } => {
                 match craft_objective.pursue(
                     this_person,
@@ -359,12 +366,30 @@ impl Objective for ManageProductionStationObjective {
                 ) {
                     Ok(ObjectiveStatus::InProgress) => {
                         if craft_objective.is_interrupted() {
-                            todo!(
-                                "Move to trading terminal and update offers. than return to this module and call `craft_objective.resume()`"
-                            )
-                        }
+                            match move_to_trading_terminal_objective.pursue(
+                                this_person,
+                                this_module,
+                                this_vessel,
+                                environment_context,
+                                logger,
+                            ) {
+                                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                                Ok(ObjectiveStatus::Done(_)) => {
+                                    
+                                    let trading_console = this_module.trading_admin_console_mut().unwrap();
+                                    
+                                    // trading_console.offe
 
-                        Ok(ObjectiveStatus::InProgress)
+                                    todo!(
+                                        "Update offers. than call `craft_objective.resume()`"
+                                    )
+
+                                },
+                                Err(err) => todo!("{:?}", err),
+                            }
+                        } else {
+                            Ok(ObjectiveStatus::InProgress)
+                        }
                     }
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule) => {

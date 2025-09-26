@@ -187,7 +187,7 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn type_id(&self) -> ModuleTypeId {
-        todo!()
+        TYPE_ID.into()
     }
 
     fn package_id(&self) -> PackageId {
@@ -199,7 +199,7 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn primary_capabilities(&self) -> &[ModuleCapability] {
-        todo!()
+        PRIMARY_CAPABILITIES
     }
 
     fn interact(&mut self) -> bool {
@@ -437,7 +437,16 @@ impl Module for Fabricator {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {

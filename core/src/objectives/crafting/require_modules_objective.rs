@@ -109,6 +109,10 @@ impl Objective for RequireModulesObjective {
 
 impl Display for RequireModulesObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            Self::SearchingForRequireModules { .. } => write!(f, "SearchingForRequireModules"),
+            Self::Crafting { .. } => write!(f, "Crafting"),
+            Self::Done { .. } => write!(f, "Done"),
+        }
     }
 }
