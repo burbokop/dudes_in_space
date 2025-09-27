@@ -1,4 +1,5 @@
 #![feature(fn_traits)]
+#![feature(map_try_insert)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
@@ -6,14 +7,15 @@
 use crate::camera::Camera;
 use crate::person_table::PersonTable;
 use crate::render::{
-    Alignment, EnvironmentRenderModel, FontProvider, HorisontalAlignment, Renderer,
-    VerticalAlignment,
+    Alignment, EnvironmentRenderModel, FontProvider, HorisontalAlignment,
+    ModuleTextureContainerBuilder, Renderer, VerticalAlignment,
 };
 use crate::utils::{load, load_camera, load_logger, save, save_camera, save_logger};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Matrix;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
+use dudes_in_space_core::module_types;
 use std::env::home_dir;
 use std::time::Duration;
 
@@ -46,11 +48,21 @@ fn main() {
 
     let mut camera: Camera = load_camera(camera_save_path.clone());
     let mut logger = load_logger(logger_save_path.clone());
-    let render_model = EnvironmentRenderModel::new();
-    let font_provider = FontProvider::new();
     let texture_creator = canvas.texture_creator();
+    let module_bg_tex_container = ModuleTextureContainerBuilder::new(&texture_creator)
+        .with(
+            module_types::DOCKYARD.into(),
+            include_bytes!("../assets/dockyard.png"),
+        )
+        .with(
+            module_types::FABRICATOR.into(),
+            include_bytes!("../assets/fabricator.png"),
+        )
+        .build();
+    let render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());
+    let font_provider = FontProvider::new();
 
-    let mut renderer = Renderer::new(canvas, texture_creator, font_provider);
+    let mut renderer = Renderer::new(canvas, &texture_creator, font_provider);
 
     let components = core_components();
     let mut environment = load(&components, save_path.clone());

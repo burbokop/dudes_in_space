@@ -25,7 +25,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-static TYPE_ID: &str = "CargoContainer";
+pub(super) static TYPE_ID: &str = "CargoContainer";
 static FACTORY_TYPE_ID: &str = "CargoContainerFactory";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];

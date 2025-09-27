@@ -26,7 +26,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-static TYPE_ID: &str = "Shuttle";
+pub(super) static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
 static DOCKING_CONNECTOR_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[

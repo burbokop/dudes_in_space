@@ -1,17 +1,17 @@
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::renderer::Renderer;
-use crate::render::{RenderError, VesselRenderModel};
+use crate::render::{ModuleTextureContainerRef, RenderError, VesselRenderModel};
 use dudes_in_space_api::environment::Environment;
 
-pub struct EnvironmentRenderModel {
-    vessel_render_model: VesselRenderModel,
+pub struct EnvironmentRenderModel<'texture> {
+    vessel_render_model: VesselRenderModel<'texture>,
 }
 
-impl EnvironmentRenderModel {
-    pub fn new() -> Self {
+impl<'texture> EnvironmentRenderModel<'texture> {
+    pub fn new(backgrounds: ModuleTextureContainerRef<'texture>) -> Self {
         Self {
-            vessel_render_model: VesselRenderModel::new(),
+            vessel_render_model: VesselRenderModel::new(backgrounds),
         }
     }
 

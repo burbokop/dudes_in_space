@@ -36,7 +36,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::rc::Rc;
 
-static TYPE_ID: &str = "VesselSellingTerminal";
+pub(super) static TYPE_ID: &str = "VesselSellingTerminal";
 static FACTORY_TYPE_ID: &str = "VesselSellingTerminalFactory";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::VesselSellingTerminal,

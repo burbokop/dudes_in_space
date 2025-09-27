@@ -30,7 +30,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-static TYPE_ID: &str = "Dockyard";
+pub(super) static TYPE_ID: &str = "Dockyard";
 static FACTORY_TYPE_ID: &str = "DockyardFactory";
 static DOCKING_CLAMP_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[

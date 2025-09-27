@@ -65,18 +65,18 @@ impl Alignment {
     }
 }
 
-pub struct Renderer<T: sdl2::render::RenderTarget> {
+pub struct Renderer<'texture_creator, T: sdl2::render::RenderTarget> {
     canvas: sdl2::render::Canvas<T>,
-    texture_creator: sdl2::render::TextureCreator<T::Context>,
+    texture_creator: &'texture_creator sdl2::render::TextureCreator<T::Context>,
     font_provider: FontProvider,
     tr: Matrix<Float>,
     view_port_in_world_space: Rect<Float>,
 }
 
-impl<T: sdl2::render::RenderTarget> Renderer<T> {
+impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator, T> {
     pub fn new(
         canvas: sdl2::render::Canvas<T>,
-        texture_creator: sdl2::render::TextureCreator<T::Context>,
+        texture_creator: &'texture_creator sdl2::render::TextureCreator<T::Context>,
         font_provider: FontProvider,
     ) -> Self {
         Self {
@@ -113,6 +113,12 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
         self.view_port_in_world_space.contains_point(rect)
     }
 
+    pub fn draw_texture(&mut self, texture: &sdl2::render::Texture, rect: Rect<Float>) {
+        self.canvas
+            .copy(texture, None, rect_to_sdl2_rect(&self.tr * &rect))
+            .unwrap();
+    }
+
     pub fn draw_rect(&mut self, rect: Rect<Float>, color: Color) {
         if !self.intersects_with_view_port(&rect) {
             return;
@@ -121,6 +127,23 @@ impl<T: sdl2::render::RenderTarget> Renderer<T> {
         self.canvas.set_draw_color(color_to_sdl2_rgba_color(color));
         self.canvas
             .draw_rect(rect_to_sdl2_rect(&self.tr * &rect))
+            .unwrap();
+    }
+
+    pub fn draw_filled_rect(&mut self, rect: Rect<Float>, color: Color) {
+        if !self.intersects_with_view_port(&rect) {
+            return;
+        }
+
+        let rect = rect_to_sdl2_rect(&self.tr * &rect);
+        self.canvas
+            .box_(
+                rect.x as i16,
+                rect.y as i16,
+                (rect.x + rect.w) as i16,
+                (rect.y + rect.h) as i16,
+                color_to_sdl2_rgba_color(color),
+            )
             .unwrap();
     }
 

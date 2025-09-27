@@ -22,7 +22,7 @@ use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::rc::Rc;
 
-static TYPE_ID: &str = "PersonnelArea";
+pub(super) static TYPE_ID: &str = "PersonnelArea";
 static CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::PersonnelRoom];
 

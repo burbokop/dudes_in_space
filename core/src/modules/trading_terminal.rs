@@ -36,7 +36,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-static TYPE_ID: &str = "TradingTerminal";
+pub(super) static TYPE_ID: &str = "TradingTerminal";
 static FACTORY_TYPE_ID: &str = "TradingTerminalFactory";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::TradingTerminal,

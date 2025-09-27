@@ -19,7 +19,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::sync::LazyLock;
 
-static TYPE_ID: &str = "OreManifold";
+pub(super) static TYPE_ID: &str = "OreManifold";
 static FACTORY_TYPE_ID: &str = "OreManifoldFactory";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::ItemProduction,

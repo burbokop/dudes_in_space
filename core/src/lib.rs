@@ -16,6 +16,7 @@ use dudes_in_space_api::recipe::ItemRecipe;
 use dudes_in_space_api::utils::physics::{KgPerM3, M3};
 pub use modules::register_module_factories;
 pub use modules::register_modules;
+pub use modules::types as module_types;
 pub use objectives::register_objective_deciders;
 pub use objectives::register_objectives;
 use std::sync::LazyLock;

@@ -104,3 +104,16 @@ pub fn register_modules(
         .with(PlantFacilityDynSeed {})
         .with(OreManifoldDynSeed {})
 }
+
+pub mod types {
+    pub static ASSEMBLER: &str = crate::modules::assembler::TYPE_ID;
+    pub static CARGO_CONTAINER: &str = crate::modules::cargo_container::TYPE_ID;
+    pub static DOCKYARD: &str = crate::modules::dockyard::TYPE_ID;
+    pub static FABRICATOR: &str = crate::modules::fabricator::TYPE_ID;
+    pub static ORE_MANIFOLD: &str = crate::modules::ore_manifold::TYPE_ID;
+    pub static PERSONNEL_AREA: &str = crate::modules::personnel_area::TYPE_ID;
+    pub static PLANT_FACILITY: &str = crate::modules::plant_facility::TYPE_ID;
+    pub static SHUTTLE: &str = crate::modules::shuttle::TYPE_ID;
+    pub static TRADING_TERMINAL: &str = crate::modules::trading_terminal::TYPE_ID;
+    pub static VESSEL_SELLING_TERMINAL: &str = crate::modules::vessel_selling_terminal::TYPE_ID;
+}

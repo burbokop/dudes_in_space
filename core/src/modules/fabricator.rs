@@ -33,7 +33,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
-static TYPE_ID: &str = "Fabricator";
+pub(super) static TYPE_ID: &str = "Fabricator";
 static FACTORY_TYPE_ID: &str = "FabricatorFactory";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::ItemCrafting,

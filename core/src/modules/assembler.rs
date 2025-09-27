@@ -36,7 +36,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
-static TYPE_ID: &str = "Assembler";
+pub(super) static TYPE_ID: &str = "Assembler";
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::ModuleCrafting,
     ModuleCapability::ItemConsumption,
