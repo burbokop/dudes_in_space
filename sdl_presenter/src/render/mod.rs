@@ -5,6 +5,7 @@ mod module_texture_container;
 mod render_models;
 mod renderer;
 mod scene_graph;
+mod spritesheet;
 
 #[allow(unused_imports)]
 pub use convertions::*;

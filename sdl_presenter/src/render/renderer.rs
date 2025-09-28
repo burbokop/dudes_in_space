@@ -1,3 +1,4 @@
+use crate::render::spritesheet::Spritesheet;
 use crate::render::{
     FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
 };
@@ -116,6 +117,27 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
     pub fn draw_texture(&mut self, texture: &sdl2::render::Texture, rect: Rect<Float>) {
         self.canvas
             .copy(texture, None, rect_to_sdl2_rect(&self.tr * &rect))
+            .unwrap();
+    }
+
+    pub(crate) fn draw_spritesheet<'texture>(
+        &mut self,
+        spritesheet: &Spritesheet<'texture>,
+        rect: Rect<Float>,
+        frame: usize,
+    ) {
+        let frame = &spritesheet.data.frames[frame];
+
+        fn aseprite_rect_to_sdl2_rect(rect: aseprite::Rect) -> sdl2::rect::Rect {
+            sdl2::rect::Rect::new(rect.x as i32, rect.y as i32, rect.w, rect.h)
+        }
+
+        self.canvas
+            .copy(
+                &spritesheet.texture,
+                Some(aseprite_rect_to_sdl2_rect(frame.frame)),
+                rect_to_sdl2_rect(&self.tr * &rect),
+            )
             .unwrap();
     }
 

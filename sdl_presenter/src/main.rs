@@ -54,9 +54,15 @@ fn main() {
             module_types::DOCKYARD.into(),
             include_bytes!("../assets/dockyard.png"),
         )
-        .with(
+        .with_aseprite_spritesheet(
             module_types::FABRICATOR.into(),
             include_bytes!("../assets/fabricator.png"),
+            include_bytes!("../assets/fabricator.json"),
+        )
+        .with_aseprite_spritesheet(
+            module_types::ASSEMBLER.into(),
+            include_bytes!("../assets/assembler.png"),
+            include_bytes!("../assets/assembler.json"),
         )
         .build();
     let render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());

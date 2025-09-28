@@ -4,11 +4,11 @@ use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::scene_graph::{ColumnLayout, Frame, GraphicsNode, GridLayout, RowLayout};
 use crate::render::{
-    HorisontalAlignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTextureContainerRef,
-    RenderError,
+    HorisontalAlignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTexture,
+    ModuleTextureContainerRef, RenderError,
 };
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
-use dudes_in_space_api::module::{Module, ModuleStorage};
+use dudes_in_space_api::module::{Module, ModuleId, ModuleStorage};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::trade::{BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, SellOffer};
@@ -16,6 +16,9 @@ use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::time::{Duration, Instant};
 
 fn draw_top_info<T: sdl2::render::RenderTarget>(
     renderer: &mut Renderer<T>,
@@ -1144,11 +1147,38 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawTradingInfo<'a> 
     }
 }
 
+struct Animation {
+    frame: usize,
+    last_update_time_point: Instant,
+}
+
+impl Animation {
+    pub fn update(&mut self, frame_count: usize) {
+        let now = Instant::now();
+        let duration = now - self.last_update_time_point;
+
+        if duration > Duration::from_millis(50) {
+            self.frame = (self.frame + 1) % frame_count;
+            self.last_update_time_point = now;
+        }
+    }
+}
+
+impl Default for Animation {
+    fn default() -> Self {
+        Self {
+            frame: 0,
+            last_update_time_point: Instant::now(),
+        }
+    }
+}
+
 pub struct ModuleRenderModel<'texture> {
     person_render_model: PersonRenderModel,
     vessel_render_model: LazyVesselRenderModel<'texture>,
     item_storage_render_model: ItemStorageRenderModel,
     backgrounds: ModuleTextureContainerRef<'texture>,
+    animations: RefCell<BTreeMap<ModuleId, Animation>>,
 }
 
 impl<'texture> ModuleRenderModel<'texture> {
@@ -1158,6 +1188,7 @@ impl<'texture> ModuleRenderModel<'texture> {
             vessel_render_model: LazyVesselRenderModel::new(backgrounds.clone()),
             item_storage_render_model: ItemStorageRenderModel::new(),
             backgrounds,
+            animations: RefCell::new(BTreeMap::new()),
         }
     }
 
@@ -1173,8 +1204,15 @@ impl<'texture> ModuleRenderModel<'texture> {
             return Ok(());
         }
 
-        if let Some(background) = self.backgrounds.get(module.type_id()) {
-            renderer.draw_texture(&background, bounding_box);
+        match self.backgrounds.get(module.type_id()) {
+            None => {}
+            Some(ModuleTexture::Texture(texture)) => renderer.draw_texture(texture, bounding_box),
+            Some(ModuleTexture::Spritesheet(spritesheet)) => {
+                let mut animations = self.animations.borrow_mut();
+                let animation = animations.entry(module.id()).or_default();
+                animation.update(spritesheet.data.frames.len());
+                renderer.draw_spritesheet(spritesheet, bounding_box, animation.frame);
+            }
         }
 
         draw_top_info(renderer, module, bounding_box);
