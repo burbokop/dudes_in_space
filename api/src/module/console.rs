@@ -3,10 +3,7 @@ use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
 use crate::person::Role;
-use crate::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactoryOutputDescription,
-    OutputItemRecipe,
-};
+use crate::recipe::{AssemblyRecipe, InputItemRecipe, InputItemRecipeHash, ItemRecipe, ItemRecipeHash, ModuleFactoryOutputDescription, OutputItemRecipe, OutputItemRecipeHash};
 use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrder, BuyCustomVesselOrderEstimate, BuyOffer, BuyOrder,
     BuyVesselOffer, BuyVesselOrder, OfferId, SellOffer, SellOrder, WeakBuyCustomVesselOrder,
@@ -189,10 +186,12 @@ pub trait CraftingConsole {
     fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize>;
     fn recipe_by_hash(&self, hash: ItemRecipeHash) -> Option<usize>;
+    fn recipe_by_output_hash(&self, hash: OutputItemRecipeHash) -> Option<usize>;
+    fn recipe_by_input_hash(&self, hash: InputItemRecipeHash) -> Option<usize>;
 
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription;
     fn recipe_item_output(&self, index: usize) -> Option<OutputItemRecipe>;
-    fn recipe_input(&self, index: usize) -> Option<InputItemRecipe>;
+    fn recipe_item_input(&self, index: usize) -> Option<InputItemRecipe>;
     fn item_recipe(&self, index: usize) -> Option<ItemRecipe>;
 
     // returns index in array. TODO replace with uuid

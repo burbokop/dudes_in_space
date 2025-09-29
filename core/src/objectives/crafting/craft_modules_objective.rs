@@ -1,5 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{Bank, Money};
+use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{
@@ -8,7 +8,6 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe};
 use dudes_in_space_api::utils::math::Zero;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
-use rand::rng;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -164,18 +163,8 @@ impl Objective for CraftModulesObjective {
                     self.state = State::Crafting {
                         process: None,
                         total_cost_price: Some(Money {
-                            currency: this_person.finance.preferred_currency_or_create(
-                                environment_context.bank_registry(),
-                                Bank::new(
-                                    this_person.id.clone(),
-                                    this_person_wallet_id,
-                                    environment_context.currency_generator().generate_name(
-                                        &mut rng(),
-                                        environment_context.bank_registry(),
-                                        this_person,
-                                    ),
-                                ),
-                            ),
+                            currency: this_person
+                                .preferred_currency_or_create_default(environment_context),
                             amount: Zero::zero(),
                         }),
                     };
@@ -219,7 +208,7 @@ impl Objective for CraftModulesObjective {
                                 .start(recipe_index, self.args.deploy)
                                 .unwrap(),
                             cost_price: calculate_cost_price(
-                                assembly_console.recipe_input(recipe_index).unwrap(),
+                                assembly_console.recipe_item_input(recipe_index).unwrap(),
                                 this_person.notes.purchased_items_max_prices(),
                             )
                             .ok(),
@@ -258,7 +247,7 @@ impl Objective for CraftModulesObjective {
                                 .start(recipe_index, self.args.deploy)
                                 .unwrap(),
                             cost_price: calculate_cost_price(
-                                assembly_console.recipe_input(recipe_index).unwrap(),
+                                assembly_console.recipe_item_input(recipe_index).unwrap(),
                                 this_person.notes.purchased_items_max_prices(),
                             )
                             .ok(),

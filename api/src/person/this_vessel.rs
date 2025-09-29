@@ -218,7 +218,7 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
             .modules_with_capability(ModuleCapability::ItemCrafting)
         {
             for r in module.item_recipes() {
-                if r.default_hash() == recipe {
+                if r.hash() == recipe {
                     let r = r.clone();
                     return Some((ModuleRef::Other(module), r));
                 }

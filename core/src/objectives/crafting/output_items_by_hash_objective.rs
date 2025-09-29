@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent, StorageRole};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::recipe::{ItemRecipe, ItemRecipeHash};
+use dudes_in_space_api::recipe::{  OutputItemRecipe, OutputItemRecipeHash};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
@@ -11,14 +11,12 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
-pub(crate) struct CraftItemsByHashObjectiveArgs {
-    pub(crate) recipe_hash: ItemRecipeHash,
+pub(crate) struct OutputItemsByHashObjectiveArgs {
+    pub(crate) recipe_hash: OutputItemRecipeHash,
     /// Stop producing when reached the limit
     pub(crate) output_limit: BTreeMap<ItemId, ItemCount>,
     /// Wait indefinitely if false
     pub(crate) done_if_reached_limit: bool,
-    /// Wait indefinitely if false
-    pub(crate) err_if_lack_ingredients: bool,
     pub(crate) interrupt_after_each_craft: bool,
     pub(crate) start_interrupted: bool,
 }
@@ -44,8 +42,8 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct CraftItemsByHashObjective {
-    args: CraftItemsByHashObjectiveArgs,
+pub(crate) struct OutputItemsByHashObjective {
+    args: OutputItemsByHashObjectiveArgs,
     state: State,
     #[serde(
         skip_serializing_if = "Option::is_none",
@@ -55,10 +53,10 @@ pub(crate) struct CraftItemsByHashObjective {
     crafting_module: Option<ModuleId>,
 }
 
-impl CraftItemsByHashObjective {
-    pub(crate) fn new(args: CraftItemsByHashObjectiveArgs, logger: &mut PersonLogger) -> Self {
+impl OutputItemsByHashObjective {
+    pub(crate) fn new(args: OutputItemsByHashObjectiveArgs, logger: &mut PersonLogger) -> Self {
         logger.info(format!(
-            "Switched to craft items by hash objective (args: {:?})",
+            "Switched to output items by hash objective (args: {:?})",
             args,
         ));
         Self {
@@ -68,11 +66,11 @@ impl CraftItemsByHashObjective {
         }
     }
 
-    fn is_recipe_set_suitable(recipes: &[ItemRecipe], hash: ItemRecipeHash) -> bool {
+    fn is_recipe_set_suitable(recipes: &[OutputItemRecipe], hash: OutputItemRecipeHash) -> bool {
         recipes.iter().find(|r| r.hash() == hash).is_some()
     }
 
-    pub(crate) fn args(&self) -> &CraftItemsByHashObjectiveArgs {
+    pub(crate) fn args(&self) -> &OutputItemsByHashObjectiveArgs {
         &self.args
     }
 
@@ -95,9 +93,9 @@ impl CraftItemsByHashObjective {
     }
 }
 
-impl Objective for CraftItemsByHashObjective {
+impl Objective for OutputItemsByHashObjective {
     type Result = ();
-    type Error = CraftItemsByHashObjectiveError;
+    type Error = OutputItemsByHashObjectiveError;
 
     fn pursue(
         &mut self,
@@ -110,7 +108,7 @@ impl Objective for CraftItemsByHashObjective {
         match &mut self.state {
             State::SearchingForCraftingModule => {
                 if let Some(console) = this_module.crafting_console() {
-                    if Self::is_recipe_set_suitable(console.item_recipes(), self.args.recipe_hash) {
+                    if Self::is_recipe_set_suitable(console.output_item_recipes(), self.args.recipe_hash) {
                         logger.info("Moving to crafting module...");
 
                         self.crafting_module = Some(this_module.id());
@@ -125,10 +123,10 @@ impl Objective for CraftItemsByHashObjective {
                 }
 
                 for crafting_module in
-                    this_vessel.modules_with_capability(ModuleCapability::ItemCrafting)
+                    this_vessel.modules_with_capability(ModuleCapability::ItemProduction)
                 {
                     if Self::is_recipe_set_suitable(
-                        crafting_module.item_recipes(),
+                        crafting_module.output_item_recipes(),
                         self.args.recipe_hash,
                     ) && crafting_module.free_person_slots_count() > 0
                     {
@@ -144,7 +142,7 @@ impl Objective for CraftItemsByHashObjective {
                         return Ok(ObjectiveStatus::InProgress);
                     }
                 }
-                Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule)
+                Err(OutputItemsByHashObjectiveError::CanNotFindCraftingModule)
             }
             State::Crafting {
                 move_objective,
@@ -182,16 +180,8 @@ impl Objective for CraftItemsByHashObjective {
 
                         let crafting_console = this_module.crafting_console_mut().unwrap();
                         let recipe_index = crafting_console
-                            .recipe_by_hash(self.args.recipe_hash)
+                            .recipe_by_output_hash(self.args.recipe_hash)
                             .unwrap();
-
-                        if !crafting_console.has_resources_for_recipe(recipe_index) {
-                            return if self.args.err_if_lack_ingredients {
-                                Err(CraftItemsByHashObjectiveError::LackIngredients)
-                            } else {
-                                Ok(ObjectiveStatus::InProgress)
-                            };
-                        }
 
                         assert!(process_token.is_none());
                         *process_token = Some(crafting_console.start(recipe_index, false).unwrap());
@@ -233,20 +223,20 @@ impl Objective for CraftItemsByHashObjective {
 }
 
 #[derive(Debug)]
-pub(crate) enum CraftItemsByHashObjectiveError {
+pub(crate) enum OutputItemsByHashObjectiveError {
     CanNotFindCraftingModule,
     LackIngredients,
 }
 
-impl Display for CraftItemsByHashObjectiveError {
+impl Display for OutputItemsByHashObjectiveError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
-impl Error for CraftItemsByHashObjectiveError {}
+impl Error for OutputItemsByHashObjectiveError {}
 
-impl Display for CraftItemsByHashObjective {
+impl Display for OutputItemsByHashObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.state {
             State::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),

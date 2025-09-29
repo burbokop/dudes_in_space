@@ -1,8 +1,10 @@
+use crate::environment::EnvironmentContext;
 use crate::finance::{
-    BankRegistry, Money, PersonalFinancePackage, WalletRegistry, WithdrawalError,
+    Bank, BankRegistry, Currency, Money, PersonalFinancePackage, WalletRegistry, WithdrawalError,
 };
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{Awareness, Boldness, Gender, Morale, Passion, PersonId};
+use rand::rng;
 
 #[derive(Debug)]
 pub struct ThisPerson<'a> {
@@ -62,5 +64,24 @@ impl<'a> ThisPerson<'a> {
                 Ok(())
             }
         }
+    }
+
+    pub fn preferred_currency_or_create_default(
+        &mut self,
+        environment_context: &EnvironmentContext,
+    ) -> Currency {
+        let this_person_wallet_id = self.finance.wallet().id().clone();
+        self.finance.preferred_currency_or_create(
+            environment_context.bank_registry(),
+            Bank::new(
+                self.id.clone(),
+                this_person_wallet_id,
+                environment_context.currency_generator().generate_name(
+                    &mut rng(),
+                    environment_context.bank_registry(),
+                    self,
+                ),
+            ),
+        )
     }
 }

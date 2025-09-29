@@ -1,4 +1,5 @@
 #![feature(map_try_insert)]
+#![feature(push_mut)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]

@@ -217,6 +217,10 @@ impl Module for PersonnelArea {
     fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
+
+    fn active(&self) -> bool {
+        todo!()
+    }
 }
 
 impl CoreModule for PersonnelArea {

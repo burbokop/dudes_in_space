@@ -232,6 +232,10 @@ impl Module for Shuttle {
     fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
         todo!()
     }
+
+    fn active(&self) -> bool {
+        todo!()
+    }
 }
 
 pub(crate) struct ShuttleDynSeed {

@@ -360,6 +360,10 @@ impl Module for Dockyard {
             .proceed(environment_context, decider_vault, logger);
     }
 
+    fn active(&self) -> bool {
+        todo!()
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         if let Some(operator) = &self.operator {

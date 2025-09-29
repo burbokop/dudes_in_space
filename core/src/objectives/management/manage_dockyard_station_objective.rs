@@ -6,7 +6,7 @@ use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffe
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
 };
-use dudes_in_space_api::finance::{Bank, Currency, Money};
+use dudes_in_space_api::finance::{Currency, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemVolume};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{
@@ -22,7 +22,6 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
-use rand::rng;
 use serde::Serialize;
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
@@ -183,18 +182,7 @@ impl Objective for ManageDockyardStationObjective {
 
                         let this_person_wallet_id = this_person.finance.wallet().id().clone();
                         let target_currency: Currency =
-                            this_person.finance.preferred_currency_or_create(
-                                environment_context.bank_registry(),
-                                Bank::new(
-                                    this_person.id.clone(),
-                                    this_person_wallet_id,
-                                    environment_context.currency_generator().generate_name(
-                                        &mut rng(),
-                                        environment_context.bank_registry(),
-                                        this_person,
-                                    ),
-                                ),
-                            );
+                            this_person.preferred_currency_or_create_default(environment_context);
 
                         let cheapest_buy_offer = search_result
                             .max_profit_buy_offers

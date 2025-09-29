@@ -1,5 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{Bank, Money, MoneyAmount};
+use dudes_in_space_api::finance::{Money, MoneyAmount};
 use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
@@ -7,7 +7,6 @@ use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe};
 use dudes_in_space_api::utils::math::NonNeg;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
-use rand::rng;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -133,20 +132,8 @@ impl Objective for PlaceBuyCustomVesselOfferObjective {
                     person: &mut ThisPerson,
                     environment_context: &EnvironmentContext,
                 ) -> Money {
-                    let this_person_wallet_id = person.finance.wallet().id().clone();
                     Money {
-                        currency: person.finance.preferred_currency_or_create(
-                            environment_context.bank_registry(),
-                            Bank::new(
-                                person.id.clone(),
-                                this_person_wallet_id,
-                                environment_context.currency_generator().generate_name(
-                                    &mut rng(),
-                                    environment_context.bank_registry(),
-                                    person,
-                                ),
-                            ),
-                        ),
+                        currency: person.preferred_currency_or_create_default(environment_context),
                         amount: NonNeg::new(1).unwrap(),
                     }
                 }

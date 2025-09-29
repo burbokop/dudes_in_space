@@ -17,10 +17,7 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, AssemblyRecipeSeed, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactory,
-    ModuleFactoryOutputDescription, OutputItemRecipe,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, AssemblyRecipeSeed, InputItemRecipe, InputItemRecipeHash, ItemRecipe, ItemRecipeHash, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe, OutputItemRecipeHash};
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -350,6 +347,14 @@ impl<'a> CraftingConsole for Console<'a> {
         None
     }
 
+    fn recipe_by_output_hash(&self, hash: OutputItemRecipeHash) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_by_input_hash(&self, hash: InputItemRecipeHash) -> Option<usize> {
+        todo!()
+    }
+
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription {
         self.recipes[index].output_description()
     }
@@ -358,7 +363,7 @@ impl<'a> CraftingConsole for Console<'a> {
         todo!()
     }
 
-    fn recipe_input(&self, index: usize) -> Option<InputItemRecipe> {
+    fn recipe_item_input(&self, index: usize) -> Option<InputItemRecipe> {
         self.input_recipes.get(index).cloned()
     }
 
@@ -483,6 +488,13 @@ impl Module for Assembler {
                     }
                 },
             }
+        }
+    }
+
+    fn active(&self) -> bool {
+        match &self.state {
+            AssemblerState::Idle => false,
+            AssemblerState::Assembling { .. } => true,
         }
     }
 

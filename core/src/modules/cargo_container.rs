@@ -87,6 +87,10 @@ impl Module for CargoContainer {
     ) {
     }
 
+    fn active(&self) -> bool {
+        todo!()
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         collector.exit_module();

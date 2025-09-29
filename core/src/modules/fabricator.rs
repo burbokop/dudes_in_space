@@ -12,10 +12,7 @@ use dudes_in_space_api::module::{
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
 };
-use dudes_in_space_api::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, ModuleFactory,
-    ModuleFactoryOutputDescription, OutputItemRecipe,
-};
+use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, InputItemRecipeHash, ItemRecipe, ItemRecipeHash, ModuleFactory, ModuleFactoryOutputDescription, OutputItemRecipe, OutputItemRecipeHash};
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -301,7 +298,15 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_by_hash(&self, hash: ItemRecipeHash) -> Option<usize> {
-        RECIPES.iter().position(|r| r.default_hash() == hash)
+        RECIPES.iter().position(|r| r.hash() == hash)
+    }
+
+    fn recipe_by_output_hash(&self, hash: OutputItemRecipeHash) -> Option<usize> {
+        todo!()
+    }
+
+    fn recipe_by_input_hash(&self, hash: InputItemRecipeHash) -> Option<usize> {
+        todo!()
     }
 
     fn recipe_output_description(&self, index: usize) -> &dyn ModuleFactoryOutputDescription {
@@ -312,9 +317,10 @@ impl<'a> CraftingConsole for Console<'a> {
         todo!()
     }
 
-    fn recipe_input(&self, index: usize) -> Option<InputItemRecipe> {
+    fn recipe_item_input(&self, index: usize) -> Option<InputItemRecipe> {
         todo!()
     }
+
 
     fn item_recipe(&self, index: usize) -> Option<ItemRecipe> {
         RECIPES.get(index).cloned()
@@ -409,6 +415,13 @@ impl Module for Fabricator {
                     }
                 },
             }
+        }
+    }
+
+    fn active(&self) -> bool {
+        match &self.state {
+            FabricatorState::Idle => false,
+            FabricatorState::Fabricating { .. } => true,
         }
     }
 

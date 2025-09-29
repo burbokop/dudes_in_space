@@ -1,7 +1,5 @@
 use crate::objectives::common::MoveToModuleObjective;
-use crate::objectives::crafting::{
-    CraftItemsByHashObjective, CraftModulesObjectiveArgs, CraftModulesObjectiveError,
-};
+use crate::objectives::crafting::{CraftItemsByHashObjective, CraftModulesObjectiveArgs, CraftModulesObjectiveError, OutputItemsByHashObjective};
 use crate::objectives::crafting::{
     CraftItemsByHashObjectiveArgs, CraftItemsByHashObjectiveError, CraftModulesObjective,
     RequireModulesObjective,
@@ -17,7 +15,9 @@ use dudes_in_space_api::person::{
     tie,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
-use dudes_in_space_api::trade::{BuyOffer, OfferId, SellOffer};
+use dudes_in_space_api::trade::OfferId;
+use dudes_in_space_api::utils::math::NonNeg;
+use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
@@ -89,8 +89,8 @@ pub(crate) enum ManageProductionStationObjective {
     AssembleSpecificCrafter {
         craft_objective: CraftModulesObjective,
     },
-    ExecuteProduction {
-        production_candidate: ProductionCandidate,
+    ExecuteProductionFromIngredients {
+        production_candidate: ProductionFromIngredientsCandidate,
         input_limit: BTreeMap<ItemId, ItemCount>,
         craft_objective: CraftItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
@@ -98,6 +98,13 @@ pub(crate) enum ManageProductionStationObjective {
         sell_offers: BTreeMap<ItemId, OfferId>,
         /// TODO: save placed offers here so u can know what to update
         buy_offers: BTreeMap<ItemId, OfferId>,
+    },
+    ExecuteProductionFromEnvironment {
+        production_candidate: ProductionFromEnvironmentCandidate,
+        output_objective: OutputItemsByHashObjective,
+        move_to_trading_terminal_objective: MoveToModuleObjective,
+        /// TODO: save placed offers here so u can know what to update
+        sell_offers: BTreeMap<ItemId, OfferId>,
     },
 }
 
@@ -206,10 +213,10 @@ impl Objective for ManageProductionStationObjective {
                             &output_recipes_to_consider,
                             &recipes_to_consider,
                         ) {
-                            ChooseItemToProduceResult::Produce(production_candidate) => {
+                            Some(ProductionCandidate::FromIngredients(production_candidate)) => {
                                 let tied_vessel = tie(this_module, this_vessel);
                                 match tied_vessel
-                                    .find_item_recipe(production_candidate.recipe.default_hash())
+                                    .find_item_recipe(production_candidate.recipe.hash())
                                 {
                                     None => {
                                         // TODO craft specific module for this recipe
@@ -281,7 +288,10 @@ impl Objective for ManageProductionStationObjective {
                                         *self = Self::RequireModules {
                                             input_limit,
                                             output_limit,
-                                            production_candidate: production_candidate.clone(),
+                                            production_candidate:
+                                                ProductionCandidate::FromIngredients(
+                                                    production_candidate,
+                                                ),
                                             objective: RequireModulesObjective::new(
                                                 REQUIRED_CAPS.into(),
                                                 [].into(),
@@ -292,8 +302,10 @@ impl Objective for ManageProductionStationObjective {
                                     }
                                 }
                             }
-                            ChooseItemToProduceResult::ProduceFromEnvironment { .. } => todo!(),
-                            ChooseItemToProduceResult::NotFound => todo!(),
+                            Some(ProductionCandidate::FromEnvironment(production_candidate)) => {
+                                todo!()
+                            }
+                            None => todo!(),
                         }
                     }
                 }
@@ -320,27 +332,34 @@ impl Objective for ManageProductionStationObjective {
                     let terminals =
                         tied_vessel.modules_with_capability(ModuleCapability::TradingTerminal);
 
-                    *self = Self::ExecuteProduction {
-                        input_limit: std::mem::take(input_limit),
-                        craft_objective: CraftItemsByHashObjective::new(
-                            CraftItemsByHashObjectiveArgs {
-                                recipe_hash: production_candidate.recipe.default_hash(),
-                                output_limit: std::mem::take(output_limit),
-                                done_if_reached_limit: false,
-                                err_if_lack_ingredients: false,
-                                interrupt_after_each_craft: true,
-                                start_interrupted: true,
-                            },
-                            logger,
-                        ),
-                        production_candidate: production_candidate.clone(),
-                        move_to_trading_terminal_objective: MoveToModuleObjective::new(
-                            terminals.first().unwrap().id(),
-                        ),
-                        buy_offers: BTreeMap::new(),
-                        sell_offers: BTreeMap::new(),
-                    };
-                    Ok(ObjectiveStatus::InProgress)
+                    match production_candidate {
+                        ProductionCandidate::FromIngredients(production_candidate) => {
+                            *self = Self::ExecuteProductionFromIngredients {
+                                input_limit: std::mem::take(input_limit),
+                                craft_objective: CraftItemsByHashObjective::new(
+                                    CraftItemsByHashObjectiveArgs {
+                                        recipe_hash: production_candidate.recipe.hash(),
+                                        output_limit: std::mem::take(output_limit),
+                                        done_if_reached_limit: false,
+                                        err_if_lack_ingredients: false,
+                                        interrupt_after_each_craft: true,
+                                        start_interrupted: true,
+                                    },
+                                    logger,
+                                ),
+                                production_candidate: production_candidate.clone(),
+                                move_to_trading_terminal_objective: MoveToModuleObjective::new(
+                                    terminals.first().unwrap().id(),
+                                ),
+                                buy_offers: BTreeMap::new(),
+                                sell_offers: BTreeMap::new(),
+                            };
+                            Ok(ObjectiveStatus::InProgress)
+                        }
+                        ProductionCandidate::FromEnvironment(production_candidate) => {
+                            todo!()
+                        }
+                    }
                 }
                 Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
             },
@@ -359,7 +378,7 @@ impl Objective for ManageProductionStationObjective {
                 }
                 Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
             },
-            Self::ExecuteProduction {
+            Self::ExecuteProductionFromIngredients {
                 production_candidate,
                 input_limit,
                 craft_objective,
@@ -405,29 +424,35 @@ impl Objective for ManageProductionStationObjective {
                                         .content()
                                         .lack(craft_objective.args().output_limit.clone());
 
-                                    let sell_offers_to_update: Vec<SellOffer> = input_needed
+                                    let mut offer_update_instructions: Vec<OfferUpdateInstruction> = input_needed
                                         .iter()
                                         .map(|(item, count)| {
                                             assert_ne!(*count, 0);
 
-                                            SellOffer {
-                                                id: sell_offers.get(item).unwrap().clone(),
+                                            OfferUpdateInstruction {
+                                                kind: OfferUpdateInstructionKind::Sell,
+                                                id: sell_offers.get(item).cloned(),
                                                 item: item.clone(),
                                                 count_range: (1..*count).into(),
                                                 price_per_unit: production_candidate
                                                     .average_ingredients_buy_price
                                                     .get(item)
-                                                    .unwrap()
-                                                    .clone(),
+                                                    .cloned()
+                                                    .unwrap_or_else(||
+                                                        Money {
+                                                            currency: this_person.preferred_currency_or_create_default(
+                                                                environment_context,
+                                                            ),
+                                                            amount: NonNeg::new( 1).unwrap(),
+                                                        }
+                                                    )
                                             }
                                         })
                                         .collect();
 
-                                    let buy_offers_to_update: Vec<BuyOffer> = vec![BuyOffer {
-                                        id: buy_offers
-                                            .get(&production_candidate.product)
-                                            .unwrap()
-                                            .clone(),
+                                    offer_update_instructions.push(OfferUpdateInstruction {
+                                        kind: OfferUpdateInstructionKind::Buy,
+                                        id: buy_offers.get(&production_candidate.product).cloned(),
                                         item: production_candidate.product.clone(),
                                         count_range: (1..output_needed
                                             .get(&production_candidate.product)
@@ -438,16 +463,18 @@ impl Objective for ManageProductionStationObjective {
                                             .average_product_sell_price
                                             .clone()
                                             * this_person.notes.margin(),
-                                    }];
+                                    });
 
                                     drop(crafting_module);
                                     place_or_update_offers(
                                         this_module.trading_admin_console_mut().unwrap(),
-                                        sell_offers_to_update,
-                                        buy_offers_to_update,
+                                        offer_update_instructions,
+                                        sell_offers,
+                                        buy_offers,
                                     );
 
-                                    todo!("Update offers. than call `craft_objective.resume()`")
+                                    craft_objective.resume();
+                                    Ok(ObjectiveStatus::InProgress)
                                 }
                                 Err(err) => todo!("{:?}", err),
                             }
@@ -460,7 +487,9 @@ impl Objective for ManageProductionStationObjective {
                         *self = Self::RequireModules {
                             input_limit: std::mem::take(input_limit),
                             output_limit: craft_objective.args().output_limit.clone(),
-                            production_candidate: production_candidate.clone(),
+                            production_candidate: ProductionCandidate::FromIngredients(
+                                production_candidate.clone(),
+                            ),
                             objective: RequireModulesObjective::new(
                                 REQUIRED_CAPS.into(),
                                 [].into(),
@@ -474,6 +503,7 @@ impl Objective for ManageProductionStationObjective {
                     }
                 }
             }
+            Self::ExecuteProductionFromEnvironment { .. } => todo!()
         }
     }
 }
@@ -561,9 +591,12 @@ impl Display for ManageProductionStationObjective {
             Self::AssembleSpecificCrafter { craft_objective } => {
                 write!(f, "RequireModules -> {}", craft_objective)
             }
-            Self::ExecuteProduction {
+            Self::ExecuteProductionFromIngredients {
                 craft_objective, ..
-            } => write!(f, "ExecuteProduction -> {}", craft_objective),
+            } => write!(f, "ExecuteProductionFromIngredients -> {}", craft_objective),
+            Self::ExecuteProductionFromEnvironment {
+                output_objective, ..
+            } => write!(f, "ExecuteProductionFromEnvironment -> {}", output_objective),
         }
     }
 }
@@ -598,7 +631,7 @@ struct ProductionCandidateEstimate {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct ProductionCandidate {
+pub(crate) struct ProductionFromIngredientsCandidate {
     product: ItemId,
     average_product_sell_price: Money,
     average_ingredients_buy_price: BTreeMap<ItemId, Money>,
@@ -609,13 +642,32 @@ pub(crate) struct ProductionCandidate {
     estimate: Option<ProductionCandidateEstimate>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct ProductionFromEnvironmentCandidate {
+    product: ItemId,
+    average_product_sell_price: Money,
+    average_ingredients_buy_price: BTreeMap<ItemId, Money>,
+    has_all_ingredients_on_market: bool,
+    has_producers_on_market: bool,
+    recipe: ItemRecipe,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
+    estimate: Option<ProductionCandidateEstimate>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "tp")]
+pub(crate) enum ProductionCandidate {
+    FromIngredients(ProductionFromIngredientsCandidate),
+    FromEnvironment(ProductionFromEnvironmentCandidate),
+}
+
 impl Display for ProductionCandidateEstimate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
 
-impl Display for ProductionCandidate {
+impl Display for ProductionFromIngredientsCandidate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.estimate {
             None => write!(
@@ -641,11 +693,24 @@ impl Display for ProductionCandidate {
     }
 }
 
+impl Display for ProductionFromEnvironmentCandidate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Display for ProductionCandidate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 impl ProductionCandidate {
     fn build_vec(
         search_result: &FindBestOffersForItemsResult,
         items_to_consider: BTreeMap<ItemId, Money>,
         recipes_to_consider: &BTreeSet<ItemRecipe>,
+        output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
     ) -> Vec<Self> {
         items_to_consider
             .into_iter()
@@ -656,6 +721,8 @@ impl ProductionCandidate {
                     .find(|(offer_item, _)| *offer_item == &item)
                     .is_some();
 
+                println!("recipes_to_consider: {:?}", recipes_to_consider);
+
                 match recipes_to_consider.iter().find(|recipe| {
                     recipe
                         .output
@@ -664,10 +731,27 @@ impl ProductionCandidate {
                         .is_some()
                 }) {
                     None => {
-                        // Should check if the output recipe requires some action to produce
-                        // if not return true
-                        // if yes, check if it can do this action (for example, mine asteroids or collect gas from nebula, or some other natural occurring resource)
-                        todo!("has only and output recipe")
+                        println!(
+                            "output_recipes_to_consider: {:?}",
+                            output_recipes_to_consider
+                        );
+
+                        match output_recipes_to_consider.iter().find(|recipe| {
+                            recipe
+                                .items()
+                                .find(|recipe_item| *recipe_item == &item)
+                                .is_some()
+                        }) {
+                            None => {
+                                todo!()
+                            }
+                            Some(recipe) => {
+                                // Should check if the output recipe requires some action to produce
+                                // if not return true
+                                // if yes, check if it can do this action (for example, mine asteroids or collect gas from nebula, or some other natural occurring resource)
+                                todo!("has only an output recipe: {:?}", recipe)
+                            }
+                        }
                     }
                     Some(recipe) => {
                         assert!(!recipe.input.is_empty());
@@ -703,7 +787,7 @@ impl ProductionCandidate {
                             .iter()
                             .find(|(offer_item, _)| *offer_item == &item)
                         {
-                            Some(Self {
+                            Some(Self::FromIngredients(ProductionFromIngredientsCandidate {
                                 product: item.clone(),
                                 average_product_sell_price: average_product_sell_price.clone(),
                                 average_ingredients_buy_price,
@@ -719,7 +803,7 @@ impl ProductionCandidate {
                                             .unwrap(),
                                     },
                                 ),
-                            })
+                            }))
                         } else {
                             None
                         }
@@ -728,14 +812,6 @@ impl ProductionCandidate {
             })
             .collect()
     }
-}
-
-enum ChooseItemToProduceResult {
-    Produce(ProductionCandidate),
-    ProduceFromEnvironment {
-        // TODO for example: mine, collect gas, collect solar energy, etc.
-    },
-    NotFound,
 }
 
 fn cmp_option<T, F: FnOnce(T, T) -> Ordering>(a: Option<T>, b: Option<T>, f: F) -> Ordering {
@@ -753,7 +829,7 @@ fn choose_item_to_produce(
     search_result: &FindBestOffersForItemsResult,
     output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
     recipes_to_consider: &BTreeSet<ItemRecipe>,
-) -> ChooseItemToProduceResult {
+) -> Option<ProductionCandidate> {
     let items_in_demand = calc_items_in_demand(&search_result, &output_recipes_to_consider);
 
     if !items_in_demand.is_empty() {
@@ -761,15 +837,23 @@ fn choose_item_to_produce(
             println!("items_in_demand: {:?}", item);
         });
 
-        let mut production_candidates =
-            ProductionCandidate::build_vec(search_result, items_in_demand, recipes_to_consider);
+        let mut production_candidates = ProductionCandidate::build_vec(
+            search_result,
+            items_in_demand,
+            recipes_to_consider,
+            output_recipes_to_consider,
+        );
         if !production_candidates.is_empty() {
             for i in &production_candidates {
                 println!("production_candidates: {}", i);
             }
 
-            production_candidates.sort_by(|a, b| {
-                a.has_producers_on_market
+            production_candidates.sort_by(|a, b| match (a, b) {
+                (
+                    ProductionCandidate::FromIngredients(a),
+                    ProductionCandidate::FromIngredients(b),
+                ) => a
+                    .has_producers_on_market
                     .cmp(&b.has_producers_on_market)
                     .then(
                         a.has_all_ingredients_on_market
@@ -784,7 +868,19 @@ fn choose_item_to_produce(
                         a.average_ingredients_buy_price
                             .len()
                             .cmp(&b.average_ingredients_buy_price.len()),
-                    )
+                    ),
+                (
+                    ProductionCandidate::FromEnvironment(a),
+                    ProductionCandidate::FromEnvironment(b),
+                ) => todo!(),
+                (
+                    ProductionCandidate::FromIngredients(a),
+                    ProductionCandidate::FromEnvironment(b),
+                ) => Ordering::Less,
+                (
+                    ProductionCandidate::FromEnvironment(a),
+                    ProductionCandidate::FromIngredients(b),
+                ) => Ordering::Equal,
             });
 
             for i in &production_candidates {
@@ -792,16 +888,7 @@ fn choose_item_to_produce(
             }
 
             let best_candidate = production_candidates.first().unwrap();
-
-            let item_recipe = recipes_to_consider
-                .iter()
-                .find(|recipe| recipe.output.contains(&best_candidate.product))
-                .unwrap();
-
-            // TODO: if `item_recipe` not found try:
-            // output_recipes_to_consider.iter().find(|recipe| recipe.contains(item))
-
-            ChooseItemToProduceResult::Produce(best_candidate.clone())
+            Some(best_candidate.clone())
         } else {
             todo!(
                 "Find item with best profit setting buy price as cheap as possible while sustaining margin"
@@ -812,52 +899,71 @@ fn choose_item_to_produce(
     }
 }
 
+enum OfferUpdateInstructionKind {
+    Buy,
+    Sell,
+}
+
+struct OfferUpdateInstruction {
+    pub kind: OfferUpdateInstructionKind,
+    pub id: Option<OfferId>,
+    pub item: ItemId,
+    pub count_range: Range<ItemCount>,
+    pub price_per_unit: Money,
+}
+
 fn place_or_update_offers(
     trading_console: &mut dyn AdminTradingConsole,
-    sell_offers_to_update: Vec<SellOffer>,
-    buy_offers_to_update: Vec<BuyOffer>,
+    instructions: Vec<OfferUpdateInstruction>,
+    sell_offers: &mut BTreeMap<ItemId, OfferId>,
+    buy_offers: &mut BTreeMap<ItemId, OfferId>,
 ) {
-    for offer in sell_offers_to_update {
-        if trading_console
-            .sell_offers()
-            .iter()
-            .find(|x| x.id == offer.id)
-            .is_some()
-        {
-            trading_console
-                .update_sell_offer(
-                    offer.id,
-                    offer.item,
-                    offer.count_range,
-                    offer.price_per_unit,
-                )
-                .unwrap();
-        } else {
-            trading_console
-                .place_sell_offer(offer.item, offer.count_range, offer.price_per_unit)
-                .unwrap();
-        }
-    }
-
-    for offer in buy_offers_to_update {
-        if trading_console
-            .buy_offers()
-            .iter()
-            .find(|x| x.id == offer.id)
-            .is_some()
-        {
-            trading_console
-                .update_buy_offer(
-                    offer.id,
-                    offer.item,
-                    offer.count_range,
-                    offer.price_per_unit,
-                )
-                .unwrap();
-        } else {
-            trading_console
-                .place_buy_offer(offer.item, offer.count_range, offer.price_per_unit)
-                .unwrap();
+    for instruction in instructions {
+        match instruction.kind {
+            OfferUpdateInstructionKind::Buy => {
+                if let Some(id) = instruction.id {
+                    trading_console
+                        .update_buy_offer(
+                            id,
+                            instruction.item,
+                            instruction.count_range,
+                            instruction.price_per_unit,
+                        )
+                        .unwrap();
+                } else {
+                    let offer = trading_console
+                        .place_buy_offer(
+                            instruction.item,
+                            instruction.count_range,
+                            instruction.price_per_unit,
+                        )
+                        .unwrap();
+                    buy_offers.try_insert(offer.item.clone(), offer.id).unwrap();
+                }
+            }
+            OfferUpdateInstructionKind::Sell => {
+                if let Some(id) = instruction.id {
+                    trading_console
+                        .update_sell_offer(
+                            id,
+                            instruction.item,
+                            instruction.count_range,
+                            instruction.price_per_unit,
+                        )
+                        .unwrap();
+                } else {
+                    let offer = trading_console
+                        .place_sell_offer(
+                            instruction.item,
+                            instruction.count_range,
+                            instruction.price_per_unit,
+                        )
+                        .unwrap();
+                    sell_offers
+                        .try_insert(offer.item.clone(), offer.id)
+                        .unwrap();
+                }
+            }
         }
     }
 }

@@ -11,7 +11,9 @@ use crate::module::{Module, ModuleCapability, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
 use crate::trade::{BuyOffer, ItemTradeTable, OfferRef, SellOffer, VesselTradeTable};
 use crate::utils::request::ReqContext;
-use crate::vessel::{Vessel, VesselConsole, VesselId, VesselIdPath, VesselSeed};
+use crate::vessel::{
+    Vessel, VesselConsole, VesselId, VesselIdPath, VesselInternalConsole, VesselSeed,
+};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;

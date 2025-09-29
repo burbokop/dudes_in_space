@@ -70,6 +70,10 @@ impl Module for PlantFacility {
         todo!()
     }
 
+    fn active(&self) -> bool {
+        todo!()
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         todo!()
     }

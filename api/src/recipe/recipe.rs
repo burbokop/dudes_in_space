@@ -30,9 +30,9 @@ impl Error for CraftingError {}
 pub type ItemRecipeHash = u64;
 
 impl ItemRecipe {
-    pub fn default_hash(&self) -> ItemRecipeHash {
+    pub fn hash(&self) -> ItemRecipeHash {
         let mut s = DefaultHasher::new();
-        self.hash(&mut s);
+        Hash::hash(self, &mut s);
         s.finish()
     }
 
@@ -75,7 +75,15 @@ impl<'a> IntoIterator for &'a InputItemRecipe {
     }
 }
 
+pub type InputItemRecipeHash = u64;
+
 impl InputItemRecipe {
+    pub fn hash(&self) -> InputItemRecipeHash {
+        let mut s = DefaultHasher::new();
+        Hash::hash(self, &mut s);
+        s.finish()
+    }
+
     pub fn len(&self) -> usize {
         self.input.len()
     }
@@ -167,7 +175,15 @@ pub struct OutputItemRecipe {
     output: BTreeMap<ItemId, ItemCount>,
 }
 
+pub type OutputItemRecipeHash = u64;
+
 impl OutputItemRecipe {
+    pub fn hash(&self) -> OutputItemRecipeHash {
+        let mut s = DefaultHasher::new();
+        Hash::hash(self, &mut s);
+        s.finish()
+    }
+
     pub fn len(&self) -> usize {
         self.output.len()
     }

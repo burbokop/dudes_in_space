@@ -257,6 +257,10 @@ impl Module for TradingTerminal {
         }
     }
 
+    fn active(&self) -> bool {
+        todo!()
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         collector.exit_module();
@@ -439,7 +443,12 @@ impl<'a> AdminTradingConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
-        todo!()
+        Some(self.buy_offers.push_mut(BuyOffer {
+            id: OfferId::new_v4(),
+            item,
+            count_range,
+            price_per_unit,
+        }))
     }
 
     fn update_buy_offer(

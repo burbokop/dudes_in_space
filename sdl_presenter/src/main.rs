@@ -64,12 +64,15 @@ fn main() {
             include_bytes!("../assets/assembler.png"),
             include_bytes!("../assets/assembler.json"),
         )
+        .with(
+            module_types::PERSONNEL_AREA.into(),
+            include_bytes!("../assets/personnel_area.png"),
+        )
         .build();
+
     let render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());
     let font_provider = FontProvider::new();
-
     let mut renderer = Renderer::new(canvas, &texture_creator, font_provider);
-
     let components = core_components();
     let mut environment = load(&components, save_path.clone());
     let mut person_table = PersonTable::new(&environment);

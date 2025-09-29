@@ -340,6 +340,10 @@ impl Module for VesselSellingTerminal {
         }
     }
 
+    fn active(&self) -> bool {
+        todo!()
+    }
+
     fn collect_status(&self, collector: &mut dyn StatusCollector) {
         collector.enter_module(self);
         if let Some(operator) = &self.operator {

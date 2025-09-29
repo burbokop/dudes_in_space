@@ -50,7 +50,11 @@ pub struct OfferRef<Offer> {
 
 impl Display for BuyOffer {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(
+            f,
+            "{} {} for {}",
+            self.count_range, self.item, self.price_per_unit
+        )
     }
 }
 

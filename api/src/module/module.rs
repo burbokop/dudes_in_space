@@ -28,6 +28,9 @@ pub trait Module: Debug + DynSerialize {
         logger: &mut dyn Logger,
     );
 
+    /// Returns true if enabled in some way or a person is working on it. Meant to be used for animation
+    fn active(&self) -> bool;
+
     fn collect_status(&self, collector: &mut dyn StatusCollector);
 
     /// crafting

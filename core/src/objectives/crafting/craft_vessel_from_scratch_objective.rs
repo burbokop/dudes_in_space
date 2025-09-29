@@ -3,12 +3,11 @@ use crate::objectives::crafting::{
     CraftModulesObjectiveArgs, CraftModulesObjectiveError,
 };
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::finance::{Bank, Money};
+use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::utils::math::Zero;
 use dudes_in_space_api::vessel::VesselInternalConsole;
-use rand::rng;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -72,18 +71,7 @@ impl CraftVesselFromScratchObjective {
             needed_primary_capabilities: needed_primary_capabilities.into_iter().collect(),
             wait_if_has_no_ingredients,
             total_cost_price: Some(Money {
-                currency: this_person.finance.preferred_currency_or_create(
-                    environment_context.bank_registry(),
-                    Bank::new(
-                        this_person.id.clone(),
-                        this_person_wallet_id,
-                        environment_context.currency_generator().generate_name(
-                            &mut rng(),
-                            environment_context.bank_registry(),
-                            this_person,
-                        ),
-                    ),
-                ),
+                currency: this_person.preferred_currency_or_create_default(environment_context),
                 amount: Zero::zero(),
             }),
         }

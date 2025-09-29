@@ -253,39 +253,6 @@ impl Vessel {
         })
     }
 
-    pub fn module_by_id<'a>(&'a self, id: ModuleId) -> Option<Ref<'a, dyn Module>> {
-        self.modules
-            .iter()
-            .find_map(|module| match module.try_borrow() {
-                Ok(module) => {
-                    if module.id() == id {
-                        Some(Ref::map(module, |x| x.deref()))
-                    } else {
-                        None
-                    }
-                }
-                Err(_) => None,
-            })
-    }
-
-    pub fn module_by_id_mut<'a>(&'a self, id: ModuleId) -> Option<RefMut<'a, dyn Module>> {
-        self.modules
-            .iter()
-            .find_map(|module| match module.try_borrow_mut() {
-                Ok(module) => {
-                    if module.id() == id {
-                        Some(RefMut::map(module, |x| {
-                            let x = x.deref_mut();
-                            x
-                        }))
-                    } else {
-                        None
-                    }
-                }
-                Err(_) => None,
-            })
-    }
-
     pub fn modules_with_capability<'a>(
         &'a self,
         cap: ModuleCapability,
@@ -711,11 +678,36 @@ impl VesselInternalConsole for Vessel {
         Ok(())
     }
 
-    fn module_by_id<'a>(&'a self, module_id: ModuleId) -> Option<Ref<'a, dyn Module>> {
-        todo!()
+    fn module_by_id<'a>(&'a self, id: ModuleId) -> Option<Ref<'a, dyn Module>> {
+        self.modules
+            .iter()
+            .find_map(|module| match module.try_borrow() {
+                Ok(module) => {
+                    if module.id() == id {
+                        Some(Ref::map(module, |x| x.deref()))
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
+            })
     }
 
-    fn module_by_id_mut<'a>(&'a self, module_id: ModuleId) -> Option<RefMut<'a, dyn Module>> {
-        todo!()
+    fn module_by_id_mut<'a>(&'a self, id: ModuleId) -> Option<RefMut<'a, dyn Module>> {
+        self.modules
+            .iter()
+            .find_map(|module| match module.try_borrow_mut() {
+                Ok(module) => {
+                    if module.id() == id {
+                        Some(RefMut::map(module, |x| {
+                            let x = x.deref_mut();
+                            x
+                        }))
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
+            })
     }
 }

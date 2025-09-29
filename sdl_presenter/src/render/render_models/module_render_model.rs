@@ -947,11 +947,17 @@ impl<'a> DrawBuyOffer<'a> {
 
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyOffer<'a> {
     fn visible(&self) -> bool {
-        todo!()
+        true
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        renderer.draw_confined_text(
+            &format!("Buy {}", self.offer),
+            bounding_box,
+            HorisontalAlignment::Center,
+            Color::black(),
+        );
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -971,7 +977,16 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyOffers<'a> {
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        todo!()
+        let layout = RowLayout::new(
+            self.offers
+                .iter()
+                .map(DrawBuyOffer::new)
+                .map(|x| x as Box<dyn GraphicsNode<_>>)
+                .collect(),
+        );
+
+        layout.draw(renderer, bounding_box);
+        draw_bounding_box(renderer, bounding_box);
     }
 }
 
@@ -1210,7 +1225,9 @@ impl<'texture> ModuleRenderModel<'texture> {
             Some(ModuleTexture::Spritesheet(spritesheet)) => {
                 let mut animations = self.animations.borrow_mut();
                 let animation = animations.entry(module.id()).or_default();
-                animation.update(spritesheet.data.frames.len());
+                if module.active() {
+                    animation.update(spritesheet.data.frames.len());
+                }
                 renderer.draw_spritesheet(spritesheet, bounding_box, animation.frame);
             }
         }
