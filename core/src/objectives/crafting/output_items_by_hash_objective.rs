@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent, StorageRole};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::recipe::{  OutputItemRecipe, OutputItemRecipeHash};
+use dudes_in_space_api::recipe::{OutputItemRecipe, OutputItemRecipeHash};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
@@ -108,7 +108,10 @@ impl Objective for OutputItemsByHashObjective {
         match &mut self.state {
             State::SearchingForCraftingModule => {
                 if let Some(console) = this_module.crafting_console() {
-                    if Self::is_recipe_set_suitable(console.output_item_recipes(), self.args.recipe_hash) {
+                    if Self::is_recipe_set_suitable(
+                        console.output_item_recipes(),
+                        self.args.recipe_hash,
+                    ) {
                         logger.info("Moving to crafting module...");
 
                         self.crafting_module = Some(this_module.id());

@@ -156,7 +156,10 @@ impl ItemRecord {
             .max_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))?;
 
         Some((
-            max_sell_price.sub(bank_registry, min_buy_price),
+            max_sell_price
+                .sub(bank_registry, min_buy_price)
+                .try_into()
+                .unwrap(),
             min_price_buy_offer.clone(),
             max_price_sell_offer.clone(),
         ))
