@@ -378,6 +378,11 @@ fn calculate_cost_price(
 
 impl Display for CraftModulesObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self.state {
+            State::SearchingForCraftingModule => write!(f, "SearchingForCraftingModule"),
+            State::MovingToCraftingModule { .. } => write!(f, "MovingToCraftingModule"),
+            State::Crafting { .. } => write!(f, "Crafting"),
+            State::Done { .. } => write!(f, "Done"),
+        }
     }
 }

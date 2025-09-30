@@ -5,25 +5,36 @@
 #![allow(dead_code)]
 
 use crate::camera::Camera;
+use crate::editor::{Editor, EditorState};
+use crate::event_handler::EventHandler;
 use crate::person_table::PersonTable;
 use crate::render::{
     Alignment, EnvironmentRenderModel, FontProvider, HorisontalAlignment,
     ModuleTextureContainerBuilder, Renderer, VerticalAlignment,
 };
-use crate::utils::{load, load_camera, load_logger, save, save_camera, save_logger};
+use crate::utils::{load, load_camera, load_logger, save_camera};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Matrix;
-use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
 use dudes_in_space_core::module_types;
 use std::env::home_dir;
+use std::ops::ControlFlow;
+use std::path::PathBuf;
 use std::time::Duration;
 
 mod camera;
+mod editor;
+mod event_handler;
 mod logger;
 mod person_table;
 mod render;
 mod utils;
+
+struct AppPaths {
+    save_path: PathBuf,
+    camera_save_path: PathBuf,
+    logger_save_path: PathBuf,
+}
 
 fn main() {
     let sdl_context = sdl2::init().unwrap();
@@ -39,15 +50,14 @@ fn main() {
 
     let canvas = window.into_canvas().build().unwrap();
 
-    let mut control = false;
-    let mut shift = false;
+    let app_paths = AppPaths {
+        save_path: home_dir().unwrap().join(".dudes_in_space/save.json"),
+        camera_save_path: home_dir().unwrap().join(".dudes_in_space/camera.json"),
+        logger_save_path: home_dir().unwrap().join(".dudes_in_space/logger.json"),
+    };
 
-    let save_path = home_dir().unwrap().join(".dudes_in_space/save.json");
-    let camera_save_path = home_dir().unwrap().join(".dudes_in_space/camera.json");
-    let logger_save_path = home_dir().unwrap().join(".dudes_in_space/logger.json");
-
-    let mut camera: Camera = load_camera(camera_save_path.clone());
-    let mut logger = load_logger(logger_save_path.clone());
+    let mut camera: Camera = load_camera(app_paths.camera_save_path.clone());
+    let mut logger = load_logger(app_paths.logger_save_path.clone());
     let texture_creator = canvas.texture_creator();
     let module_bg_tex_container = ModuleTextureContainerBuilder::new(&texture_creator)
         .with(
@@ -74,100 +84,25 @@ fn main() {
     let font_provider = FontProvider::new();
     let mut renderer = Renderer::new(canvas, &texture_creator, font_provider);
     let components = core_components();
-    let mut environment = load(&components, save_path.clone());
+    let mut environment = load(&components, app_paths.save_path.clone());
     let mut person_table = PersonTable::new(&environment);
     let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_handler = EventHandler::new();
+    let mut editor = Editor::new();
 
     'running: loop {
-        for event in event_pump.poll_iter() {
-            use sdl2::event::Event::{KeyDown, KeyUp, MouseWheel, Quit};
-            use sdl2::keyboard::Keycode;
-            match event {
-                Quit { .. }
-                | KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-
-                KeyDown {
-                    keycode: Some(Keycode::LShift | Keycode::RShift),
-                    ..
-                } => shift = true,
-                KeyUp {
-                    keycode: Some(Keycode::LShift | Keycode::RShift),
-                    ..
-                } => shift = false,
-                KeyDown {
-                    keycode: Some(Keycode::LCtrl | Keycode::RCtrl),
-                    ..
-                } => control = true,
-                KeyUp {
-                    keycode: Some(Keycode::LCtrl | Keycode::RCtrl),
-                    ..
-                } => control = false,
-
-                KeyUp {
-                    keycode: Some(Keycode::Space),
-                    ..
-                } => {
-                    environment.proceed(
-                        &components.process_token_context,
-                        &components.req_context,
-                        &components.objectives_decider_vault,
-                        &components.item_vault,
-                        &components.subordination_table,
-                        &components.bank_registry,
-                        &components.wallet_registry,
-                        &components.currency_generator,
-                        &mut logger,
-                    );
-
-                    save(&environment, &save_path);
-                    save_logger(&logger, &logger_save_path);
-                    person_table = PersonTable::new(&environment)
-                }
-
-                MouseWheel {
-                    mouse_x,
-                    mouse_y,
-                    y,
-                    ..
-                } => {
-                    let angle_delta_to_scale_division = |angle_delta: Float| {
-                        let base: Float = 1.2;
-
-                        base.powf(angle_delta)
-                    };
-
-                    let angle_delta_to_translation_delta = |angle_delta: Float| {
-                        let velocity: Float = 10.; // px per step
-                        return velocity * angle_delta;
-                    };
-
-                    let position = (mouse_x as Float, mouse_y as Float).into();
-
-                    if control {
-                        // zoom
-                        camera.concat_scale_centered(
-                            angle_delta_to_scale_division(y as Float),
-                            position,
-                            position,
-                        );
-                    } else if shift {
-                        // scroll horizontally
-                        camera.add_translation(
-                            (angle_delta_to_translation_delta(y as Float), 0.).into(),
-                        );
-                    } else {
-                        // scroll vertically
-                        camera.add_translation(
-                            (0., angle_delta_to_translation_delta(y as Float)).into(),
-                        );
-                    }
-                }
-
-                _ => {}
-            }
+        match event_handler.handle_events(
+            &mut environment,
+            &mut logger,
+            &mut event_pump,
+            &mut camera,
+            &mut person_table,
+            &mut editor,
+            &components,
+            &app_paths,
+        ) {
+            ControlFlow::Continue(_) => {}
+            ControlFlow::Break(_) => break 'running,
         }
 
         renderer.begin();
@@ -191,9 +126,24 @@ fn main() {
             )
             .unwrap();
 
+        match editor.state() {
+            EditorState::Selection => {}
+            EditorState::Placing { preset_to_place } => {
+                renderer
+                    .draw_text(
+                        &format!("{:?}", preset_to_place),
+                        event_handler.mouse_position().as_f64(),
+                        16.,
+                        Alignment::center(),
+                        Color::black(),
+                    )
+                    .unwrap();
+            }
+        }
+
         renderer.end();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
-    save_camera(camera, camera_save_path);
+    save_camera(camera, app_paths.camera_save_path);
 }

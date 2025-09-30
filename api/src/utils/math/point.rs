@@ -80,6 +80,15 @@ impl Point<f32> {
     }
 }
 
+impl Point<i32> {
+    pub fn as_f64(self) -> Point<f64> {
+        Point {
+            x: self.x as f64,
+            y: self.y as f64,
+        }
+    }
+}
+
 impl Point<f64> {
     pub fn as_f32(self) -> Point<f32> {
         Point {
