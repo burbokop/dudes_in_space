@@ -57,10 +57,7 @@ pub(crate) struct CraftItemsByHashObjective {
 
 impl CraftItemsByHashObjective {
     pub(crate) fn new(args: CraftItemsByHashObjectiveArgs, logger: &mut PersonLogger) -> Self {
-        logger.info(format!(
-            "Switched to craft items by hash objective (args: {:?})",
-            args,
-        ));
+        logger.info("Switched to craft items by hash objective");
         Self {
             args,
             state: State::SearchingForCraftingModule,

@@ -158,7 +158,7 @@ impl<U: Display, T: RadToDeg<Output = U> + Clone> Display for Angle<T> {
 impl<T> DeltaAngle<NonNeg<T>> {
     pub fn unwrap(self) -> DeltaAngle<T> {
         DeltaAngle {
-            value: self.value.unwrap(),
+            value: self.value.into_inner(),
         }
     }
 }

@@ -30,7 +30,7 @@ impl<'a> ThisPerson<'a> {
         wallet_registry: &WalletRegistry,
         money: Money,
     ) -> Result<(), WithdrawalError> {
-        assert_ne!(money.amount.unwrap(), 0);
+        assert_ne!(money.amount.into_inner(), 0);
 
         let mut wallet = self.finance.wallet_mut();
 

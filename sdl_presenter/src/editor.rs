@@ -62,6 +62,7 @@ pub(crate) struct Editor {
     state: EditorState,
     nearest_vessel: Option<VesselId>,
     about_to_delete_selected: bool,
+    log_lines_count_limit: usize,
 }
 
 impl Editor {
@@ -72,6 +73,7 @@ impl Editor {
             },
             nearest_vessel: None,
             about_to_delete_selected: false,
+            log_lines_count_limit: 8,
         }
     }
 
@@ -85,6 +87,20 @@ impl Editor {
 
     pub(crate) fn about_to_delete_selected(&self) -> bool {
         self.about_to_delete_selected
+    }
+
+    pub(crate) fn log_lines_count_limit(&self) -> usize {
+        self.log_lines_count_limit
+    }
+
+    pub(crate) fn increment_log_lines_count_limit(&mut self) {
+        self.log_lines_count_limit += 1;
+    }
+
+    pub(crate) fn decrement_log_lines_count_limit(&mut self) {
+        if self.log_lines_count_limit > 1 {
+            self.log_lines_count_limit -= 1;
+        }
     }
 
     pub(crate) fn selected_vessel(&self) -> Option<&VesselId> {

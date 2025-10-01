@@ -66,7 +66,7 @@ impl ItemRecord {
                         .convert_to_currency(bank_registry, currency.clone())
                         .unwrap()
                         .amount
-                        .unwrap()
+                        .into_inner()
                 })
                 .sum::<MoneyAmount>() as Float
                 / count as Float)
@@ -98,7 +98,7 @@ impl ItemRecord {
                         .convert_to_currency(bank_registry, currency.clone())
                         .unwrap()
                         .amount
-                        .unwrap()
+                        .into_inner()
                 })
                 .sum::<MoneyAmount>() as Float
                 / count as Float)

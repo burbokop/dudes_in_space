@@ -662,6 +662,15 @@ pub(crate) enum ProductionCandidate {
     FromEnvironment(ProductionFromEnvironmentCandidate),
 }
 
+impl ProductionCandidate {
+    fn has_producers_on_market(&self) -> bool {
+        match &self {
+            Self::FromIngredients(c) => c.has_producers_on_market,
+            Self::FromEnvironment(c) => c.has_producers_on_market,
+        }
+    }
+}
+
 impl Display for ProductionCandidateEstimate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "estimate(c: {}, p: {})", self.cost_price, self.profit,)
@@ -868,47 +877,59 @@ fn choose_item_to_produce(
             bank_registry,
         );
         if !production_candidates.is_empty() {
+            logger.info(format!(
+                "Production candidates ({}):",
+                production_candidates.len()
+            ));
             for i in &production_candidates {
-                logger.info(format!("production_candidates: {}", i));
+                logger.info(format!("\t{}", i));
             }
 
-            production_candidates.sort_by(|a, b| match (a, b) {
-                (
-                    ProductionCandidate::FromIngredients(a),
-                    ProductionCandidate::FromIngredients(b),
-                ) => a
-                    .has_producers_on_market
-                    .cmp(&b.has_producers_on_market)
-                    .then(
-                        a.has_all_ingredients_on_market
-                            .cmp(&b.has_all_ingredients_on_market),
-                    )
-                    .then_with(|| {
-                        cmp_option(a.estimate.as_ref(), b.estimate.as_ref(), |a, b| {
-                            a.profit.cmp_same_currency(&b.profit).unwrap()
-                        })
+            production_candidates.sort_by(|a, b| {
+                a.has_producers_on_market()
+                    .cmp(&b.has_producers_on_market())
+                    .then_with(|| match (a, b) {
+                        (
+                            ProductionCandidate::FromIngredients(a),
+                            ProductionCandidate::FromIngredients(b),
+                        ) => a
+                            .has_producers_on_market
+                            .cmp(&b.has_producers_on_market)
+                            .then(
+                                a.has_all_ingredients_on_market
+                                    .cmp(&b.has_all_ingredients_on_market),
+                            )
+                            .then_with(|| {
+                                cmp_option(a.estimate.as_ref(), b.estimate.as_ref(), |a, b| {
+                                    a.profit.cmp(bank_registry, &b.profit)
+                                })
+                            })
+                            .then(
+                                a.average_ingredients_buy_price
+                                    .len()
+                                    .cmp(&b.average_ingredients_buy_price.len()),
+                            ),
+                        (
+                            ProductionCandidate::FromEnvironment(a),
+                            ProductionCandidate::FromEnvironment(b),
+                        ) => a.has_producers_on_market.cmp(&b.has_producers_on_market),
+                        (
+                            ProductionCandidate::FromIngredients(a),
+                            ProductionCandidate::FromEnvironment(b),
+                        ) => Ordering::Less,
+                        (
+                            ProductionCandidate::FromEnvironment(a),
+                            ProductionCandidate::FromIngredients(b),
+                        ) => Ordering::Equal,
                     })
-                    .then(
-                        a.average_ingredients_buy_price
-                            .len()
-                            .cmp(&b.average_ingredients_buy_price.len()),
-                    ),
-                (
-                    ProductionCandidate::FromEnvironment(a),
-                    ProductionCandidate::FromEnvironment(b),
-                ) => a.has_producers_on_market.cmp(&b.has_producers_on_market),
-                (
-                    ProductionCandidate::FromIngredients(a),
-                    ProductionCandidate::FromEnvironment(b),
-                ) => Ordering::Less,
-                (
-                    ProductionCandidate::FromEnvironment(a),
-                    ProductionCandidate::FromIngredients(b),
-                ) => Ordering::Equal,
             });
 
-            for i in &production_candidates {
-                println!("sorted production_candidates: {}", i);
+            logger.info(format!(
+                "Sorted production candidates ({}):",
+                production_candidates.len()
+            ));
+            for production_candidate in &production_candidates {
+                logger.info(format!("\t{}", production_candidate));
             }
 
             let best_candidate = production_candidates.first().unwrap();

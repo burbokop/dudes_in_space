@@ -64,7 +64,7 @@ impl PersonalFinancePackage {
         new_limit: NonNeg<MoneyAmount>,
         mut new_bank: Bank,
     ) {
-        assert_ne!(new_limit.unwrap(), 0);
+        assert_ne!(new_limit.into_inner(), 0);
         match &self.bank {
             None => {
                 match NonNeg::new(new_limit - new_bank.money_created()) {

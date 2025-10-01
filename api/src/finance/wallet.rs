@@ -81,8 +81,8 @@ impl Wallet {
     /// Do not make it public. (Does not preserve the whole amount of money in the system) Should be used only in wallet and bank modules
     pub(crate) fn take(&mut self, m: Money) -> Result<(), NotEnoughMoneyInWallet> {
         if let Some(x) = self.content.get_mut(&m.currency) {
-            if x.unwrap() >= m.amount.unwrap() {
-                if x.unwrap() > m.amount.unwrap() {
+            if x.into_inner() >= m.amount.into_inner() {
+                if x.into_inner() > m.amount.into_inner() {
                     *x = Positive::new(*x - m.amount).unwrap();
                 } else {
                     self.content.remove(&m.currency);
@@ -112,8 +112,6 @@ impl Wallet {
         target_currency: Currency,
     ) {
         for (currency, amount) in self.content.clone() {
-            println!("amount: {}", amount);
-
             if currency == target_currency {
                 continue;
             }
@@ -498,9 +496,9 @@ mod tests {
 
         wallet.convert_all_into(&bank_registry, &wallet_registry, "USD".to_string());
 
-        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 111000);
-        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 0);
-        assert_eq!(wallet.amount("GBP".to_string()).unwrap(), 0);
+        assert_eq!(wallet.amount("USD".to_string()).into_inner(), 111000);
+        assert_eq!(wallet.amount("EUR".to_string()).into_inner(), 0);
+        assert_eq!(wallet.amount("GBP".to_string()).into_inner(), 0);
     }
 
     #[test]
@@ -530,8 +528,11 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(bank_owner_wallet.amount("USD".to_string()).unwrap(), 99000);
-        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 1000);
+        assert_eq!(
+            bank_owner_wallet.amount("USD".to_string()).into_inner(),
+            99000
+        );
+        assert_eq!(wallet.amount("USD".to_string()).into_inner(), 1000);
     }
 
     /// Test if the wallet already contains the necessary amount
@@ -595,8 +596,8 @@ mod tests {
         );
 
         assert!(ok);
-        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 1000);
-        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 1000);
+        assert_eq!(wallet.amount("USD".to_string()).into_inner(), 1000);
+        assert_eq!(wallet.amount("EUR".to_string()).into_inner(), 1000);
     }
 
     // Test if the wallet contains only one currency that isn't the target currency
@@ -649,8 +650,8 @@ mod tests {
         );
 
         assert!(ok);
-        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 2000);
-        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 800);
+        assert_eq!(wallet.amount("USD".to_string()).into_inner(), 2000);
+        assert_eq!(wallet.amount("EUR".to_string()).into_inner(), 800);
     }
 
     /// General test
@@ -734,8 +735,8 @@ mod tests {
         );
 
         assert!(ok);
-        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 20000);
-        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 0);
-        assert_eq!(wallet.amount("GBP".to_string()).unwrap(), 910);
+        assert_eq!(wallet.amount("USD".to_string()).into_inner(), 20000);
+        assert_eq!(wallet.amount("EUR".to_string()).into_inner(), 0);
+        assert_eq!(wallet.amount("GBP".to_string()).into_inner(), 910);
     }
 }

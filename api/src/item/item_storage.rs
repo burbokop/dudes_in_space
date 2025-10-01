@@ -253,6 +253,7 @@ impl ItemStorage {
             }
         }
 
+        self.total_occupied_volume = Self::eval_total_occupied_volume(&self.content.0);
         true
     }
 

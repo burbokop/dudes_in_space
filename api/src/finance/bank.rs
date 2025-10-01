@@ -98,13 +98,13 @@ impl Bank {
             };
 
             let stored_money_lower_limit =
-                -(customers_count as MoneyAmount * self.money_created.unwrap());
-            if self.money_stored - amount.unwrap() >= stored_money_lower_limit {
+                -(customers_count as MoneyAmount * self.money_created.into_inner());
+            if self.money_stored - amount.into_inner() >= stored_money_lower_limit {
                 Ok(())
             } else {
                 Err(WithdrawalError::CreditLimitReached {
                     bank_owner: self.owner,
-                    requested: NonNeg::new(amount.unwrap() - self.money_stored).unwrap(),
+                    requested: NonNeg::new(amount.into_inner() - self.money_stored).unwrap(),
                     limit: NonNeg::new(-stored_money_lower_limit).unwrap(),
                 })
             }
@@ -131,7 +131,7 @@ impl Bank {
         target_wallet: &mut Wallet,
         amount: NonNeg<MoneyAmount>,
     ) -> Result<(), WithdrawalError> {
-        assert_ne!(amount.unwrap(), 0);
+        assert_ne!(amount.into_inner(), 0);
 
         self.customers.entry(customer).or_insert(BankAccount::new());
         let customers_count = self.customers.len();
@@ -142,7 +142,7 @@ impl Bank {
         }
 
         if customer == self.owner {
-            account.money -= amount.unwrap();
+            account.money -= amount.into_inner();
             self.money_created += amount;
             target_wallet.put(Money {
                 currency: self.currency.clone(),
@@ -151,22 +151,22 @@ impl Bank {
             Ok(())
         } else {
             let stored_money_lower_limit =
-                -(customers_count as MoneyAmount * self.money_created.unwrap());
+                -(customers_count as MoneyAmount * self.money_created.into_inner());
 
-            if self.money_stored - amount.unwrap() < stored_money_lower_limit {
+            if self.money_stored - amount.into_inner() < stored_money_lower_limit {
                 return Err(WithdrawalError::CreditLimitReached {
                     bank_owner: self.owner,
-                    requested: NonNeg::new(amount.unwrap() - self.money_stored).unwrap(),
+                    requested: NonNeg::new(amount.into_inner() - self.money_stored).unwrap(),
                     limit: NonNeg::new(-stored_money_lower_limit).unwrap(),
                 });
             }
 
-            account.money -= amount.unwrap();
-            self.money_stored -= amount.unwrap();
+            account.money -= amount.into_inner();
+            self.money_stored -= amount.into_inner();
 
             if account.money < 0 {
                 account.deadline = Some(
-                    self.current_cycle + 2_f64.log(1. + account.growth_rate.unwrap()) as Cycle,
+                    self.current_cycle + 2_f64.log(1. + account.growth_rate.into_inner()) as Cycle,
                 );
             }
             target_wallet.put(Money {
@@ -183,7 +183,7 @@ impl Bank {
         source_wallet: &mut Wallet,
         amount: NonNeg<MoneyAmount>,
     ) {
-        assert_ne!(amount.unwrap(), 0);
+        assert_ne!(amount.into_inner(), 0);
 
         source_wallet
             .take(Money {
@@ -193,8 +193,8 @@ impl Bank {
             .unwrap();
 
         let account = self.customers.entry(customer).or_insert(BankAccount::new());
-        account.money += amount.unwrap();
-        self.money_stored += amount.unwrap();
+        account.money += amount.into_inner();
+        self.money_stored += amount.into_inner();
 
         if account.deadline.is_some() && account.money >= 0 {
             account.deadline = None;
@@ -209,17 +209,36 @@ impl Bank {
         target_currency_bank: &Bank,
         target_amount: NonNeg<MoneyAmount>,
     ) -> Result<NonNeg<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> {
-        if target_currency_bank.money_created.unwrap() == 0 {
+        if target_currency_bank.money_created.into_inner() == 0 {
             return Err(TargetBankDidNotCreateAnyMoneyError {
                 currency: target_currency_bank.currency.clone(),
             });
         }
 
-        let source_amount = (target_amount.unwrap() as Float * self.money_created.unwrap() as Float
-            / target_currency_bank.money_created.unwrap() as Float)
+        let source_amount = (target_amount.into_inner() as Float
+            * self.money_created.into_inner() as Float
+            / target_currency_bank.money_created.into_inner() as Float)
             as MoneyAmount;
 
         Ok(NonNeg::new(source_amount).unwrap())
+    }
+
+    pub fn buy_foreign_currency_price_possibly_negative(
+        &self,
+        target_currency_bank: &Bank,
+        target_amount: MoneyAmount,
+    ) -> Result<MoneyAmount, TargetBankDidNotCreateAnyMoneyError> {
+        if target_currency_bank.money_created.into_inner() == 0 {
+            return Err(TargetBankDidNotCreateAnyMoneyError {
+                currency: target_currency_bank.currency.clone(),
+            });
+        }
+
+        let source_amount = (target_amount as Float * self.money_created.into_inner() as Float
+            / target_currency_bank.money_created.into_inner() as Float)
+            as MoneyAmount;
+
+        Ok(source_amount)
     }
 
     /// Returns amount of money you get when selling `source_amount` of `self` currency to `target_currency_bank`.
@@ -229,17 +248,35 @@ impl Bank {
         target_currency_bank: &Bank,
         source_amount: NonNeg<MoneyAmount>,
     ) -> Result<NonNeg<MoneyAmount>, TargetBankDidNotCreateAnyMoneyError> {
-        if self.money_created.unwrap() == 0 {
+        if self.money_created.into_inner() == 0 {
             return Err(TargetBankDidNotCreateAnyMoneyError {
                 currency: self.currency.clone(),
             });
         }
 
-        let target_amount = (source_amount.unwrap() as Float
-            * target_currency_bank.money_created.unwrap() as Float
-            / self.money_created.unwrap() as Float) as MoneyAmount;
+        let target_amount = (source_amount.into_inner() as Float
+            * target_currency_bank.money_created.into_inner() as Float
+            / self.money_created.into_inner() as Float) as MoneyAmount;
 
         Ok(NonNeg::new(target_amount).unwrap())
+    }
+
+    pub fn sell_this_currency_price_possibly_negative(
+        &self,
+        target_currency_bank: &Bank,
+        source_amount: MoneyAmount,
+    ) -> Result<MoneyAmount, TargetBankDidNotCreateAnyMoneyError> {
+        if self.money_created.into_inner() == 0 {
+            return Err(TargetBankDidNotCreateAnyMoneyError {
+                currency: self.currency.clone(),
+            });
+        }
+
+        let target_amount = (source_amount as Float
+            * target_currency_bank.money_created.into_inner() as Float
+            / self.money_created.into_inner() as Float) as MoneyAmount;
+
+        Ok(target_amount)
     }
 
     /// Buy `target_amount` currency of `self` by selling corresponding amount of `source_currency_bank` currency
@@ -287,7 +324,7 @@ impl Bank {
 
     pub fn cycle(&mut self) {
         for (customer, account) in &mut self.customers {
-            let delta = (account.money as Float * account.growth_rate.unwrap()) as MoneyAmount;
+            let delta = (account.money as Float * account.growth_rate.into_inner()) as MoneyAmount;
 
             if let Some(deadline) = account.deadline {
                 assert!(deadline < self.current_cycle);
@@ -396,7 +433,7 @@ pub mod tests {
             usd_bank
                 .buy_foreign_currency_price(&eur_bank, 1.into())
                 .unwrap(),
-            10.into()
+            NonNeg::new(10).unwrap()
         );
     }
 
@@ -431,7 +468,7 @@ pub mod tests {
             usd_bank
                 .sell_this_currency_price(&eur_bank, 10.into())
                 .unwrap(),
-            1.into()
+            NonNeg::new(1).unwrap()
         );
     }
 
@@ -480,7 +517,7 @@ pub mod tests {
             })
         );
 
-        assert_eq!(bank.money_created.unwrap(), 0);
+        assert_eq!(bank.money_created.into_inner(), 0);
         assert_eq!(bank.money_stored, 0);
         assert_eq!(bank.customers.get(&customer).unwrap().money, 0);
     }
@@ -538,13 +575,13 @@ pub mod tests {
 
         usd_bank.buy_currency(&mut usd_bank_ow, &mut wallet, &eur_bank, 10.into());
 
-        assert_eq!(wallet.amount("USD".to_string()).unwrap(), 1010);
-        assert_eq!(wallet.amount("EUR".to_string()).unwrap(), 999);
+        assert_eq!(wallet.amount("USD".to_string()).into_inner(), 1010);
+        assert_eq!(wallet.amount("EUR".to_string()).into_inner(), 999);
 
-        assert_eq!(usd_bank_ow.amount("USD".to_string()).unwrap(), 98990);
-        assert_eq!(usd_bank_ow.amount("EUR".to_string()).unwrap(), 1);
+        assert_eq!(usd_bank_ow.amount("USD".to_string()).into_inner(), 98990);
+        assert_eq!(usd_bank_ow.amount("EUR".to_string()).into_inner(), 1);
 
-        assert_eq!(eur_bank_ow.amount("USD".to_string()).unwrap(), 0);
-        assert_eq!(eur_bank_ow.amount("EUR".to_string()).unwrap(), 9000);
+        assert_eq!(eur_bank_ow.amount("USD".to_string()).into_inner(), 0);
+        assert_eq!(eur_bank_ow.amount("EUR".to_string()).into_inner(), 9000);
     }
 }

@@ -1,3 +1,4 @@
+use crate::editor::Editor;
 use crate::logger::{LogPiece, MemLogger};
 use crate::render::scene_graph::{
     ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
@@ -83,11 +84,15 @@ impl<T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLittleMan {
 
 struct DrawLog<'a> {
     log: &'a [LogPiece],
+    lines_count_limit: usize,
 }
 
 impl<'a> DrawLog<'a> {
-    fn new(log: &'a [LogPiece]) -> Self {
-        Self { log }
+    fn new(log: &'a [LogPiece], lines_count_limit: usize) -> Self {
+        Self {
+            log,
+            lines_count_limit,
+        }
     }
 }
 
@@ -97,11 +102,10 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        static MAX_LOG_SIZE: usize = 5;
-        let tail = if self.log.len() < MAX_LOG_SIZE {
+        let tail = if self.log.len() < self.lines_count_limit {
             self.log
         } else {
-            &self.log[self.log.len() - MAX_LOG_SIZE..]
+            &self.log[self.log.len() - self.lines_count_limit..]
         };
 
         Text {
@@ -198,6 +202,7 @@ impl PersonRenderModel {
         &self,
         renderer: &mut Renderer<T>,
         person: &Person,
+        editor: &Editor,
         logger: &MemLogger,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
@@ -209,7 +214,10 @@ impl PersonRenderModel {
                     ExtRowLayoutOptions::preserve_aspect_ratio(),
                 ),
                 (
-                    Box::new(DrawLog::new(logger.get(&person.id()))),
+                    Box::new(DrawLog::new(
+                        logger.get(&person.id()),
+                        editor.log_lines_count_limit(),
+                    )),
                     Default::default(),
                 ),
             ]);
@@ -229,7 +237,10 @@ impl PersonRenderModel {
                     ExtColumnLayoutOptions::relative_height(0.2),
                 ),
                 (
-                    Box::new(DrawLog::new(logger.get(&person.id()))),
+                    Box::new(DrawLog::new(
+                        logger.get(&person.id()),
+                        editor.log_lines_count_limit(),
+                    )),
                     ExtColumnLayoutOptions::relative_height(0.6),
                 ),
                 (Box::new(DrawFooter::new(person)), Default::default()),

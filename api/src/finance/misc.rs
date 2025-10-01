@@ -81,8 +81,8 @@ impl Money {
             .convert_to_currency(bank_registry, self.currency.clone())
             .unwrap()
             .amount
-            .unwrap();
-        let self_amount = self.amount.unwrap();
+            .into_inner();
+        let self_amount = self.amount.into_inner();
 
         self_amount.cmp(&other_amount)
     }
@@ -139,8 +139,8 @@ impl Money {
             .convert_to_currency(bank_registry, self.currency.clone())
             .unwrap()
             .amount
-            .unwrap();
-        let self_amount = self.amount.unwrap();
+            .into_inner();
+        let self_amount = self.amount.into_inner();
 
         PossiblyNegativeMoney {
             currency: self.currency,
@@ -178,7 +178,11 @@ impl Money {
         &mut self,
         other: Money,
     ) -> Result<(), DifferentCurrenciesError> {
-        todo!()
+        if self.currency != other.currency {
+            return Err(DifferentCurrenciesError);
+        }
+
+        Ok(self.amount += other.amount)
     }
 
     pub fn sub_assign_same_currency(
@@ -214,7 +218,7 @@ impl Money {
                 Ok(money
                     .convert_to_currency(bank_registry, target_currency.clone())?
                     .amount
-                    .unwrap())
+                    .into_inner())
             })
             .collect();
 
@@ -241,7 +245,7 @@ impl Money {
 
         Some(Money {
             currency,
-            amount: NonNeg::new(v.into_iter().map(|x| x.amount.unwrap()).sum()).unwrap(),
+            amount: NonNeg::new(v.into_iter().map(|x| x.amount.into_inner()).sum()).unwrap(),
         })
     }
 
@@ -263,7 +267,7 @@ impl Money {
 
         Ok(Some(Money {
             currency,
-            amount: NonNeg::new(v.into_iter().map(|x| x.amount.unwrap()).sum()).unwrap(),
+            amount: NonNeg::new(v.into_iter().map(|x| x.amount.into_inner()).sum()).unwrap(),
         }))
     }
 }
@@ -388,11 +392,11 @@ impl PossiblyNegativeMoney {
         let this_bank = bank_registry.bank(&self.currency).unwrap();
         let target_bank = bank_registry.bank(&target_currency).unwrap();
         let target_amount =
-            this_bank.sell_this_currency_price(&target_bank, NonNeg::new(self.amount).unwrap())?;
+            this_bank.sell_this_currency_price_possibly_negative(&target_bank, self.amount)?;
 
         Ok(Self {
             currency: target_currency,
-            amount: target_amount.unwrap(),
+            amount: target_amount,
         })
     }
 
@@ -465,7 +469,7 @@ impl Mul<Float> for Money {
     fn mul(self, rhs: Float) -> Self::Output {
         Self {
             currency: self.currency,
-            amount: NonNeg::new((self.amount.unwrap() as Float * rhs) as MoneyAmount).unwrap(),
+            amount: NonNeg::new((self.amount.into_inner() as Float * rhs) as MoneyAmount).unwrap(),
         }
     }
 }
@@ -476,8 +480,10 @@ impl Mul<NonNeg<Float>> for Money {
     fn mul(self, rhs: NonNeg<Float>) -> Self::Output {
         Self {
             currency: self.currency,
-            amount: NonNeg::new((self.amount.unwrap() as Float * rhs.unwrap()) as MoneyAmount)
-                .unwrap(),
+            amount: NonNeg::new(
+                (self.amount.into_inner() as Float * rhs.into_inner()) as MoneyAmount,
+            )
+            .unwrap(),
         }
     }
 }
@@ -488,8 +494,10 @@ impl Mul<Positive<Float>> for Money {
     fn mul(self, rhs: Positive<Float>) -> Self::Output {
         Self {
             currency: self.currency,
-            amount: NonNeg::new((self.amount.unwrap() as Float * rhs.unwrap()) as MoneyAmount)
-                .unwrap(),
+            amount: NonNeg::new(
+                (self.amount.into_inner() as Float * rhs.into_inner()) as MoneyAmount,
+            )
+            .unwrap(),
         }
     }
 }
@@ -500,7 +508,7 @@ impl Div<Float> for Money {
     fn div(self, rhs: Float) -> Self::Output {
         Self {
             currency: self.currency,
-            amount: NonNeg::new((self.amount.unwrap() as Float / rhs) as MoneyAmount).unwrap(),
+            amount: NonNeg::new((self.amount.into_inner() as Float / rhs) as MoneyAmount).unwrap(),
         }
     }
 }
@@ -532,7 +540,7 @@ impl Mul<NonNeg<Float>> for PossiblyNegativeMoney {
     fn mul(self, rhs: NonNeg<Float>) -> Self::Output {
         Self {
             currency: self.currency,
-            amount: (self.amount as Float * rhs.unwrap()) as MoneyAmount,
+            amount: (self.amount as Float * rhs.into_inner()) as MoneyAmount,
         }
     }
 }
@@ -543,7 +551,7 @@ impl Mul<Positive<Float>> for PossiblyNegativeMoney {
     fn mul(self, rhs: Positive<Float>) -> Self::Output {
         Self {
             currency: self.currency,
-            amount: (self.amount as Float * rhs.unwrap()) as MoneyAmount,
+            amount: (self.amount as Float * rhs.into_inner()) as MoneyAmount,
         }
     }
 }
@@ -568,6 +576,17 @@ impl Display for PossiblyNegativeMoney {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct DifferentCurrenciesError;
+
+impl Display for DifferentCurrenciesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for DifferentCurrenciesError {}
 
 #[cfg(test)]
 mod tests {
@@ -636,15 +655,66 @@ mod tests {
                 .is_eq()
         );
     }
-}
 
-#[derive(Debug)]
-pub struct DifferentCurrenciesError;
+    #[test]
+    fn convert_negative_to_currency_test() {
+        let bank_registry = BankRegistry::new();
+        let wallet_registry = WalletRegistry::default();
 
-impl Display for DifferentCurrenciesError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "USD".to_string(),
+                amount: 100000.into(),
+            },
+        );
+        create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "EUR".to_string(),
+                amount: 10000.into(),
+            },
+        );
+        create_bank(
+            &bank_registry,
+            &wallet_registry,
+            Money {
+                currency: "GBP".to_string(),
+                amount: 1000.into(),
+            },
+        );
+
+        let test_money_gbp = PossiblyNegativeMoney {
+            currency: "GBP".to_string(),
+            amount: -10,
+        };
+
+        let test_money_usd = test_money_gbp
+            .convert_to_currency(&bank_registry, "USD".to_string())
+            .unwrap();
+        let test_money_eur = test_money_usd
+            .convert_to_currency(&bank_registry, "EUR".to_string())
+            .unwrap();
+        let intermediate_test_money_gbp = test_money_usd
+            .convert_to_currency(&bank_registry, "GBP".to_string())
+            .unwrap();
+        let final_test_money_gbp = test_money_eur
+            .convert_to_currency(&bank_registry, "GBP".to_string())
+            .unwrap();
+
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&intermediate_test_money_gbp)
+                .unwrap()
+                .is_eq()
+        );
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&final_test_money_gbp)
+                .unwrap()
+                .is_eq()
+        );
     }
 }
-
-impl Error for DifferentCurrenciesError {}

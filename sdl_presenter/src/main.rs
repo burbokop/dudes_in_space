@@ -79,6 +79,10 @@ fn main() {
             module_types::PERSONNEL_AREA.into(),
             include_bytes!("../assets/personnel_area.png"),
         )
+        .with(
+            module_types::TRADING_TERMINAL.into(),
+            include_bytes!("../assets/trading_terminal.png"),
+        )
         .build();
 
     let render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());

@@ -78,6 +78,11 @@ impl<T> Positive<T> {
         }
     }
 
+    pub fn into_inner(self) -> T {
+        self.value
+    }
+
+    #[deprecated(note = "Better use NonNeg::into_inner")]
     pub fn unwrap(self) -> T {
         self.value
     }

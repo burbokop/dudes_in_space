@@ -118,18 +118,19 @@ fn draw_bounding_box<T: sdl2::render::RenderTarget>(
     );
 }
 
-struct DrawPerson<'a, 'b, 'c> {
-    person: Option<(&'a Person, &'b MemLogger, &'c PersonRenderModel)>,
+struct DrawPerson<'a, 'b, 'c, 'd> {
+    person: Option<(&'a Person, &'b Editor, &'c MemLogger, &'d PersonRenderModel)>,
 }
 
-impl<'a, 'b, 'c> DrawPerson<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> DrawPerson<'a, 'b, 'c, 'd> {
     pub fn new(
         person: &'a Person,
-        logger: &'b MemLogger,
-        person_render_model: &'c PersonRenderModel,
+        editor: &'b Editor,
+        logger: &'c MemLogger,
+        person_render_model: &'d PersonRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
-            person: Some((person, logger, person_render_model)),
+            person: Some((person, editor, logger, person_render_model)),
         })
     }
     pub fn new_empty() -> Box<Self> {
@@ -137,7 +138,7 @@ impl<'a, 'b, 'c> DrawPerson<'a, 'b, 'c> {
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPerson<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPerson<'a, 'b, 'c, 'd> {
     fn visible(&self) -> bool {
         true
     }
@@ -155,35 +156,40 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPerson<'
                     a: 1.,
                 },
             ),
-            Some((person, logger, render_model)) => render_model
-                .render(renderer, person, logger, bounding_box)
+            Some((person, editor, logger, render_model)) => render_model
+                .render(renderer, person, editor, logger, bounding_box)
                 .unwrap(),
         }
         draw_bounding_box(renderer, bounding_box)
     }
 }
 
-struct DrawPersons<'a, 'b, 'c> {
+struct DrawPersons<'a, 'b, 'c, 'd> {
     module: &'a dyn Module,
-    logger: &'b MemLogger,
-    person_render_model: &'c PersonRenderModel,
+    editor: &'b Editor,
+    logger: &'c MemLogger,
+    person_render_model: &'d PersonRenderModel,
 }
 
-impl<'a, 'b, 'c> DrawPersons<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> DrawPersons<'a, 'b, 'c, 'd> {
     pub fn new(
         module: &'a dyn Module,
-        logger: &'b MemLogger,
-        person_render_model: &'c PersonRenderModel,
+        editor: &'b Editor,
+        logger: &'c MemLogger,
+        person_render_model: &'d PersonRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             module,
+            editor,
             logger,
             person_render_model,
         })
     }
 }
 
-impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPersons<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawPersons<'a, 'b, 'c, 'd>
+{
     fn visible(&self) -> bool {
         !(self.module.persons().is_empty() && self.module.free_person_slots_count() == 0)
     }
@@ -197,7 +203,9 @@ impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPersons<
         let layout = RowLayout::new(
             persons
                 .iter()
-                .map(|person| DrawPerson::new(person, self.logger, self.person_render_model))
+                .map(|person| {
+                    DrawPerson::new(person, self.editor, self.logger, self.person_render_model)
+                })
                 .chain((0..free_person_slots_count).map(|_| DrawPerson::new_empty()))
                 .map(|x| x as Box<dyn GraphicsNode<_>>)
                 .collect(),
@@ -1251,7 +1259,7 @@ impl<'texture> ModuleRenderModel<'texture> {
         draw_bounding_box(renderer, bounding_box);
 
         let column = ColumnLayout::new(vec![
-            DrawPersons::new(module, logger, &self.person_render_model),
+            DrawPersons::new(module, editor, logger, &self.person_render_model),
             DrawRecipes::new(module),
             DrawStorages::new(module, &self.item_storage_render_model, self),
             DrawDockingStuff::new(

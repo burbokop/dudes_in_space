@@ -94,6 +94,14 @@ impl EventHandler {
                     *person_table = PersonTable::new(&environment)
                 }
                 KeyUp {
+                    keycode: Some(Keycode::Comma),
+                    ..
+                } => editor.decrement_log_lines_count_limit(),
+                KeyUp {
+                    keycode: Some(Keycode::Period),
+                    ..
+                } => editor.increment_log_lines_count_limit(),
+                KeyUp {
                     keycode: Some(Keycode::Delete),
                     ..
                 } => editor.delete_selected(),

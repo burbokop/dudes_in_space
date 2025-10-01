@@ -279,7 +279,7 @@ impl<T> Rect<T> {
         let distance_sqr = dist_x.sqr() + dist_y.sqr();
 
         // if the distance is less than the radius, collision!
-        distance_sqr <= radius.unwrap().sqr()
+        distance_sqr <= radius.into_inner().sqr()
     }
 
     pub fn extended(self, vec: Vector<T>) -> Rect<T>
