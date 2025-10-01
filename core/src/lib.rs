@@ -22,36 +22,52 @@ pub use objectives::register_objective_deciders;
 pub use objectives::register_objectives;
 use std::sync::LazyLock;
 
+// TODO: remove this (or not?)
+pub mod __modules {
+    pub use super::modules::Assembler;
+}
+
+pub mod items {
+    pub static GANGUE: &str = "gangue";
+    pub static BIOMASS: &str = "biomass";
+    pub static SILICON_ORE: &str = "silicon_ore";
+    pub static IRON_ORE: &str = "iron_ore";
+    pub static RARE_EARTH_ORE: &str = "rare_earth_ore";
+    pub static ICE: &str = "ice";
+    pub static WATER: &str = "water";
+    pub static CARBON: &str = "carbon";
+    pub static PLASTIC: &str = "plastic";
+    pub static SILICON: &str = "silicon";
+    pub static STEEL: &str = "steel";
+    pub static RARE_EARTH_ALLOYS: &str = "rare_earth_alloys";
+    pub static HEAT_CELL: &str = "heat_cell";
+    pub static HOT_HEAT_CELL: &str = "hot_heat_cell";
+    pub static MICROELECTRONICS: &str = "microelectronics";
+}
+
 pub fn register_items(vault: ItemVault) -> ItemVault {
+    use items::*;
     vault
-        .with(Item::new("gangue".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new("biomass".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new("silicon_ore".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new("iron_ore".into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(GANGUE.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(BIOMASS.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(SILICON_ORE.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(IRON_ORE.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(RARE_EARTH_ORE.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(ICE.into(), M3(1), KgPerM3::from(917)))
+        .with(Item::new(WATER.into(), M3(1), KgPerM3::from(1000)))
+        .with(Item::new(CARBON.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(PLASTIC.into(), M3(1), KgPerM3::from(900)))
+        .with(Item::new(SILICON.into(), M3(1), KgPerM3::from(2329)))
+        .with(Item::new(STEEL.into(), M3(1), KgPerM3::from(7850)))
         .with(Item::new(
-            "rare_earth_ore".into(),
+            RARE_EARTH_ALLOYS.into(),
             M3(1),
             KgPerM3::from(7850),
         ))
-        .with(Item::new("ice".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new("water".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new("carbon".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new("plastic".into(), M3(1), KgPerM3::from(900)))
-        .with(Item::new("silicon".into(), M3(1), KgPerM3::from(900)))
-        .with(Item::new("steel".into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(HEAT_CELL.into(), M3(1), KgPerM3::from(7850)))
+        .with(Item::new(HOT_HEAT_CELL.into(), M3(1), KgPerM3::from(7850)))
         .with(Item::new(
-            "rare_earth_alloys".into(),
-            M3(1),
-            KgPerM3::from(7850),
-        ))
-        .with(Item::new("heat_cell".into(), M3(1), KgPerM3::from(7850)))
-        .with(Item::new(
-            "hot_heat_cell".into(),
-            M3(1),
-            KgPerM3::from(7850),
-        ))
-        .with(Item::new(
-            "microelectronics".into(),
+            MICROELECTRONICS.into(),
             M3(10),
             KgPerM3::from(2500),
         ))

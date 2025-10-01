@@ -34,10 +34,6 @@ impl EventHandler {
         // TODO
     }
 
-    fn select(&mut self) {
-        // TODO
-    }
-
     pub(crate) fn handle_events(
         &mut self,
         environment: &mut Environment,
@@ -98,27 +94,49 @@ impl EventHandler {
                     *person_table = PersonTable::new(&environment)
                 }
                 KeyUp {
+                    keycode: Some(Keycode::Delete),
+                    ..
+                } => editor.delete_selected(),
+                KeyUp {
+                    keycode: Some(Keycode::Return),
+                    ..
+                } => editor.confirm_operation(environment),
+                KeyUp {
                     keycode: Some(Keycode::Num1),
                     ..
-                } => editor.begin_placing(EditorPreset::Preset0),
-                MouseMotion { x, y, .. } => self.mouse_position = (x, y).into(),
+                } => editor.begin_placing(EditorPreset::PeterCrafter),
+                MouseMotion { x, y, .. } => {
+                    self.mouse_position = (x, y).into();
+                    let mouse_position =
+                        &(!&camera.transformation()).unwrap() * &self.mouse_position.as_f64();
+                    editor.update_nearest_vessel(environment, mouse_position)
+                }
                 MouseButtonDown {
                     x, y, mouse_btn, ..
                 } => {}
                 MouseButtonUp {
                     x, y, mouse_btn, ..
-                } => match mouse_btn {
-                    MouseButton::Unknown => todo!(),
-                    MouseButton::Left => match editor.state() {
-                        EditorState::Selection => self.select(),
-                        EditorState::Placing { .. } => editor
-                            .end_placing(&camera.transformation() * &self.mouse_position.as_f64()),
-                    },
-                    MouseButton::Middle => todo!(),
-                    MouseButton::Right => todo!(),
-                    MouseButton::X1 => todo!(),
-                    MouseButton::X2 => todo!(),
-                },
+                } => {
+                    let mouse_position =
+                        &(!&camera.transformation()).unwrap() * &self.mouse_position.as_f64();
+                    match mouse_btn {
+                        MouseButton::Unknown => unreachable!(),
+                        MouseButton::Left => match editor.state() {
+                            EditorState::Selection { .. } => {
+                                editor.select_hearest_vessel(environment)
+                            }
+                            EditorState::Placing { .. } => editor.end_placing(
+                                environment,
+                                &components.item_vault,
+                                mouse_position,
+                            ),
+                        },
+                        MouseButton::Middle => editor.reset(),
+                        MouseButton::Right => editor.reset(),
+                        MouseButton::X1 => editor.reset(),
+                        MouseButton::X2 => editor.reset(),
+                    }
+                }
                 MouseWheel {
                     mouse_x,
                     mouse_y,

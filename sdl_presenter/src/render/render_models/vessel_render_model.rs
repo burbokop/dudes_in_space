@@ -1,3 +1,4 @@
+use crate::editor::Editor;
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
@@ -28,6 +29,7 @@ impl<'texture> VesselRenderModel<'texture> {
         &self,
         renderer: &mut Renderer<T>,
         vessel: &Vessel,
+        editor: &Editor,
         logger: &MemLogger,
         person_table: &PersonTable,
         bounding_box: Option<Rect<Float>>,
@@ -59,7 +61,11 @@ impl<'texture> VesselRenderModel<'texture> {
                     (side_width + margin * 2., side_height + margin * 2.).into(),
                 );
 
-                renderer.draw_rect(rect, owner_color.clone());
+                if editor.selected_vessel().cloned() == Some(vessel.id()) {
+                    renderer.draw_filled_rect(rect, owner_color.clone());
+                } else if editor.nearest_vessel().cloned() == Some(vessel.id()) {
+                    renderer.draw_rect(rect, owner_color.clone());
+                }
 
                 renderer
                     .draw_text(
@@ -102,6 +108,7 @@ impl<'texture> VesselRenderModel<'texture> {
                         self.module_render_model.render(
                             renderer,
                             modules[i].deref(),
+                            editor,
                             logger,
                             person_table,
                             bounding_box,
@@ -148,6 +155,7 @@ impl<'texture> VesselRenderModel<'texture> {
                         self.module_render_model.render(
                             renderer,
                             modules[i].deref(),
+                            editor,
                             logger,
                             person_table,
                             bounding_box,

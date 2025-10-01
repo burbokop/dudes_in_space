@@ -80,6 +80,7 @@ fn random_name<R: Rng>(rng: &mut R, gender: Gender) -> String {
 pub enum Passion {
     Trade,
     Crafting,
+    Vessels,
     Adventuring,
     Flying,
     Ruling,
@@ -250,6 +251,31 @@ impl<'v, 'a, 'b> PersonSeed<'v, 'a, 'b> {
 }
 
 impl Person {
+    pub fn new(
+        name: String,
+        age: u8,
+        gender: Gender,
+        passions: Vec<Passion>,
+        morale: Morale,
+        boldness: Boldness,
+        awareness: Awareness,
+    ) -> Self {
+        Self {
+            id: PersonId::new_v4(),
+            name,
+            age,
+            gender,
+            passions,
+            morale,
+            boldness,
+            awareness,
+            objective: None,
+            boss: None,
+            finance: Default::default(),
+            personal_notes: Default::default(),
+        }
+    }
+
     pub fn id(&self) -> PersonId {
         self.id
     }

@@ -1,3 +1,4 @@
+use crate::editor::Editor;
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::render_models::person_render_model::PersonRenderModel;
@@ -726,22 +727,25 @@ impl<'texture, 'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T>
     }
 }
 
-struct DrawDockingClamp<'texture, 'a, 'b, 'c, 'd> {
+struct DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e> {
     clamp: &'a DockingClamp,
-    logger: &'b MemLogger,
-    person_table: &'c PersonTable,
-    vessel_render_model: &'d LazyVesselRenderModel<'texture>,
+    editor: &'b Editor,
+    logger: &'c MemLogger,
+    person_table: &'d PersonTable,
+    vessel_render_model: &'e LazyVesselRenderModel<'texture>,
 }
 
-impl<'texture, 'a, 'b, 'c, 'd> DrawDockingClamp<'texture, 'a, 'b, 'c, 'd> {
+impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         clamp: &'a DockingClamp,
-        logger: &'b MemLogger,
-        person_table: &'c PersonTable,
-        vessel_render_model: &'d LazyVesselRenderModel<'texture>,
+        editor: &'b Editor,
+        logger: &'c MemLogger,
+        person_table: &'d PersonTable,
+        vessel_render_model: &'e LazyVesselRenderModel<'texture>,
     ) -> Box<Self> {
         Box::new(Self {
             clamp,
+            editor,
             logger,
             person_table,
             vessel_render_model,
@@ -749,8 +753,8 @@ impl<'texture, 'a, 'b, 'c, 'd> DrawDockingClamp<'texture, 'a, 'b, 'c, 'd> {
     }
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawDockingClamp<'texture, 'a, 'b, 'c, 'd>
+impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e>
 {
     fn visible(&self) -> bool {
         true
@@ -765,6 +769,7 @@ impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
                     .render(
                         renderer,
                         &connection.vessel,
+                        &self.editor,
                         self.logger,
                         self.person_table,
                         Some(bounding_box),
@@ -776,22 +781,25 @@ impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
     }
 }
 
-struct DrawDockingClamps<'texture, 'a, 'b, 'c, 'd> {
+struct DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, 'e> {
     clamps: &'a [DockingClamp],
-    logger: &'b MemLogger,
-    person_table: &'c PersonTable,
-    vessel_render_model: &'d LazyVesselRenderModel<'texture>,
+    editor: &'b Editor,
+    logger: &'c MemLogger,
+    person_table: &'d PersonTable,
+    vessel_render_model: &'e LazyVesselRenderModel<'texture>,
 }
 
-impl<'texture, 'a, 'b, 'c, 'd> DrawDockingClamps<'texture, 'a, 'b, 'c, 'd> {
+impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         clamps: &'a [DockingClamp],
-        logger: &'b MemLogger,
-        person_table: &'c PersonTable,
-        vessel_render_model: &'d LazyVesselRenderModel<'texture>,
+        editor: &'b Editor,
+        logger: &'c MemLogger,
+        person_table: &'d PersonTable,
+        vessel_render_model: &'e LazyVesselRenderModel<'texture>,
     ) -> Box<Self> {
         Box::new(Self {
             clamps,
+            editor,
             logger,
             person_table,
             vessel_render_model,
@@ -799,8 +807,8 @@ impl<'texture, 'a, 'b, 'c, 'd> DrawDockingClamps<'texture, 'a, 'b, 'c, 'd> {
     }
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawDockingClamps<'texture, 'a, 'b, 'c, 'd>
+impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, 'e>
 {
     fn visible(&self) -> bool {
         !self.clamps.is_empty()
@@ -813,6 +821,7 @@ impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
                 .map(|clamp| {
                     DrawDockingClamp::new(
                         clamp,
+                        self.editor,
                         self.logger,
                         self.person_table,
                         self.vessel_render_model,
@@ -887,22 +896,25 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnector
     }
 }
 
-struct DrawDockingStuff<'texture, 'a, 'b, 'c, 'd> {
+struct DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e> {
     module: &'a dyn Module,
-    logger: &'b MemLogger,
-    person_table: &'c PersonTable,
-    vessel_render_model: &'d LazyVesselRenderModel<'texture>,
+    editor: &'b Editor,
+    logger: &'c MemLogger,
+    person_table: &'d PersonTable,
+    vessel_render_model: &'e LazyVesselRenderModel<'texture>,
 }
 
-impl<'texture, 'a, 'b, 'c, 'd> DrawDockingStuff<'texture, 'a, 'b, 'c, 'd> {
+impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         module: &'a dyn Module,
-        logger: &'b MemLogger,
-        person_table: &'c PersonTable,
-        vessel_render_model: &'d LazyVesselRenderModel<'texture>,
+        editor: &'b Editor,
+        logger: &'c MemLogger,
+        person_table: &'d PersonTable,
+        vessel_render_model: &'e LazyVesselRenderModel<'texture>,
     ) -> Box<Self> {
         Box::new(Self {
             module,
+            editor,
             logger,
             person_table,
             vessel_render_model,
@@ -910,8 +922,8 @@ impl<'texture, 'a, 'b, 'c, 'd> DrawDockingStuff<'texture, 'a, 'b, 'c, 'd> {
     }
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawDockingStuff<'texture, 'a, 'b, 'c, 'd>
+impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e>
 {
     fn visible(&self) -> bool {
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
@@ -923,6 +935,7 @@ impl<'texture, 'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T>
         let layout = RowLayout::new(vec![
             DrawDockingClamps::new(
                 self.module.docking_clamps(),
+                self.editor,
                 self.logger,
                 self.person_table,
                 self.vessel_render_model,
@@ -1211,6 +1224,7 @@ impl<'texture> ModuleRenderModel<'texture> {
         &self,
         renderer: &mut Renderer<T>,
         module: &dyn Module,
+        editor: &Editor,
         logger: &MemLogger,
         person_table: &PersonTable,
         bounding_box: Rect<Float>,
@@ -1240,7 +1254,13 @@ impl<'texture> ModuleRenderModel<'texture> {
             DrawPersons::new(module, logger, &self.person_render_model),
             DrawRecipes::new(module),
             DrawStorages::new(module, &self.item_storage_render_model, self),
-            DrawDockingStuff::new(module, logger, person_table, &self.vessel_render_model),
+            DrawDockingStuff::new(
+                module,
+                editor,
+                logger,
+                person_table,
+                &self.vessel_render_model,
+            ),
             DrawTradingInfo::new(module),
         ]);
 

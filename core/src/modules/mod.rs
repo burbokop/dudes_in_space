@@ -10,17 +10,28 @@ mod shuttle;
 mod trading_terminal;
 mod vessel_selling_terminal;
 
-pub(crate) use assembler::*;
-pub(crate) use cargo_container::*;
-pub(crate) use core_module::*;
-pub(crate) use dockyard::*;
-pub(crate) use fabricator::*;
-pub(crate) use ore_manifold::*;
-pub(crate) use personnel_area::*;
-pub(crate) use plant_facility::*;
-pub(crate) use shuttle::*;
-pub(crate) use trading_terminal::*;
-pub(crate) use vessel_selling_terminal::*;
+#[allow(unused_imports)]
+pub use assembler::*;
+#[allow(unused_imports)]
+pub use cargo_container::*;
+#[allow(unused_imports)]
+pub use core_module::*;
+#[allow(unused_imports)]
+pub use dockyard::*;
+#[allow(unused_imports)]
+pub use fabricator::*;
+#[allow(unused_imports)]
+pub use ore_manifold::*;
+#[allow(unused_imports)]
+pub use personnel_area::*;
+#[allow(unused_imports)]
+pub use plant_facility::*;
+#[allow(unused_imports)]
+pub use shuttle::*;
+#[allow(unused_imports)]
+pub use trading_terminal::*;
+#[allow(unused_imports)]
+pub use vessel_selling_terminal::*;
 
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::ItemVault;

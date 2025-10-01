@@ -63,12 +63,22 @@ impl Environment {
         &self.vessels
     }
 
-    pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
+    pub fn add_vessel(&mut self, vessel: Vessel) {
+        self.vessels.push(vessel);
+    }
+
+    pub fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
         self.vessels.iter().find(|v| v.id() == id)
     }
 
     pub fn vessel_by_id_mut(&mut self, id: VesselId) -> Option<&mut Vessel> {
         self.vessels.iter_mut().find(|v| v.id() == id)
+    }
+
+    pub fn extract_vessel_by_id(&mut self, id: VesselId) -> Option<Vessel> {
+        self.vessels
+            .extract_if(0..self.vessels.len(), |vessel| vessel.id() == id)
+            .next()
     }
 
     pub fn proceed(

@@ -14,7 +14,10 @@ pub struct PersonalFinancePackage {
 
 impl Default for PersonalFinancePackage {
     fn default() -> Self {
-        todo!()
+        PersonalFinancePackage {
+            bank: None,
+            wallet: Rc::new(RefCell::new(Wallet::new())),
+        }
     }
 }
 

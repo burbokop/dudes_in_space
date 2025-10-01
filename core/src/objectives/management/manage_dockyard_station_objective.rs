@@ -430,8 +430,9 @@ impl ObjectiveDecider for ManageDockyardStationObjectiveDecider {
         person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
-        if person.passions.contains(&Passion::Management)
-            || person.passions.contains(&Passion::Ruling)
+        if (person.passions.contains(&Passion::Management)
+            || person.passions.contains(&Passion::Ruling))
+            && person.passions.contains(&Passion::Vessels)
         {
             logger.info("Manage dockyard station objective decided.");
             Some(Box::new(ManageDockyardStationObjective::new(logger)))

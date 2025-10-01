@@ -15,6 +15,7 @@ use crate::render::{
 use crate::utils::{load, load_camera, load_logger, save_camera};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Matrix;
+use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
 use dudes_in_space_core::module_types;
 use std::env::home_dir;
@@ -108,7 +109,7 @@ fn main() {
         renderer.begin();
         renderer.set_transformation(camera.transformation());
         render_model
-            .render(&mut renderer, &environment, &logger, &person_table)
+            .render(&mut renderer, &environment, &editor, &logger, &person_table)
             .unwrap();
 
         renderer.set_transformation(Matrix::identity());
@@ -127,7 +128,7 @@ fn main() {
             .unwrap();
 
         match editor.state() {
-            EditorState::Selection => {}
+            EditorState::Selection { selected_vessel_id } => {}
             EditorState::Placing { preset_to_place } => {
                 renderer
                     .draw_text(
@@ -139,6 +140,29 @@ fn main() {
                     )
                     .unwrap();
             }
+        }
+
+        if editor.about_to_delete_selected() {
+            let vessel = environment
+                .vessel_by_id(editor.selected_vessel().unwrap().clone())
+                .unwrap();
+
+            renderer
+                .draw_text(
+                    &format!(
+                        "Press 'Enter' to confirm deletion of vessel: {} ({})",
+                        vessel.name(),
+                        vessel.id()
+                    ),
+                    (16., *renderer.size().y() as Float - 16.).into(),
+                    16.,
+                    Alignment {
+                        horisontal: HorisontalAlignment::Left,
+                        vertical: VerticalAlignment::Bottom,
+                    },
+                    Color::black(),
+                )
+                .unwrap();
         }
 
         renderer.end();

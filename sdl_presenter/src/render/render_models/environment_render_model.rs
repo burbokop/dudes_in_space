@@ -1,3 +1,4 @@
+use crate::editor::Editor;
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::renderer::Renderer;
@@ -19,12 +20,19 @@ impl<'texture> EnvironmentRenderModel<'texture> {
         &self,
         renderer: &mut Renderer<T>,
         environment: &Environment,
+        editor: &Editor,
         logger: &MemLogger,
         person_table: &PersonTable,
     ) -> Result<(), RenderError> {
         for vessel in environment.vessels() {
-            self.vessel_render_model
-                .render(renderer, vessel, logger, person_table, None)?;
+            self.vessel_render_model.render(
+                renderer,
+                vessel,
+                editor,
+                logger,
+                person_table,
+                None,
+            )?;
         }
         Ok(())
     }

@@ -184,6 +184,15 @@ impl Assembler {
             operator: None,
         })
     }
+
+    pub fn with_operator(person: Person, storage: ItemStorage) -> Box<Self> {
+        Box::new(Self {
+            id: ModuleId::new_v4(),
+            state: AssemblerState::Idle,
+            storage,
+            operator: Some(person),
+        })
+    }
 }
 
 impl DynSerialize for Assembler {

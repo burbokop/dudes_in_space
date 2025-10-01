@@ -516,8 +516,9 @@ impl ObjectiveDecider for ManageProductionStationObjectiveDecider {
         person: &ThisPerson,
         logger: &mut PersonLogger,
     ) -> Option<Box<dyn DynObjective>> {
-        if person.passions.contains(&Passion::Management)
-            || person.passions.contains(&Passion::Ruling)
+        if (person.passions.contains(&Passion::Management)
+            || person.passions.contains(&Passion::Ruling))
+            && person.passions.contains(&Passion::Crafting)
         {
             logger.info("Manage production station objective decided.");
             Some(Box::new(ManageProductionStationObjective::new(logger)))

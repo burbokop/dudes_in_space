@@ -89,6 +89,10 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
         }
     }
 
+    pub fn size(&self) -> Point<u32> {
+        self.canvas.output_size().unwrap().into()
+    }
+
     pub fn begin(&mut self) {
         self.canvas
             .set_draw_color(sdl2::pixels::Color::RGB(255, 255, 255));
@@ -261,7 +265,13 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
                         .into(),
                     (HorisontalAlignment::Center, VerticalAlignment::Center) => centered_rect,
                     (HorisontalAlignment::Right, VerticalAlignment::Center) => todo!(),
-                    (HorisontalAlignment::Left, VerticalAlignment::Bottom) => todo!(),
+                    (HorisontalAlignment::Left, VerticalAlignment::Bottom) => (
+                        *position.x(),
+                        *position.y() - centered_rect.h() + offset_y,
+                        *centered_rect.w(),
+                        *centered_rect.h(),
+                    )
+                        .into(),
                     (HorisontalAlignment::Center, VerticalAlignment::Bottom) => todo!(),
                     (HorisontalAlignment::Right, VerticalAlignment::Bottom) => todo!(),
                 };
