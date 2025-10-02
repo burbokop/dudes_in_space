@@ -9,6 +9,8 @@ use sdl2::gfx::primitives::DrawRenderer;
 use std::error::Error;
 use std::ops::Not;
 
+static TAB: &str = "    ";
+
 #[derive(Clone, Copy)]
 pub enum HorisontalAlignment {
     Left,
@@ -226,6 +228,7 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
         let point_size = (self.tr.average_scale() * point_size) as u16;
 
         if text.len() > 0 {
+            let text = text.replace('\t', TAB);
             let font = self.font_provider.font(point_size);
             let color = color_to_sdl2_rgba_color(color);
             let lines_count = text.lines().count();
@@ -297,6 +300,7 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
         let bounding_box = &self.tr * &bounding_box;
 
         if text.len() > 0 {
+            let text = text.replace('\t', TAB);
             let lines_count = text.lines().count();
             let longest_line_len = text.lines().max_by_key(|line| line.len()).unwrap().len();
 

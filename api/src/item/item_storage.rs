@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::iter::Sum;
-use std::rc::Weak;
+use std::rc::{Rc, Weak};
 
 macro_rules! validate {
     ($this:ident) => {
@@ -75,15 +75,16 @@ pub struct ItemStorage {
     content: ItemStorageContent,
     volume: ItemVolume,
     total_occupied_volume: ItemVolume,
+    item_vault: Rc<ItemVault>,
 }
 
 #[derive(Clone)]
-pub struct ItemStorageSeed<'v> {
-    vault: &'v ItemVault,
+pub struct ItemStorageSeed {
+    vault: Rc<ItemVault>,
 }
 
-impl<'v> ItemStorageSeed<'v> {
-    pub fn new(vault: &'v ItemVault) -> Self {
+impl ItemStorageSeed {
+    pub fn new(vault: Rc<ItemVault>) -> Self {
         Self { vault }
     }
 }
@@ -112,7 +113,7 @@ impl Serialize for ItemStorage {
     }
 }
 
-impl<'de, 'v> DeserializeSeed<'de> for ItemStorageSeed<'v> {
+impl<'de> DeserializeSeed<'de> for ItemStorageSeed {
     type Value = ItemStorage;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -131,7 +132,7 @@ impl<'de, 'v> DeserializeSeed<'de> for ItemStorageSeed<'v> {
         for (k, v) in content {
             c.insert(
                 k.clone(),
-                ItemStack::new(self.vault, k, v).map_err(serde::de::Error::custom)?,
+                ItemStack::new(&self.vault, k, v).map_err(serde::de::Error::custom)?,
             );
         }
         let total_occupied_volume = Self::Value::eval_total_occupied_volume(&c);
@@ -140,6 +141,7 @@ impl<'de, 'v> DeserializeSeed<'de> for ItemStorageSeed<'v> {
             content: ItemStorageContent(c),
             volume,
             total_occupied_volume,
+            item_vault: self.vault.clone(),
         })
     }
 }
@@ -151,11 +153,12 @@ impl FromIterator<Item> for ItemStorage {
 }
 
 impl ItemStorage {
-    pub fn new(volume: ItemVolume) -> Self {
+    pub fn new(volume: ItemVolume, item_vault: Rc<ItemVault>) -> Self {
         Self {
             content: ItemStorageContent(BTreeMap::new()),
             volume,
             total_occupied_volume: M3(0),
+            item_vault,       
         }
     }
 
@@ -166,8 +169,9 @@ impl ItemStorage {
     pub fn from_vec(
         value: Vec<ItemStack>,
         volume: ItemVolume,
+        item_vault: Rc<ItemVault>,      
     ) -> Result<Self, ItemStorageFromVecError> {
-        let mut result = Self::new(volume);
+        let mut result = Self::new(volume, item_vault);
         for v in value {
             result
                 .content
@@ -245,7 +249,7 @@ impl ItemStorage {
             return false;
         }
 
-        for ItemRefStack { id, count } in input.into_iter() {
+        for ItemRefStack { id, count } in input {
             let stack = self.content.0.get_mut(&id).unwrap();
             stack.count -= count;
             if stack.count == 0 {
@@ -259,12 +263,29 @@ impl ItemStorage {
 
     pub fn has_space_for_output(&self, output: OutputItemRecipe) -> bool {
         validate!(self);
+
+        // self.content.0.i
+        //
+        // output.into_iter().all(|ItemRefStack { id, count }| {
+        //
+        // })
+
         todo!()
     }
 
     pub fn try_insert_output(&mut self, output: OutputItemRecipe) -> bool {
         validate!(self);
-        todo!()
+        if !self.has_space_for_output(output.clone()) {
+            return false;
+        }
+
+        for (id, count) in output {
+            let stack = self.content.0.get_mut(&id).unwrap();
+            stack.count += count;
+        }
+
+        self.total_occupied_volume = Self::eval_total_occupied_volume(&self.content.0);
+        true
     }
 
     fn eval_total_occupied_volume(content: &BTreeMap<ItemId, ItemStack>) -> ItemVolume {

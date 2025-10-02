@@ -1,8 +1,11 @@
 use crate::environment::Cycle;
 use crate::finance::{BankRegistry, Money};
 use crate::item::ItemId;
+use crate::recipe::InputItemRecipe;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct PurchasedItemsMaxPrices {
@@ -51,4 +54,33 @@ impl PurchasedItemsMaxPrices {
             self.cycles_to_next_stabilization -= 1;
         }
     }
+
+    pub fn calculate_cost_price(
+        &self,
+        input: InputItemRecipe,
+    ) -> Result<Money, CalculateCostPriceError> {
+        // maybe should be `Money::sum_as`
+        Money::try_sum_same_currency(input.into_iter().map(|stack| {
+            if let Some(price) = self.stabilized().get(&stack.id) {
+                Ok(price.clone() * stack.count)
+            } else {
+                Err(CalculateCostPriceError::ItemIsNotPurchased { item: stack.id })
+            }
+        }))
+        .and_then(|x| x.ok_or(CalculateCostPriceError::EmptyInput))
+    }
 }
+
+#[derive(Debug)]
+pub enum CalculateCostPriceError {
+    EmptyInput,
+    ItemIsNotPurchased { item: ItemId },
+}
+
+impl Display for CalculateCostPriceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for CalculateCostPriceError {}

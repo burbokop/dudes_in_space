@@ -83,6 +83,10 @@ fn main() {
             module_types::TRADING_TERMINAL.into(),
             include_bytes!("../assets/trading_terminal.png"),
         )
+        .with(
+            module_types::PLANT_FACILITY.into(),
+            include_bytes!("../assets/plant_facility.png"),
+        )
         .build();
 
     let render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());

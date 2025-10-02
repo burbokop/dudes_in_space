@@ -27,13 +27,15 @@ impl Display for CraftingError {
 
 impl Error for CraftingError {}
 
-pub type ItemRecipeHash = u64;
+#[repr(transparent)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
+pub struct ItemRecipeHash(u64);
 
 impl ItemRecipe {
     pub fn hash(&self) -> ItemRecipeHash {
         let mut s = DefaultHasher::new();
         Hash::hash(self, &mut s);
-        s.finish()
+        ItemRecipeHash(s.finish())
     }
 
     pub fn items(&self) -> impl Iterator<Item = &ItemId> {
@@ -75,13 +77,15 @@ impl<'a> IntoIterator for &'a InputItemRecipe {
     }
 }
 
-pub type InputItemRecipeHash = u64;
+#[repr(transparent)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
+pub struct InputItemRecipeHash(u64);
 
 impl InputItemRecipe {
     pub fn hash(&self) -> InputItemRecipeHash {
         let mut s = DefaultHasher::new();
         Hash::hash(self, &mut s);
-        s.finish()
+        InputItemRecipeHash(s.finish())
     }
 
     pub fn len(&self) -> usize {
@@ -175,13 +179,15 @@ pub struct OutputItemRecipe {
     output: BTreeMap<ItemId, ItemCount>,
 }
 
-pub type OutputItemRecipeHash = u64;
+#[repr(transparent)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
+pub struct OutputItemRecipeHash(u64);
 
 impl OutputItemRecipe {
     pub fn hash(&self) -> OutputItemRecipeHash {
         let mut s = DefaultHasher::new();
         Hash::hash(self, &mut s);
-        s.finish()
+        OutputItemRecipeHash(s.finish())
     }
 
     pub fn len(&self) -> usize {

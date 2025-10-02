@@ -187,6 +187,7 @@ pub trait CraftingConsole {
     // returns index in array. TODO replace with uuid
     fn recipe_by_output_capability(&self, capability: ModuleCapability) -> Option<usize>;
     fn recipe_by_output_primary_capability(&self, capability: ModuleCapability) -> Option<usize>;
+    fn recipe_by_output_module(&self, type_id: ModuleTypeId) -> Option<usize>;
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize>;
     fn recipe_by_hash(&self, hash: ItemRecipeHash) -> Option<usize>;
     fn recipe_by_output_hash(&self, hash: OutputItemRecipeHash) -> Option<usize>;

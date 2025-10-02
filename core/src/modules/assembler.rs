@@ -352,6 +352,12 @@ impl<'a> CraftingConsole for Console<'a> {
         })
     }
 
+    fn recipe_by_output_module(&self, type_id: ModuleTypeId) -> Option<usize> {
+        self.recipes
+            .iter()
+            .position(|recipe| recipe.output_description().type_id() == type_id)
+    }
+
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize> {
         todo!()
     }
@@ -361,7 +367,7 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_by_output_hash(&self, hash: OutputItemRecipeHash) -> Option<usize> {
-        todo!()
+        None
     }
 
     fn recipe_by_input_hash(&self, hash: InputItemRecipeHash) -> Option<usize> {
@@ -657,7 +663,7 @@ pub(crate) struct AssemblerDynSeed {
 }
 
 impl AssemblerDynSeed {
-    pub fn new(
+    pub(crate) fn new(
         factory_seed_vault: Rc<DynDeserializeSeedVault<dyn ModuleFactory>>,
         objective_seed_vault: Rc<DynDeserializeSeedVault<dyn DynObjective>>,
         bank_registry: Rc<BankRegistry>,

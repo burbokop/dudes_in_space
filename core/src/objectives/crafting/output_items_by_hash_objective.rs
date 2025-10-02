@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct OutputItemsByHashObjectiveArgs {
     pub(crate) recipe_hash: OutputItemRecipeHash,
     /// Stop producing when reached the limit
@@ -228,7 +228,6 @@ impl Objective for OutputItemsByHashObjective {
 #[derive(Debug)]
 pub(crate) enum OutputItemsByHashObjectiveError {
     CanNotFindCraftingModule,
-    LackIngredients,
 }
 
 impl Display for OutputItemsByHashObjectiveError {

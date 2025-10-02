@@ -84,7 +84,7 @@ pub fn register_modules(
             process_token_context.clone(),
         ))
         .with(AssemblerDynSeed::new(
-            factory_seed_vault,
+            factory_seed_vault.clone(),
             objective_seed_vault.clone(),
             bank_registry.clone(),
             wallet_registry.clone(),
@@ -106,13 +106,20 @@ pub fn register_modules(
             wallet_registry.clone(),
         ))
         .with(FabricatorDynSeed::new(
-            objective_seed_vault,
+            objective_seed_vault.clone(),
             bank_registry.clone(),
             wallet_registry.clone(),
+            item_vault.clone(),
+            process_token_context.clone(),
+        ))
+        .with(PlantFacilityDynSeed::new(
+            factory_seed_vault,
+            objective_seed_vault,
+            bank_registry,
+            wallet_registry,
             item_vault,
             process_token_context,
         ))
-        .with(PlantFacilityDynSeed {})
         .with(OreManifoldDynSeed {})
 }
 

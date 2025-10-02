@@ -123,6 +123,7 @@ impl<'de, 'v> DeserializeSeed<'de> for ItemStackSeed<'v> {
     }
 }
 
+#[derive(Debug)]
 pub struct ItemVault {
     data: Vec<Rc<Item>>,
 }

@@ -1,11 +1,11 @@
 use crate::objectives::common::MoveToModuleObjective;
 use crate::objectives::crafting::{
-    CraftItemsByHashObjective, CraftModulesObjectiveArgs, CraftModulesObjectiveError,
-    OutputItemsByHashObjective,
+    CraftItemsByHashObjective, CraftModulesByTypeIdObjective, CraftModulesByTypeIdObjectiveArgs,
+    CraftModulesByTypeIdObjectiveError, CraftModulesObjectiveError, OutputItemsByHashObjective,
+    OutputItemsByHashObjectiveArgs, OutputItemsByHashObjectiveError,
 };
 use crate::objectives::crafting::{
-    CraftItemsByHashObjectiveArgs, CraftItemsByHashObjectiveError, CraftModulesObjective,
-    RequireModulesObjective,
+    CraftItemsByHashObjectiveArgs, CraftItemsByHashObjectiveError, RequireModulesObjective,
 };
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
@@ -66,10 +66,7 @@ use std::rc::Rc;
 */
 
 static TYPE_ID: &str = "ManageProductionStationObjective";
-static REQUIRED_CAPS: [ModuleCapability; 2] = [
-    ModuleCapability::ItemCrafting,
-    ModuleCapability::TradingTerminal,
-];
+static REQUIRED_CAPS: [ModuleCapability; 1] = [ModuleCapability::TradingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[serde(tag = "manage_production_station_objective_stage")]
@@ -90,7 +87,7 @@ pub(crate) enum ManageProductionStationObjective {
         input_limit: BTreeMap<ItemId, ItemCount>,
     },
     AssembleSpecificCrafter {
-        craft_objective: CraftModulesObjective,
+        craft_objective: CraftModulesByTypeIdObjective,
     },
     ExecuteProductionFromIngredients {
         production_candidate: ProductionFromIngredientsCandidate,
@@ -107,7 +104,7 @@ pub(crate) enum ManageProductionStationObjective {
         output_objective: OutputItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
         /// TODO: save placed offers here so u can know what to update
-        sell_offers: BTreeMap<ItemId, OfferId>,
+        buy_offers: BTreeMap<ItemId, OfferId>,
     },
 }
 
@@ -213,13 +210,19 @@ impl Objective for ManageProductionStationObjective {
                                     .find_item_recipe(production_candidate.recipe.hash())
                                 {
                                     None => {
-                                        // TODO craft specific module for this recipe
-                                        logger.info("ManageProductionStationObjective::AssembleSpecificCrafter");
+                                        let module_type_id = tied_vessel
+                                            .potentially_craftable_modules_with_recipe(
+                                                production_candidate.recipe.hash(),
+                                            )
+                                            .first()
+                                            .unwrap()
+                                            .clone();
+
+                                        logger.info("ManageProductionStationObjective::AssembleSpecificCrafter (Prod from ingredients)");
                                         *self = Self::AssembleSpecificCrafter {
-                                            craft_objective: CraftModulesObjective::new(
-                                                [ModuleCapability::ItemCrafting].into(),
-                                                [].into(),
-                                                CraftModulesObjectiveArgs {
+                                            craft_objective: CraftModulesByTypeIdObjective::new(
+                                                CraftModulesByTypeIdObjectiveArgs {
+                                                    modules: vec![module_type_id],
                                                     deploy: true,
                                                     wait_if_has_no_ingredients: false,
                                                 },
@@ -281,7 +284,7 @@ impl Objective for ManageProductionStationObjective {
                                         );
 
                                         logger.info(
-                                            "ManageProductionStationObjective::RequireModules",
+                                            "ManageProductionStationObjective::RequireModules (Prod from ingredients)",
                                         );
                                         *self = Self::RequireModules {
                                             input_limit,
@@ -301,7 +304,79 @@ impl Objective for ManageProductionStationObjective {
                                 }
                             }
                             Some(ProductionCandidate::FromEnvironment(production_candidate)) => {
-                                todo!()
+                                let tied_vessel = tie(this_module, this_vessel);
+                                match tied_vessel
+                                    .find_output_item_recipe(production_candidate.recipe.hash())
+                                {
+                                    None => {
+                                        let module_type_id = tied_vessel
+                                            .potentially_craftable_modules_with_output_recipe(
+                                                production_candidate.recipe.hash(),
+                                            )
+                                            .first()
+                                            .unwrap()
+                                            .clone();
+
+                                        logger.info("ManageProductionStationObjective::AssembleSpecificCrafter (Prod from env)");
+                                        *self = Self::AssembleSpecificCrafter {
+                                            craft_objective: CraftModulesByTypeIdObjective::new(
+                                                CraftModulesByTypeIdObjectiveArgs {
+                                                    modules: vec![module_type_id],
+                                                    deploy: true,
+                                                    wait_if_has_no_ingredients: false,
+                                                },
+                                                logger,
+                                            ),
+                                        };
+                                        Ok(ObjectiveStatus::InProgress)
+                                    }
+                                    Some((module, recipe)) => {
+                                        let output_storages =
+                                            module.storages_by_role(StorageRole::Output);
+
+                                        let output_storage = output_storages.first().unwrap();
+
+                                        let single_output_capacity =
+                                            output_storage.capacity() / recipe.len();
+
+                                        let mut output_limit: BTreeMap<ItemId, ItemCount> =
+                                            Default::default();
+                                        for (item, recipe_count) in recipe {
+                                            let item = environment_context
+                                                .item_vault()
+                                                .get_ref(item)
+                                                .unwrap();
+                                            let item_max_count =
+                                                (single_output_capacity / item.volume).ceil()
+                                                    as ItemCount;
+                                            assert!(recipe_count <= item_max_count);
+                                            output_limit
+                                                .try_insert(item.id.clone(), item_max_count)
+                                                .unwrap();
+                                        }
+
+                                        let terminals = tied_vessel.modules_with_capability(
+                                            ModuleCapability::TradingTerminal,
+                                        );
+                                        logger.info(
+                                            "ManageProductionStationObjective::RequireModules (Prod from env)",
+                                        );
+                                        *self = Self::RequireModules {
+                                            input_limit: BTreeMap::new(),
+                                            output_limit,
+                                            production_candidate:
+                                                ProductionCandidate::FromEnvironment(
+                                                    production_candidate,
+                                                ),
+                                            objective: RequireModulesObjective::new(
+                                                REQUIRED_CAPS.into(),
+                                                [].into(),
+                                                logger,
+                                            ),
+                                        };
+                                        Ok(ObjectiveStatus::InProgress)
+                                    }
+                                }
                             }
                             None => todo!(),
                         }
@@ -356,11 +431,29 @@ impl Objective for ManageProductionStationObjective {
                             Ok(ObjectiveStatus::InProgress)
                         }
                         ProductionCandidate::FromEnvironment(production_candidate) => {
-                            todo!()
+                            logger.info("ManageProductionStationObjective::ExecuteProductionFromEnvironment");
+                            *self = Self::ExecuteProductionFromEnvironment {
+                                output_objective: OutputItemsByHashObjective::new(
+                                    OutputItemsByHashObjectiveArgs {
+                                        recipe_hash: production_candidate.recipe.hash(),
+                                        output_limit: std::mem::take(output_limit),
+                                        done_if_reached_limit: false,
+                                        interrupt_after_each_craft: true,
+                                        start_interrupted: true,
+                                    },
+                                    logger,
+                                ),
+                                production_candidate: production_candidate.clone(),
+                                move_to_trading_terminal_objective: MoveToModuleObjective::new(
+                                    terminals.first().unwrap().id(),
+                                ),
+                                buy_offers: BTreeMap::new(),
+                            };
+                            Ok(ObjectiveStatus::InProgress)
                         }
                     }
                 }
-                Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
+                Err(err) => Err(Self::Error::CraftingOtherModulesError(err)),
             },
             Self::AssembleSpecificCrafter { craft_objective } => match craft_objective.pursue(
                 this_person,
@@ -503,7 +596,81 @@ impl Objective for ManageProductionStationObjective {
                     }
                 }
             }
-            Self::ExecuteProductionFromEnvironment { .. } => todo!(),
+            Self::ExecuteProductionFromEnvironment {
+                production_candidate,
+                output_objective,
+                move_to_trading_terminal_objective,
+                buy_offers,
+            } => {
+                match output_objective.pursue(
+                    this_person,
+                    this_module,
+                    this_vessel,
+                    environment_context,
+                    logger,
+                ) {
+                    Ok(ObjectiveStatus::InProgress) => {
+                        if output_objective.is_interrupted() {
+                            match move_to_trading_terminal_objective.pursue(
+                                this_person,
+                                this_module,
+                                this_vessel,
+                                environment_context,
+                                logger,
+                            ) {
+                                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                                Ok(ObjectiveStatus::Done(_)) => {
+                                    let this_vessel = tie(this_module, this_vessel);
+
+                                    let crafting_module = this_vessel
+                                        .module_by_id(output_objective.crafting_module().unwrap())
+                                        .unwrap();
+
+                                    let output_storages =
+                                        crafting_module.storages_by_role(StorageRole::Output);
+
+                                    let output_storage = output_storages.first().unwrap();
+
+                                    let output_needed = output_storage
+                                        .content()
+                                        .lack(output_objective.args().output_limit.clone());
+
+                                    let offer_update_instructions = vec![OfferUpdateInstruction {
+                                        kind: OfferUpdateInstructionKind::Buy,
+                                        id: buy_offers.get(&production_candidate.product).cloned(),
+                                        item: production_candidate.product.clone(),
+                                        count_range: (1..output_needed
+                                            .get(&production_candidate.product)
+                                            .unwrap()
+                                            .clone())
+                                            .into(),
+                                        price_per_unit: production_candidate
+                                            .average_product_sell_price
+                                            .clone()
+                                            * this_person.notes.margin(),
+                                    }];
+
+                                    drop(crafting_module);
+                                    place_or_update_offers(
+                                        this_module.trading_admin_console_mut().unwrap(),
+                                        offer_update_instructions,
+                                        &mut BTreeMap::new(),
+                                        buy_offers,
+                                    );
+
+                                    output_objective.resume();
+                                    Ok(ObjectiveStatus::InProgress)
+                                }
+                                Err(err) => todo!("{:?}", err),
+                            }
+                        } else {
+                            Ok(ObjectiveStatus::InProgress)
+                        }
+                    }
+                    Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
+                    Err(OutputItemsByHashObjectiveError::CanNotFindCraftingModule) => todo!(),
+                }
+            }
         }
     }
 }
@@ -569,7 +736,8 @@ impl DynDeserializeSeed<dyn DynObjective> for ManageProductionStationObjectiveDy
 
 #[derive(Debug)]
 pub(crate) enum ManageProductionStationObjectiveError {
-    CraftingFabricatorError(CraftModulesObjectiveError),
+    CraftingFabricatorError(CraftModulesByTypeIdObjectiveError),
+    CraftingOtherModulesError(CraftModulesObjectiveError),
     NoSellOffersFound,
 }
 

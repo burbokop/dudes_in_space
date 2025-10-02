@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct CraftItemsByHashObjectiveArgs {
     pub(crate) recipe_hash: ItemRecipeHash,
     /// Stop producing when reached the limit

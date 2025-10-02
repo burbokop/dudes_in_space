@@ -296,6 +296,10 @@ impl<'a> CraftingConsole for Console<'a> {
         todo!()
     }
 
+    fn recipe_by_output_module(&self, type_id: ModuleTypeId) -> Option<usize> {
+        todo!()
+    }
+
     fn recipe_by_output_item(&self, item: ItemId) -> Option<usize> {
         todo!()
     }

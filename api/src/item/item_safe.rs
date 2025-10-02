@@ -4,14 +4,14 @@ use crate::item::{
 use crate::recipe::{InputItemRecipe, OutputItemRecipe};
 use serde::Serialize;
 
-use std::collections::BTreeMap;
-
 use crate::person::PersonId;
 use dyn_serde::MapSeed;
 use dyn_serde_macro::DeserializeSeedXXX;
+use std::collections::BTreeMap;
+use std::rc::Rc;
 
 #[derive(Debug, Clone, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::item::item_safe::ItemSafeSeed::<'v>)]
+#[deserialize_seed_xxx(seed = crate::item::item_safe::ItemSafeSeed)]
 pub struct ItemSafe {
     #[deserialize_seed_xxx(seed = self.seed.item_storage_seed)]
     content: BTreeMap<PersonId, ItemStorage>,
@@ -19,12 +19,12 @@ pub struct ItemSafe {
 }
 
 #[derive(Clone)]
-pub struct ItemSafeSeed<'v> {
-    item_storage_seed: MapSeed<PersonId, ItemStorageSeed<'v>>,
+pub struct ItemSafeSeed {
+    item_storage_seed: MapSeed<PersonId, ItemStorageSeed>,
 }
 
-impl<'v> ItemSafeSeed<'v> {
-    pub fn new(vault: &'v ItemVault) -> Self {
+impl ItemSafeSeed {
+    pub fn new(vault: Rc<ItemVault>) -> Self {
         Self {
             item_storage_seed: MapSeed::new(ItemStorageSeed::new(vault)),
         }

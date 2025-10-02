@@ -3,8 +3,10 @@ use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleTypeId,
 };
 use crate::recipe::{
-    AssemblyRecipe, InputItemRecipe, ItemRecipe, ItemRecipeHash, OutputItemRecipe,
+    AssemblyRecipe, InputItemRecipe, InputItemRecipeHash, ItemRecipe, ItemRecipeHash,
+    OutputItemRecipe, OutputItemRecipeHash,
 };
+
 use crate::utils::physics::M3;
 use crate::vessel::{DockingClamp, DockingClampConnection, VesselConsole, VesselInternalConsole};
 use std::cell::{Ref, RefMut};
@@ -226,24 +228,68 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
         }
 
         None
+    }
 
-        // self.this_vessel
-        //     .modules_with_capability(ModuleCapability::ItemCrafting)
-        //     .into_iter()
-        //     .map(|mo| {
-        //         let m = ModuleRef::Other(mo);
-        //         mo.item_recipes().iter().map(|c| (m, c))})
-        //     .flatten()
-        //     .chain(
-        //         self.this_module
-        //             .crafting_console().map(|x|x.item_recipes().iter()).unwrap_or([].iter())
-        //             .map(|c| (ModuleRef::This(self.this_module), c)),
-        //     )
-        //     .find_map(|(a, b)|
-        //         if b.default_hash() == recipe {
-        //             Some((a,b.clone())
-        //             )
-        //         }else {None})
+    pub fn find_output_item_recipe<'q>(
+        &'q self,
+        recipe: OutputItemRecipeHash,
+    ) -> Option<(ModuleRef<'a, 'b>, OutputItemRecipe)>
+    where
+        'q: 'a + 'b,
+    {
+        if let Some(crafting_console) = self.this_module.crafting_console() {
+            if let Some(index) = crafting_console.recipe_by_output_hash(recipe) {
+                return Some((
+                    ModuleRef::This(self.this_module),
+                    crafting_console.recipe_item_output(index).unwrap(),
+                ));
+            }
+        }
+
+        for module in self
+            .this_vessel
+            .modules_with_capability(ModuleCapability::ItemProduction)
+        {
+            for r in module.output_item_recipes() {
+                if r.hash() == recipe {
+                    let r = r.clone();
+                    return Some((ModuleRef::Other(module), r));
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn find_input_item_recipe<'q>(
+        &'q self,
+        recipe: InputItemRecipeHash,
+    ) -> Option<(ModuleRef<'a, 'b>, InputItemRecipe)>
+    where
+        'q: 'a + 'b,
+    {
+        if let Some(crafting_console) = self.this_module.crafting_console() {
+            if let Some(index) = crafting_console.recipe_by_input_hash(recipe) {
+                return Some((
+                    ModuleRef::This(self.this_module),
+                    crafting_console.recipe_item_input(index).unwrap(),
+                ));
+            }
+        }
+
+        for module in self
+            .this_vessel
+            .modules_with_capability(ModuleCapability::ItemConsumption)
+        {
+            for r in module.input_item_recipes() {
+                if r.hash() == recipe {
+                    let r = r.clone();
+                    return Some((ModuleRef::Other(module), r));
+                }
+            }
+        }
+
+        None
     }
 
     pub fn find_map_docking_clamp<T>(
@@ -455,6 +501,57 @@ impl<'a, 'b> ThisVessel<'a, 'b> {
             .into_iter()
             .map(|r| r.output_description().assembly_recipes().to_vec())
             .flatten()
+            .collect()
+    }
+
+    pub fn potentially_craftable_modules_with_recipe(
+        &self,
+        recipe: ItemRecipeHash,
+    ) -> Vec<ModuleTypeId> {
+        self.assembly_recipes()
+            .into_iter()
+            .filter_map(|r| {
+                r.output_description()
+                    .item_recipes()
+                    .iter()
+                    .find(|x| x.hash() == recipe)
+                    .is_some()
+                    .then_some(r.output_description().type_id())
+            })
+            .collect()
+    }
+
+    pub fn potentially_craftable_modules_with_input_recipe(
+        &self,
+        recipe: InputItemRecipeHash,
+    ) -> Vec<ModuleTypeId> {
+        self.assembly_recipes()
+            .into_iter()
+            .filter_map(|r| {
+                r.output_description()
+                    .input_item_recipes()
+                    .iter()
+                    .find(|x| x.hash() == recipe)
+                    .is_some()
+                    .then_some(r.output_description().type_id())
+            })
+            .collect()
+    }
+
+    pub fn potentially_craftable_modules_with_output_recipe(
+        &self,
+        recipe: OutputItemRecipeHash,
+    ) -> Vec<ModuleTypeId> {
+        self.assembly_recipes()
+            .into_iter()
+            .filter_map(|r| {
+                r.output_description()
+                    .output_item_recipes()
+                    .iter()
+                    .find(|x| x.hash() == recipe)
+                    .is_some()
+                    .then_some(r.output_description().type_id())
+            })
             .collect()
     }
 }
