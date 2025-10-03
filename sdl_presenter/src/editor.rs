@@ -6,6 +6,7 @@ use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{Vessel, VesselId};
 use dudes_in_space_core::{__modules, items};
+use std::rc::Rc;
 
 pub(crate) enum EditorState {
     Selection {
@@ -22,7 +23,7 @@ pub(crate) enum EditorPreset {
 }
 
 impl EditorPreset {
-    fn create_vessel(&self, item_vault: &ItemVault, pos: Point<Float>) -> Vessel {
+    fn create_vessel(&self, item_vault: Rc<ItemVault>, pos: Point<Float>) -> Vessel {
         match self {
             EditorPreset::PeterCrafter => {
                 let person = Person::new(
@@ -42,6 +43,7 @@ impl EditorPreset {
                     vec![__modules::Assembler::with_operator(
                         person,
                         ItemStorage::from_vec(
+                            item_vault.clone(),
                             vec![
                                 ItemStack::new(&item_vault, items::STEEL.into(), 10000).unwrap(),
                                 ItemStack::new(&item_vault, items::PLASTIC.into(), 10000).unwrap(),
@@ -166,7 +168,7 @@ impl Editor {
     pub(crate) fn end_placing(
         &mut self,
         environment: &mut Environment,
-        item_vault: &ItemVault,
+        item_vault: Rc<ItemVault>,
         pos: Point<Float>,
     ) {
         self.about_to_delete_selected = false;

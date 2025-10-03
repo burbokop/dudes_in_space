@@ -19,6 +19,7 @@ use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::ops::ControlFlow;
+use std::rc::Rc;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -86,7 +87,7 @@ impl Environment {
         process_token_context: &ProcessTokenContext,
         req_context: &ReqContext,
         decider_vault: &ObjectiveDeciderVault,
-        item_vault: &ItemVault,
+        item_vault: Rc<ItemVault>,
         subordination_table: &SubordinationTable,
         bank_registry: &BankRegistry,
         wallet_registry: &WalletRegistry,
@@ -100,14 +101,14 @@ impl Environment {
             bank_registry,
             wallet_registry,
             currency_generator,
-            item_vault,
+            item_vault.clone(),
         );
         for v in &mut self.vessels {
             v.proceed(&mut environment_context, decider_vault, logger)
         }
         self.process_requests(
             req_context,
-            item_vault,
+            &item_vault,
             bank_registry,
             wallet_registry,
             currency_generator,

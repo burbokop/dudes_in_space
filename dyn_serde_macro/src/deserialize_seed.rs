@@ -2,12 +2,12 @@ use convert_case::{Case, Casing};
 use darling::{FromField, FromMeta};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::Ident;
 use syn::spanned::Spanned;
 use syn::{
     self, Data, DeriveInput, Expr, Fields, GenericArgument, Path, PathArguments, Type, TypePath,
     Variant, parse_macro_input,
 };
+use syn::{Ident, parse_quote};
 
 #[derive(deluxe::ExtractAttributes, Debug)]
 #[deluxe(attributes(deserialize_seed_xxx))]
@@ -161,6 +161,8 @@ fn deserialize_seed_struct_visitor(
         check_missing: proc_macro2::TokenStream,
         kind: FieldKind,
     }
+
+    let seed_generic_args_plus_de: Vec<GenericArgument> = concat_with_de(seed_generic_args.clone());
 
     let fields: Vec<FieldRecipe> = fields.into_iter().enumerate().map(|(index, field)| {
         let field_ident = field.ident.as_ref().unwrap_or(&format_ident!("field_{}", index)).clone();
@@ -379,7 +381,7 @@ fn deserialize_seed_struct_visitor(
             seed: #seed_type <#(#seed_generic_args),*>
         }
 
-        impl<#(#seed_generic_args),*, '__de> serde::de::Visitor<'__de> for Visitor<#(#seed_generic_args),*> {
+        impl<#(#seed_generic_args_plus_de),*> serde::de::Visitor<'__de> for Visitor<#(#seed_generic_args),*> {
             type Value = #ident;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -419,6 +421,8 @@ fn deserialize_seed_enum(
         struct_declaration: proc_macro2::TokenStream,
         arm: proc_macro2::TokenStream,
     }
+
+    let seed_generic_args_plus_de: Vec<GenericArgument> = concat_with_de(seed_generic_args.clone());
 
     let variants: Vec<_> = variants
         .iter()
@@ -513,7 +517,7 @@ fn deserialize_seed_enum(
                     seed: #seed_type <#(#seed_generic_args),*>
                 }
 
-                impl<#(#seed_generic_args),*, '__de> serde::de::Visitor<'__de> for Visitor<#(#seed_generic_args),*> {
+                impl<#(#seed_generic_args_plus_de),*> serde::de::Visitor<'__de> for Visitor<#(#seed_generic_args),*> {
                     type Value = #ident;
 
                     fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -552,6 +556,8 @@ fn deserialize_seed_tagged_enum(
         arm: proc_macro2::TokenStream,
         _is_tuple: bool,
     }
+
+    let seed_generic_args_plus_de: Vec<GenericArgument> = concat_with_de(seed_generic_args.clone());
 
     let variants: Vec<_> = variants
         .iter()
@@ -673,7 +679,7 @@ fn deserialize_seed_tagged_enum(
                     seed: #seed_type <#(#seed_generic_args),*>
                 }
 
-                impl<#(#seed_generic_args),*, '__de> serde::de::Visitor<'__de> for Visitor<#(#seed_generic_args),*> {
+                impl<#(#seed_generic_args_plus_de),*> serde::de::Visitor<'__de> for Visitor<#(#seed_generic_args),*> {
                     type Value = #ident;
 
                     fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -700,4 +706,9 @@ fn deserialize_seed_tagged_enum(
         }
     }
         .into()
+}
+
+fn concat_with_de(mut args: Vec<GenericArgument>) -> Vec<GenericArgument> {
+    args.push(parse_quote!('__de));
+    args
 }

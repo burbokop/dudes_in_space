@@ -32,19 +32,19 @@ static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStora
 static ITEM_STORAGE_CAPACITY: ItemVolume = M3(1000);
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::cargo_container::CargoContainerSeed::<'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::cargo_container::CargoContainerSeed)]
 struct CargoContainer {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.storage_seed)]
     storage: ItemStorage,
 }
 
-struct CargoContainerSeed<'v> {
-    storage_seed: ItemStorageSeed<'v>,
+struct CargoContainerSeed {
+    storage_seed: ItemStorageSeed,
 }
 
-impl<'v> CargoContainerSeed<'v> {
-    fn new(vault: &'v ItemVault) -> Self {
+impl CargoContainerSeed {
+    fn new(vault: Rc<ItemVault>) -> Self {
         Self {
             storage_seed: ItemStorageSeed::new(vault),
         }
@@ -210,7 +210,7 @@ impl DynDeserializeSeed<dyn Module> for CargoContainerDynSeed {
         this_vault: &DynDeserializeSeedVault<dyn Module>,
     ) -> Result<Box<dyn Module>, Box<dyn Error>> {
         let obj: CargoContainer =
-            from_intermediate_seed(CargoContainerSeed::new(&self.vault), &intermediate)
+            from_intermediate_seed(CargoContainerSeed::new(self.vault.clone()), &intermediate)
                 .map_err(|e| e.to_string())?;
         Ok(Box::new(obj))
     }
@@ -220,10 +220,10 @@ impl DynDeserializeSeed<dyn Module> for CargoContainerDynSeed {
 pub(crate) struct CargoContainerFactory {}
 
 impl ModuleFactory for CargoContainerFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(CargoContainer {
             id: ModuleId::new_v4(),
-            storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
+            storage: ItemStorage::new(item_vault, ITEM_STORAGE_CAPACITY),
         })
     }
 

@@ -118,7 +118,7 @@ impl<'context> FabricatorStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v,'a,'b, 'sv, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::fabricator::FabricatorSeed::<'v,'a,'b, 'context>)]
 struct Fabricator {
     id: ModuleId,
     // recipes: Vec<ItemRecipe>,
@@ -133,18 +133,18 @@ struct Fabricator {
     operator: Option<Person>,
 }
 
-struct FabricatorSeed<'v, 'a, 'b, 'sv, 'context> {
+struct FabricatorSeed<'v, 'a, 'b, 'context> {
     person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
-    item_storage_seed: ItemStorageSeed<'sv>,
+    item_storage_seed: ItemStorageSeed,
     state_seed: FabricatorStateSeed<'context>,
 }
 
-impl<'v, 'a, 'b, 'sv, 'context> FabricatorSeed<'v, 'a, 'b, 'sv, 'context> {
+impl<'v, 'a, 'b, 'context> FabricatorSeed<'v, 'a, 'b, 'context> {
     fn new(
         objective_seed_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
         bank_registry: &'a BankRegistry,
         wallet_registry: &'b WalletRegistry,
-        item_vault: &'sv ItemVault,
+        item_vault: Rc<ItemVault>,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
@@ -601,7 +601,7 @@ impl DynDeserializeSeed<dyn Module> for FabricatorDynSeed {
                 &self.objective_seed_vault,
                 &self.bank_registry,
                 &self.wallet_registry,
-                &self.item_vault,
+                self.item_vault.clone(),
                 &self.context,
             ),
             &intermediate,
@@ -627,12 +627,12 @@ impl DynSerialize for FabricatorFactory {
 }
 
 impl ModuleFactory for FabricatorFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Fabricator {
             id: ModuleId::new_v4(),
             state: FabricatorState::Idle,
-            input_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
-            output_storage: ItemStorage::new(ITEM_STORAGE_CAPACITY),
+            input_storage: ItemStorage::new(item_vault.clone(), ITEM_STORAGE_CAPACITY),
+            output_storage: ItemStorage::new(item_vault, ITEM_STORAGE_CAPACITY),
             operator: None,
         })
     }

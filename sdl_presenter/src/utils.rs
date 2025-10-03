@@ -36,7 +36,7 @@ pub(crate) fn load(components: &Components, save_path: PathBuf) -> Environment {
         )
         .unwrap()
     } else {
-        env_presets::preset0::new(&mut rng(), &components.item_vault)
+        env_presets::preset0::new(&mut rng(), components.item_vault.clone())
     }
 }
 

@@ -153,12 +153,12 @@ impl FromIterator<Item> for ItemStorage {
 }
 
 impl ItemStorage {
-    pub fn new(volume: ItemVolume, item_vault: Rc<ItemVault>) -> Self {
+    pub fn new(item_vault: Rc<ItemVault>, volume: ItemVolume) -> Self {
         Self {
             content: ItemStorageContent(BTreeMap::new()),
             volume,
             total_occupied_volume: M3(0),
-            item_vault,       
+            item_vault,
         }
     }
 
@@ -167,11 +167,11 @@ impl ItemStorage {
     }
 
     pub fn from_vec(
+        item_vault: Rc<ItemVault>,
         value: Vec<ItemStack>,
         volume: ItemVolume,
-        item_vault: Rc<ItemVault>,      
     ) -> Result<Self, ItemStorageFromVecError> {
-        let mut result = Self::new(volume, item_vault);
+        let mut result = Self::new(item_vault, volume);
         for v in value {
             result
                 .content
@@ -264,13 +264,16 @@ impl ItemStorage {
     pub fn has_space_for_output(&self, output: OutputItemRecipe) -> bool {
         validate!(self);
 
-        // self.content.0.i
-        //
-        // output.into_iter().all(|ItemRefStack { id, count }| {
-        //
-        // })
+        let delta_volume: ItemVolume = output
+            .into_iter()
+            .map(|(item, count)| {
+                let item = self.item_vault.get(item).unwrap();
+                let item = item.upgrade().unwrap();
+                item.volume * count
+            })
+            .sum();
 
-        todo!()
+        self.free_space() >= delta_volume
     }
 
     pub fn try_insert_output(&mut self, output: OutputItemRecipe) -> bool {
@@ -280,7 +283,14 @@ impl ItemStorage {
         }
 
         for (id, count) in output {
-            let stack = self.content.0.get_mut(&id).unwrap();
+            // Maybe better skip then. But it is weird to have a recipe that outputs nothing
+            assert_ne!(count, 0);
+
+            let stack = self
+                .content
+                .0
+                .entry(id.clone())
+                .or_insert_with(|| ItemStack::new(&self.item_vault, id, 0).unwrap());
             stack.count += count;
         }
 

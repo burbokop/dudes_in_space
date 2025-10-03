@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{
     BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
 };
-use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
     AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
     ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole,
@@ -578,7 +578,7 @@ impl DynSerialize for VesselSellingTerminalFactory {
 }
 
 impl ModuleFactory for VesselSellingTerminalFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(VesselSellingTerminal {
             id: ModuleId::new_v4(),
             offers: vec![],

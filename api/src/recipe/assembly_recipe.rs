@@ -1,3 +1,4 @@
+use crate::item::ItemVault;
 use crate::module::{Module, ModuleCapability, ModuleTypeId};
 use crate::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
@@ -19,7 +20,7 @@ pub trait ModuleFactoryOutputDescription {
 }
 
 pub trait ModuleFactory: Debug + DynSerialize + Send + Sync {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module>;
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module>;
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription;
 }
 
@@ -77,8 +78,8 @@ impl AssemblyRecipe {
         &self.input
     }
 
-    pub fn create(&self) -> Box<dyn Module> {
-        self.output.create(&self.input)
+    pub fn create(&self, item_vault: Rc<ItemVault>) -> Box<dyn Module> {
+        self.output.create(item_vault, &self.input)
     }
 
     pub fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {

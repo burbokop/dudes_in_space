@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{
     BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
 };
-use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
+use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
     AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
     ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
@@ -458,7 +458,14 @@ impl<'a> AdminTradingConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
-        todo!()
+        if let Some(x) = self.buy_offers.iter_mut().find(|o| o.id == id) {
+            x.item = item;
+            x.count_range = count_range;
+            x.price_per_unit = price_per_unit;
+            Some(x)
+        } else {
+            None
+        }
     }
 
     fn place_buy_vessel_offer(
@@ -579,7 +586,7 @@ impl DynDeserializeSeed<dyn Module> for TradingTerminalDynSeed {
 pub(crate) struct TradingTerminalFactory {}
 
 impl ModuleFactory for TradingTerminalFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(TradingTerminal {
             id: ModuleId::new_v4(),
             buy_offers: vec![],

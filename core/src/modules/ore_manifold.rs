@@ -1,5 +1,5 @@
 use dudes_in_space_api::environment::EnvironmentContext;
-use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVolume, StorageRole};
+use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVault, ItemVolume, StorageRole};
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::Debug;
+use std::rc::Rc;
 use std::sync::LazyLock;
 
 pub(super) static TYPE_ID: &str = "OreManifold";
@@ -177,7 +178,7 @@ impl Module for OreManifold {
 }
 
 impl ModuleFactory for OreManifoldFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module> {
         todo!()
     }
 

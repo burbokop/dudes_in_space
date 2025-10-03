@@ -5,20 +5,22 @@ use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::Vessel;
 use rand::Rng;
+use std::rc::Rc;
 
-fn storage(item_vault: &ItemVault) -> ItemStorage {
+fn storage(item_vault: Rc<ItemVault>) -> ItemStorage {
     ItemStorage::from_vec(
+        item_vault.clone(),
         vec![
-            ItemStack::new(item_vault, "steel".to_string(), 900000).unwrap(),
-            ItemStack::new(item_vault, "plastic".to_string(), 90000).unwrap(),
-            ItemStack::new(item_vault, "microelectronics".to_string(), 100).unwrap(),
+            ItemStack::new(&item_vault, "steel".to_string(), 900000).unwrap(),
+            ItemStack::new(&item_vault, "plastic".to_string(), 90000).unwrap(),
+            ItemStack::new(&item_vault, "microelectronics".to_string(), 100).unwrap(),
         ],
         M3(1000000),
     )
     .unwrap()
 }
 
-fn station0<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
+fn station0<R: Rng>(rng: &mut R, item_vault: Rc<ItemVault>) -> Vessel {
     let person0 = Person::random(rng);
     let person1 = Person::random(rng);
 
@@ -34,7 +36,7 @@ fn station0<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
     )
 }
 
-fn station1<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Vessel {
+fn station1<R: Rng>(rng: &mut R, item_vault: Rc<ItemVault>) -> Vessel {
     let person0 = Person::random(rng);
     let person1 = Person::random(rng);
     let person2 = Person::random(rng);
@@ -60,9 +62,9 @@ fn nebula() -> Nebula {
     ])
 }
 
-pub fn new<R: Rng>(rng: &mut R, item_vault: &ItemVault) -> Environment {
+pub fn new<R: Rng>(rng: &mut R, item_vault: Rc<ItemVault>) -> Environment {
     Environment::new(
-        vec![station0(rng, item_vault), station1(rng, item_vault)],
+        vec![station0(rng, item_vault.clone()), station1(rng, item_vault)],
         vec![nebula()],
     )
 }

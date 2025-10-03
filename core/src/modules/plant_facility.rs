@@ -71,7 +71,7 @@ impl<'context> PlantFacilityStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::plant_facility::PlantFacilitySeed::<'v,'a,'b, 'sv, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::plant_facility::PlantFacilitySeed::<'v,'a,'b, 'context>)]
 pub struct PlantFacility {
     id: ModuleId,
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
@@ -104,20 +104,20 @@ impl PlantFacility {
 }
 
 #[derive(Clone)]
-pub struct PlantFacilitySeed<'v, 'a, 'b, 'sv, 'context> {
+pub struct PlantFacilitySeed<'v, 'a, 'b, 'context> {
     recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
-    item_storage_seed: ItemStorageSeed<'sv>,
+    item_storage_seed: ItemStorageSeed,
     state_seed: PlantFacilityStateSeed<'context>,
 }
 
-impl<'v, 'a, 'b, 'sv, 'context> PlantFacilitySeed<'v, 'a, 'b, 'sv, 'context> {
+impl<'v, 'a, 'b, 'context> PlantFacilitySeed<'v, 'a, 'b, 'context> {
     pub fn new(
         module_factory_vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
         bank_registry: &'a BankRegistry,
         wallet_registry: &'b WalletRegistry,
-        item_vault: &'sv ItemVault,
+        item_vault: Rc<ItemVault>,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
@@ -249,7 +249,7 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
-        todo!()
+        None
     }
 
     fn storages(&self) -> Vec<&ItemStorage> {
@@ -462,7 +462,16 @@ impl Module for PlantFacility {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
@@ -555,8 +564,8 @@ impl Module for PlantFacility {
 }
 
 impl ModuleFactory for PlantFacilityFactory {
-    fn create(&self, recipe: &InputItemRecipe) -> Box<dyn Module> {
-        PlantFacility::new(ItemStorage::new(ITEM_STORAGE_CAPACITY))
+    fn create(&self, item_vault: Rc<ItemVault>, recipe: &InputItemRecipe) -> Box<dyn Module> {
+        PlantFacility::new(ItemStorage::new(item_vault, ITEM_STORAGE_CAPACITY))
     }
 
     fn output_description(&self) -> &dyn ModuleFactoryOutputDescription {
@@ -630,7 +639,7 @@ impl DynDeserializeSeed<dyn Module> for PlantFacilityDynSeed {
                 &self.objective_seed_vault,
                 &self.bank_registry,
                 &self.wallet_registry,
-                &self.item_vault,
+                self.item_vault.clone(),
                 &self.context,
             ),
             &intermediate,

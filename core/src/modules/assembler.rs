@@ -131,7 +131,7 @@ impl<'context> AssemblerStateSeed<'context> {
 }
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v,'a,'b, 'sv, 'context>)]
+#[deserialize_seed_xxx(seed = crate::modules::assembler::AssemblerSeed::<'v,'a,'b, 'context>)]
 pub struct Assembler {
     id: ModuleId,
     // #[deserialize_seed_xxx(seed = self.seed.recipe_seq_seed)]
@@ -146,20 +146,20 @@ pub struct Assembler {
 }
 
 #[derive(Clone)]
-pub struct AssemblerSeed<'v, 'a, 'b, 'sv, 'context> {
+pub struct AssemblerSeed<'v, 'a, 'b, 'context> {
     recipe_seq_seed: VecSeed<AssemblyRecipeSeed<'v>>,
     person_seed: TaggedOptionSeed<PersonSeed<'v, 'a, 'b>>,
-    item_storage_seed: ItemStorageSeed<'sv>,
+    item_storage_seed: ItemStorageSeed,
     state_seed: AssemblerStateSeed<'context>,
 }
 
-impl<'v, 'a, 'b, 'sv, 'context> AssemblerSeed<'v, 'a, 'b, 'sv, 'context> {
+impl<'v, 'a, 'b, 'context> AssemblerSeed<'v, 'a, 'b, 'context> {
     pub fn new(
         module_factory_vault: &'v DynDeserializeSeedVault<dyn ModuleFactory>,
         objective_vault: &'v DynDeserializeSeedVault<dyn DynObjective>,
         bank_registry: &'a BankRegistry,
         wallet_registry: &'b WalletRegistry,
-        item_vault: &'sv ItemVault,
+        item_vault: Rc<ItemVault>,
         context: &'context ProcessTokenContext,
     ) -> Self {
         Self {
@@ -490,7 +490,9 @@ impl Module for Assembler {
                         assert!(ok);
 
                         if *deploy {
-                            this_vessel.add_module(active_recipe.create());
+                            this_vessel.add_module(
+                                active_recipe.create(environment_context.item_vault().clone()),
+                            );
                             self.state = AssemblerState::Idle;
                         } else {
                             let mut storage_modules = this_vessel
@@ -500,7 +502,9 @@ impl Module for Assembler {
                             assert!(!storage_modules[0].module_storages().is_empty());
                             let storage = &mut storage_modules[0].module_storages_mut()[0];
                             assert!(storage.has_space());
-                            let ok = storage.add(active_recipe.create());
+                            let ok = storage.add(
+                                active_recipe.create(environment_context.item_vault().clone()),
+                            );
                             assert!(ok);
                             self.state = AssemblerState::Idle;
                         }
@@ -698,7 +702,7 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
                 &self.objective_seed_vault,
                 &self.bank_registry,
                 &self.wallet_registry,
-                &self.item_vault,
+                self.item_vault.clone(),
                 &self.context,
             ),
             &intermediate,

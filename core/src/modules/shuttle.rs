@@ -1,7 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
-use dudes_in_space_api::item::{ItemSafe, ItemStorage, StorageRole};
+use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
     DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
     PackageId, TradingConsole,
@@ -308,7 +308,7 @@ impl DynDeserializeSeed<dyn ModuleFactory> for ShuttleFactoryDynSeed {
 }
 
 impl ModuleFactory for ShuttleFactory {
-    fn create(&self, _: &InputItemRecipe) -> Box<dyn Module> {
+    fn create(&self, item_vault: Rc<ItemVault>, _: &InputItemRecipe) -> Box<dyn Module> {
         Box::new(Shuttle {
             id: ModuleId::new_v4(),
             docking_connector: DockingConnector::new(DOCKING_CONNECTOR_COMPAT_TYPE),
