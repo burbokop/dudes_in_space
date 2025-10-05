@@ -1,8 +1,9 @@
 use crate::objectives::common::MoveToModuleObjective;
 use crate::objectives::crafting::{
-    CraftItemsByHashObjective, CraftModulesByTypeIdObjective, CraftModulesByTypeIdObjectiveArgs,
-    CraftModulesByTypeIdObjectiveError, CraftModulesObjectiveError, OutputItemsByHashObjective,
-    OutputItemsByHashObjectiveArgs, OutputItemsByHashObjectiveError,
+    BehaviourIfLackIngredients, CraftItemsByHashObjective, CraftModulesByTypeIdObjective,
+    CraftModulesByTypeIdObjectiveArgs, CraftModulesByTypeIdObjectiveError,
+    CraftModulesObjectiveError, OutputItemsByHashObjective, OutputItemsByHashObjectiveArgs,
+    OutputItemsByHashObjectiveError,
 };
 use crate::objectives::crafting::{
     CraftItemsByHashObjectiveArgs, CraftItemsByHashObjectiveError, RequireModulesObjective,
@@ -27,7 +28,7 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -69,12 +70,12 @@ static TYPE_ID: &str = "ManageProductionStationObjective";
 static REQUIRED_CAPS: [ModuleCapability; 1] = [ModuleCapability::TradingTerminal];
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
-#[serde(tag = "manage_production_station_objective_stage")]
-#[deserialize_seed_xxx(seed = crate::objectives::management::manage_production_station_objective::ManageProductionStationObjectiveSeed::<'context>)]
-pub(crate) enum ManageProductionStationObjective {
-    CollectAllAvailableRecipes,
+#[serde(tag = "tp")]
+#[deserialize_seed_xxx(seed = crate::objectives::management::manage_production_station_objective::StateSeed::<'context>)]
+enum State {
+    Idle,
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
-    FindBestOffersAndDecideBestRecipe {
+    DecideBestProduct {
         future: ReqFuture<FindBestOffersForItemsResult>,
         recipes_to_consider: BTreeSet<ItemRecipe>,
         input_recipes_to_consider: BTreeSet<InputItemRecipe>,
@@ -94,35 +95,60 @@ pub(crate) enum ManageProductionStationObjective {
         input_limit: BTreeMap<ItemId, ItemCount>,
         craft_objective: CraftItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
-        /// TODO: save placed offers here so u can know what to update
         sell_offers: BTreeMap<ItemId, OfferId>,
-        /// TODO: save placed offers here so u can know what to update
         buy_offers: BTreeMap<ItemId, OfferId>,
     },
     ExecuteProductionFromEnvironment {
         production_candidate: ProductionFromEnvironmentCandidate,
         output_objective: OutputItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
-        /// TODO: save placed offers here so u can know what to update
         buy_offers: BTreeMap<ItemId, OfferId>,
     },
+}
+
+fn deserialize_forced_product<'de, D>(data: D) -> Result<Option<ItemId>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let x = ItemId::deserialize(data).map(Some).unwrap_or(None);
+    Ok(x)
+}
+
+#[derive(Debug, Serialize, DeserializeSeedXXX)]
+#[deserialize_seed_xxx(seed = crate::objectives::management::manage_production_station_objective::ManageProductionStationObjectiveSeed::<'context>)]
+pub(crate) struct ManageProductionStationObjective {
+    #[deserialize_seed_xxx(seed = self.seed.state_seed)]
+    state: State,
+    #[serde(default, deserialize_with = "deserialize_forced_product")]
+    forced_product: Option<ItemId>,
 }
 
 impl ManageProductionStationObjective {
     pub(crate) fn new(logger: &mut PersonLogger) -> Self {
         logger.info("ManageProductionStationObjective::new");
-        Self::CollectAllAvailableRecipes
+        Self {
+            state: State::Idle,
+            forced_product: None,
+        }
     }
 }
 
-struct ManageProductionStationObjectiveSeed<'context> {
+#[derive(Clone)]
+struct StateSeed<'context> {
     req_future_seed: ReqFutureSeed<'context, FindBestOffersForItemsResult>,
+}
+
+#[derive(Clone)]
+struct ManageProductionStationObjectiveSeed<'context> {
+    state_seed: StateSeed<'context>,
 }
 
 impl<'context> ManageProductionStationObjectiveSeed<'context> {
     pub fn new(context: &'context ReqContext) -> Self {
         Self {
-            req_future_seed: ReqFutureSeed::new(context),
+            state_seed: StateSeed {
+                req_future_seed: ReqFutureSeed::new(context),
+            },
         }
     }
 }
@@ -139,8 +165,8 @@ impl Objective for ManageProductionStationObjective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
-        match self {
-            Self::CollectAllAvailableRecipes => {
+        match &mut self.state {
+            State::Idle => {
                 let item_recipes: BTreeSet<_> = iter::chain(
                     tie(this_module, this_vessel).item_recipes().into_iter(),
                     tie(this_module, this_vessel)
@@ -177,7 +203,7 @@ impl Objective for ManageProductionStationObjective {
                 .collect();
 
                 logger.info("ManageProductionStationObjective::FindBestOffersAndDecideBestRecipe");
-                *self = Self::FindBestOffersAndDecideBestRecipe {
+                self.state = State::DecideBestProduct {
                     future: FindBestOffersForItems { items }
                         .push(environment_context.request_storage_mut()),
                     recipes_to_consider: item_recipes,
@@ -186,7 +212,7 @@ impl Objective for ManageProductionStationObjective {
                 };
                 Ok(ObjectiveStatus::InProgress)
             }
-            Self::FindBestOffersAndDecideBestRecipe {
+            State::DecideBestProduct {
                 future,
                 recipes_to_consider,
                 input_recipes_to_consider,
@@ -197,14 +223,17 @@ impl Objective for ManageProductionStationObjective {
                     if search_result.max_profit_sell_offers.is_empty() {
                         Err(Self::Error::NoSellOffersFound)
                     } else {
-                        match choose_item_to_produce(
+                        match choose_candidate(
                             &search_result,
                             &output_recipes_to_consider,
                             &recipes_to_consider,
                             environment_context.bank_registry(),
                             logger,
+                            self.forced_product.clone(),
                         ) {
                             Some(ProductionCandidate::FromIngredients(production_candidate)) => {
+                                self.forced_product = Some(production_candidate.product.clone());
+
                                 let tied_vessel = tie(this_module, this_vessel);
                                 match tied_vessel
                                     .find_item_recipe(production_candidate.recipe.hash())
@@ -219,7 +248,7 @@ impl Objective for ManageProductionStationObjective {
                                             .clone();
 
                                         logger.info("ManageProductionStationObjective::AssembleSpecificCrafter (Prod from ingredients)");
-                                        *self = Self::AssembleSpecificCrafter {
+                                        self.state = State::AssembleSpecificCrafter {
                                             craft_objective: CraftModulesByTypeIdObjective::new(
                                                 CraftModulesByTypeIdObjectiveArgs {
                                                     modules: vec![module_type_id],
@@ -286,7 +315,7 @@ impl Objective for ManageProductionStationObjective {
                                         logger.info(
                                             "ManageProductionStationObjective::RequireModules (Prod from ingredients)",
                                         );
-                                        *self = Self::RequireModules {
+                                        self.state = State::RequireModules {
                                             input_limit,
                                             output_limit,
                                             production_candidate:
@@ -304,6 +333,8 @@ impl Objective for ManageProductionStationObjective {
                                 }
                             }
                             Some(ProductionCandidate::FromEnvironment(production_candidate)) => {
+                                self.forced_product = Some(production_candidate.product.clone());
+
                                 let tied_vessel = tie(this_module, this_vessel);
                                 match tied_vessel
                                     .find_output_item_recipe(production_candidate.recipe.hash())
@@ -318,7 +349,7 @@ impl Objective for ManageProductionStationObjective {
                                             .clone();
 
                                         logger.info("ManageProductionStationObjective::AssembleSpecificCrafter (Prod from env)");
-                                        *self = Self::AssembleSpecificCrafter {
+                                        self.state = State::AssembleSpecificCrafter {
                                             craft_objective: CraftModulesByTypeIdObjective::new(
                                                 CraftModulesByTypeIdObjectiveArgs {
                                                     modules: vec![module_type_id],
@@ -361,7 +392,7 @@ impl Objective for ManageProductionStationObjective {
                                         logger.info(
                                             "ManageProductionStationObjective::RequireModules (Prod from env)",
                                         );
-                                        *self = Self::RequireModules {
+                                        self.state = State::RequireModules {
                                             input_limit: BTreeMap::new(),
                                             output_limit,
                                             production_candidate:
@@ -384,7 +415,7 @@ impl Objective for ManageProductionStationObjective {
                 }
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::RequireModules {
+            State::RequireModules {
                 objective,
                 production_candidate,
                 output_limit,
@@ -408,14 +439,15 @@ impl Objective for ManageProductionStationObjective {
                     match production_candidate {
                         ProductionCandidate::FromIngredients(production_candidate) => {
                             logger.info("ManageProductionStationObjective::ExecuteProductionFromIngredients");
-                            *self = Self::ExecuteProductionFromIngredients {
+                            self.state = State::ExecuteProductionFromIngredients {
                                 input_limit: std::mem::take(input_limit),
                                 craft_objective: CraftItemsByHashObjective::new(
                                     CraftItemsByHashObjectiveArgs {
                                         recipe_hash: production_candidate.recipe.hash(),
                                         output_limit: std::mem::take(output_limit),
                                         done_if_reached_limit: false,
-                                        err_if_lack_ingredients: false,
+                                        behaviour_if_lack_ingredients:
+                                            BehaviourIfLackIngredients::WaitFor { cycles: 20 },
                                         interrupt_after_each_craft: true,
                                         start_interrupted: true,
                                     },
@@ -432,7 +464,7 @@ impl Objective for ManageProductionStationObjective {
                         }
                         ProductionCandidate::FromEnvironment(production_candidate) => {
                             logger.info("ManageProductionStationObjective::ExecuteProductionFromEnvironment");
-                            *self = Self::ExecuteProductionFromEnvironment {
+                            self.state = State::ExecuteProductionFromEnvironment {
                                 output_objective: OutputItemsByHashObjective::new(
                                     OutputItemsByHashObjectiveArgs {
                                         recipe_hash: production_candidate.recipe.hash(),
@@ -455,7 +487,7 @@ impl Objective for ManageProductionStationObjective {
                 }
                 Err(err) => Err(Self::Error::CraftingOtherModulesError(err)),
             },
-            Self::AssembleSpecificCrafter { craft_objective } => match craft_objective.pursue(
+            State::AssembleSpecificCrafter { craft_objective } => match craft_objective.pursue(
                 this_person,
                 this_module,
                 this_vessel,
@@ -465,12 +497,12 @@ impl Objective for ManageProductionStationObjective {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                 Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("collect all available recipes to managing production station...");
-                    *self = Self::CollectAllAvailableRecipes;
+                    self.state = State::Idle;
                     Ok(ObjectiveStatus::InProgress)
                 }
                 Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
             },
-            Self::ExecuteProductionFromIngredients {
+            State::ExecuteProductionFromIngredients {
                 production_candidate,
                 input_limit,
                 craft_objective,
@@ -512,9 +544,9 @@ impl Objective for ManageProductionStationObjective {
 
                                     let input_needed =
                                         input_storage.content().lack(input_limit.clone());
-                                    let output_needed = output_storage
-                                        .content()
-                                        .lack(craft_objective.args().output_limit.clone());
+                                    let output_has_in_storage = output_storage.content().counts(
+                                        production_candidate.recipe.output.items().cloned(),
+                                    );
 
                                     let mut offer_update_instructions: Vec<OfferUpdateInstruction> = input_needed
                                         .iter()
@@ -546,7 +578,7 @@ impl Objective for ManageProductionStationObjective {
                                         kind: OfferUpdateInstructionKind::Buy,
                                         id: buy_offers.get(&production_candidate.product).cloned(),
                                         item: production_candidate.product.clone(),
-                                        count_range: (1..output_needed
+                                        count_range: (1..output_has_in_storage
                                             .get(&production_candidate.product)
                                             .unwrap()
                                             .clone())
@@ -577,7 +609,7 @@ impl Objective for ManageProductionStationObjective {
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule) => {
                         logger.info("ManageProductionStationObjective::RequireModules");
-                        *self = Self::RequireModules {
+                        self.state = State::RequireModules {
                             input_limit: std::mem::take(input_limit),
                             output_limit: craft_objective.args().output_limit.clone(),
                             production_candidate: ProductionCandidate::FromIngredients(
@@ -592,11 +624,12 @@ impl Objective for ManageProductionStationObjective {
                         Ok(ObjectiveStatus::InProgress)
                     }
                     Err(CraftItemsByHashObjectiveError::LackIngredients) => {
-                        unreachable!("Cuz err_if_lack_ingredients is set to false")
+                        self.state = State::Idle;
+                        Ok(ObjectiveStatus::InProgress)
                     }
                 }
             }
-            Self::ExecuteProductionFromEnvironment {
+            State::ExecuteProductionFromEnvironment {
                 production_candidate,
                 output_objective,
                 move_to_trading_terminal_objective,
@@ -631,15 +664,15 @@ impl Objective for ManageProductionStationObjective {
 
                                     let output_storage = output_storages.first().unwrap();
 
-                                    let output_needed = output_storage
+                                    let output_has_in_storage = output_storage
                                         .content()
-                                        .lack(output_objective.args().output_limit.clone());
+                                        .counts(production_candidate.recipe.items().cloned());
 
                                     let offer_update_instructions = vec![OfferUpdateInstruction {
                                         kind: OfferUpdateInstructionKind::Buy,
                                         id: buy_offers.get(&production_candidate.product).cloned(),
                                         item: production_candidate.product.clone(),
-                                        count_range: (1..output_needed
+                                        count_range: (1..output_has_in_storage
                                             .get(&production_candidate.product)
                                             .unwrap()
                                             .clone())
@@ -751,19 +784,19 @@ impl Error for ManageProductionStationObjectiveError {}
 
 impl Display for ManageProductionStationObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::CollectAllAvailableRecipes => write!(f, "CollectAllAvailableRecipes"),
-            Self::FindBestOffersAndDecideBestRecipe { .. } => {
-                write!(f, "FindBestOffersAndDecideBestRecipe")
+        match &self.state {
+            State::Idle => write!(f, "Idle"),
+            State::DecideBestProduct { .. } => {
+                write!(f, "DecideBestProduct")
             }
-            Self::RequireModules { objective, .. } => write!(f, "RequireModules -> {}", objective),
-            Self::AssembleSpecificCrafter { craft_objective } => {
+            State::RequireModules { objective, .. } => write!(f, "RequireModules -> {}", objective),
+            State::AssembleSpecificCrafter { craft_objective } => {
                 write!(f, "RequireModules -> {}", craft_objective)
             }
-            Self::ExecuteProductionFromIngredients {
+            State::ExecuteProductionFromIngredients {
                 craft_objective, ..
             } => write!(f, "ExecuteProductionFromIngredients -> {}", craft_objective),
-            Self::ExecuteProductionFromEnvironment {
+            State::ExecuteProductionFromEnvironment {
                 output_objective, ..
             } => write!(
                 f,
@@ -831,6 +864,13 @@ pub(crate) enum ProductionCandidate {
 }
 
 impl ProductionCandidate {
+    fn product(&self) -> &ItemId {
+        match &self {
+            ProductionCandidate::FromIngredients(c) => &c.product,
+            ProductionCandidate::FromEnvironment(c) => &c.product,
+        }
+    }
+
     fn has_producers_on_market(&self) -> bool {
         match &self {
             Self::FromIngredients(c) => c.has_producers_on_market,
@@ -1023,12 +1063,13 @@ fn cmp_option<T, F: FnOnce(T, T) -> Ordering>(a: Option<T>, b: Option<T>, f: F) 
     }
 }
 
-fn choose_item_to_produce(
+fn choose_candidate(
     search_result: &FindBestOffersForItemsResult,
     output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
     recipes_to_consider: &BTreeSet<ItemRecipe>,
     bank_registry: &BankRegistry,
     logger: &mut PersonLogger,
+    forced_product: Option<ItemId>,
 ) -> Option<ProductionCandidate> {
     let items_in_demand = calc_items_in_demand(&search_result, &output_recipes_to_consider);
 
@@ -1045,10 +1086,20 @@ fn choose_item_to_produce(
             bank_registry,
         );
         if !production_candidates.is_empty() {
-            logger.info(format!(
-                "Production candidates ({}):",
-                production_candidates.len()
-            ));
+            if let Some(forced_product) = &forced_product {
+                production_candidates.retain(|x| *x.product() == *forced_product);
+                logger.info(format!(
+                    "Production candidates (With forced product: {}) ({}):",
+                    production_candidates.len(),
+                    forced_product
+                ));
+            } else {
+                logger.info(format!(
+                    "Production candidates ({}):",
+                    production_candidates.len()
+                ));
+            }
+
             for i in &production_candidates {
                 logger.info(format!("\t{}", i));
             }

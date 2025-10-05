@@ -44,6 +44,7 @@ struct SerdeFieldAttributes {
     #[darling(default)]
     default: bool,
     with: Option<String>,
+    deserialize_with: Option<String>,
 }
 
 pub(crate) fn deserialize_seed_impl(input: TokenStream) -> TokenStream {
@@ -172,12 +173,20 @@ fn deserialize_seed_struct_visitor(
         let locale_variable_ident = Ident::new(&field_ident.to_string().to_case(Case::Snake), field_ident.span());
         let key_arm = quote! { #field_name => Ok(Field::#variant_ident) };
         let var_decl = quote! { let mut #locale_variable_ident: Option<#field_type> = None; };
-        let serde_options = SerdeFieldAttributes::from_field(field).expect("Wrong serde attributes");
+        let mut serde_options = SerdeFieldAttributes::from_field(field).expect("Wrong serde attributes");
         let skip = serde_options.skip || serde_options.skip_deserializing;
         let default = serde_options.default;
 
         if skip && default {
             panic!("Field {} is both skip and default", field_name);
+        }
+
+        if serde_options.with.is_some() && serde_options.deserialize_with.is_some() {
+            panic!("Field {} can ot have both `with` and `deserialize_with` annotations", field_name);
+        }
+
+        if let Some(with) = serde_options.with {
+            serde_options.deserialize_with = Some(format!("{}::deserialize", with));
         }
 
         let kind = if skip { FieldKind::Skip } else if default { FieldKind::Default } else { FieldKind::Usual };
@@ -196,30 +205,30 @@ fn deserialize_seed_struct_visitor(
                     #locale_variable_ident = Some(map.next_value_seed(#seed.clone())?.into());
                 }
             },
-            None => match serde_options.with {
-                Some(with) => {
-                    let with = Path::from_string(&with).unwrap();
+            None => match serde_options.deserialize_with {
+                Some(deserialize_with) => {
+                    let deserialize_with = Path::from_string(&deserialize_with).unwrap();
                     quote! {
-                    Field::#variant_ident => {
-                        struct Seed;
+                        Field::#variant_ident => {
+                            struct Seed;
 
-                        impl<'__de> serde::de::DeserializeSeed<'__de> for Seed {
-                            type Value = #field_type;
+                            impl<'__de> serde::de::DeserializeSeed<'__de> for Seed {
+                                type Value = #field_type;
 
-                            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-                            where
-                                D: serde::de::Deserializer<'__de>,
-                            {
-                                #with::deserialize(deserializer)
+                                fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+                                where
+                                    D: serde::de::Deserializer<'__de>,
+                                {
+                                    #deserialize_with(deserializer)
+                                }
                             }
-                        }
 
-                        if #locale_variable_ident.is_some() {
-                            return Err(serde::de::Error::duplicate_field(#field_name));
+                            if #locale_variable_ident.is_some() {
+                                return Err(serde::de::Error::duplicate_field(#field_name));
+                            }
+                            #locale_variable_ident = Some(map.next_value_seed(Seed)?);
                         }
-                        #locale_variable_ident = Some(map.next_value_seed(Seed)?);
                     }
-                }
                 },
                 None => quote! {
                     Field::#variant_ident => {

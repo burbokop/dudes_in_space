@@ -1172,8 +1172,8 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawTradingInfo<'a> 
         let console = self.module.trading_console().unwrap();
 
         let layout = RowLayout::new(vec![
-            DrawBuyOffers::new(console.buy_offers()),
             DrawSellOffers::new(console.sell_offers()),
+            DrawBuyOffers::new(console.buy_offers()),
             DrawBuyVesselOffers::new(console.buy_vessel_offers()),
             DrawBuyCustomVesselOffer::new(console.buy_custom_vessel_offer()),
         ]);

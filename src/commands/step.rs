@@ -12,7 +12,7 @@ impl StepCommand {
             &components.process_token_context,
             &components.req_context,
             &components.objectives_decider_vault,
-            &components.item_vault,
+            components.item_vault.clone(),
             &components.subordination_table,
             &components.bank_registry,
             &components.wallet_registry,

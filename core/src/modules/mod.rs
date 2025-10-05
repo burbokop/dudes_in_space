@@ -113,6 +113,14 @@ pub fn register_modules(
             process_token_context.clone(),
         ))
         .with(PlantFacilityDynSeed::new(
+            factory_seed_vault.clone(),
+            objective_seed_vault.clone(),
+            bank_registry.clone(),
+            wallet_registry.clone(),
+            item_vault.clone(),
+            process_token_context.clone(),
+        ))
+        .with(OreManifoldDynSeed::new(
             factory_seed_vault,
             objective_seed_vault,
             bank_registry,
@@ -120,7 +128,6 @@ pub fn register_modules(
             item_vault,
             process_token_context,
         ))
-        .with(OreManifoldDynSeed {})
 }
 
 pub mod types {

@@ -7,7 +7,9 @@ use crate::utils::range::Range;
 use crate::utils::utils::Float;
 use crate::vessel::Vessel;
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 
+#[derive(Debug)]
 pub(crate) struct ItemRecord {
     id: ItemId,
     buy_offers: Vec<OfferRef<BuyOffer>>,
@@ -166,6 +168,7 @@ impl ItemRecord {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ItemTradeTable {
     data: BTreeMap<ItemId, ItemRecord>,
 }
@@ -270,5 +273,23 @@ fn total_price(
     Money {
         currency: price_per_unit.currency,
         amount: NonNeg::new(count as MoneyAmount).unwrap() * price_per_unit.amount,
+    }
+}
+
+impl Display for ItemRecord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} = ", self.id)?;
+
+        for OfferRef { offer, .. } in &self.buy_offers {
+            write!(f, "{{{} for {}}}", offer.count_range, offer.price_per_unit)?;
+        }
+
+        write!(f, " -> ")?;
+
+        for OfferRef { offer, .. } in &self.sell_offers {
+            write!(f, "{{{} for {}}}", offer.count_range, offer.price_per_unit)?;
+        }
+
+        Ok(())
     }
 }

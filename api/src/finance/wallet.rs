@@ -140,11 +140,6 @@ impl Wallet {
                 .sell_this_currency_price(&target_bank, amount.into())
                 .unwrap();
 
-            println!(
-                "{:#?} -> {:#?} ({}, {})",
-                current_bank, target_bank, amount, target_amount
-            );
-
             target_bank.buy_currency(
                 &mut target_bank_owner_wallet,
                 self,

@@ -438,7 +438,10 @@ impl Module for PlantFacility {
     }
 
     fn active(&self) -> bool {
-        todo!()
+        match &self.state {
+            PlantFacilityState::Idle => false,
+            PlantFacilityState::Producing { .. } => true,
+        }
     }
 
     fn collect_status(&self, collector: &mut dyn StatusCollector) {

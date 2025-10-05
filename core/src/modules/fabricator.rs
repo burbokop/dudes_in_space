@@ -309,7 +309,7 @@ impl<'a> CraftingConsole for Console<'a> {
     }
 
     fn recipe_by_output_hash(&self, hash: OutputItemRecipeHash) -> Option<usize> {
-        todo!()
+        RECIPES.iter().position(|x| x.output.hash() == hash)
     }
 
     fn recipe_by_input_hash(&self, hash: InputItemRecipeHash) -> Option<usize> {

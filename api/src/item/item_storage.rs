@@ -39,6 +39,15 @@ impl ItemStorageContent {
         self.0.get(id).map(|v| v.count).unwrap_or(0)
     }
 
+    pub fn counts(&self, items: impl Iterator<Item = ItemId>) -> BTreeMap<ItemId, ItemCount> {
+        items
+            .map(|id| {
+                let count = self.count(&id);
+                (id, count)
+            })
+            .collect()
+    }
+
     /// Returns how much is needed to add to this storage to reach the limits
     pub fn lack(&self, mut limits: BTreeMap<ItemId, ItemCount>) -> BTreeMap<ItemId, ItemCount> {
         for (k, v) in &self.0 {

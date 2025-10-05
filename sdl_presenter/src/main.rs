@@ -84,8 +84,17 @@ fn main() {
             include_bytes!("../assets/trading_terminal.png"),
         )
         .with(
+            module_types::VESSEL_SELLING_TERMINAL.into(),
+            include_bytes!("../assets/vessel_selling_terminal.png"),
+        )
+        .with(
             module_types::PLANT_FACILITY.into(),
             include_bytes!("../assets/plant_facility.png"),
+        )
+        .with_aseprite_spritesheet(
+            module_types::ORE_MANIFOLD.into(),
+            include_bytes!("../assets/ore_manifold.png"),
+            include_bytes!("../assets/ore_manifold.json"),
         )
         .build();
 

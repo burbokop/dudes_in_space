@@ -15,7 +15,5 @@ pub fn dyn_serde_trait(input: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(DeserializeSeedXXX, attributes(deserialize_seed_xxx))]
 pub fn deserialize_seed(input: TokenStream) -> TokenStream {
-    let x = deserialize_seed_impl(input);
-    println!("x: {}", x);
-    x
+    deserialize_seed_impl(input)
 }

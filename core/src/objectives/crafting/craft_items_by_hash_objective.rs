@@ -1,5 +1,5 @@
 use crate::objectives::common::MoveToModuleObjective;
-use dudes_in_space_api::environment::EnvironmentContext;
+use dudes_in_space_api::environment::{Cycle, EnvironmentContext};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent, StorageRole};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
@@ -11,14 +11,20 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub(crate) enum BehaviourIfLackIngredients {
+    WaitIndefinitely,
+    WaitFor { cycles: Cycle },
+    Error,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct CraftItemsByHashObjectiveArgs {
     pub(crate) recipe_hash: ItemRecipeHash,
     /// Stop producing when reached the limit
     pub(crate) output_limit: BTreeMap<ItemId, ItemCount>,
     /// Wait indefinitely if false
     pub(crate) done_if_reached_limit: bool,
-    /// Wait indefinitely if false
-    pub(crate) err_if_lack_ingredients: bool,
+    pub(crate) behaviour_if_lack_ingredients: BehaviourIfLackIngredients,
     pub(crate) interrupt_after_each_craft: bool,
     pub(crate) start_interrupted: bool,
 }
@@ -183,10 +189,14 @@ impl Objective for CraftItemsByHashObjective {
                             .unwrap();
 
                         if !crafting_console.has_resources_for_recipe(recipe_index) {
-                            return if self.args.err_if_lack_ingredients {
-                                Err(CraftItemsByHashObjectiveError::LackIngredients)
-                            } else {
-                                Ok(ObjectiveStatus::InProgress)
+                            return match self.args.behaviour_if_lack_ingredients {
+                                BehaviourIfLackIngredients::WaitIndefinitely => {
+                                    Ok(ObjectiveStatus::InProgress)
+                                }
+                                BehaviourIfLackIngredients::WaitFor { .. } => todo!(),
+                                BehaviourIfLackIngredients::Error => {
+                                    Err(CraftItemsByHashObjectiveError::LackIngredients)
+                                }
                             };
                         }
 
