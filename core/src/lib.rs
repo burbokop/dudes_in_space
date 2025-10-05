@@ -11,6 +11,7 @@ pub mod components;
 pub mod env_presets;
 mod modules;
 mod objectives;
+mod utils;
 
 use dudes_in_space_api::item::{Item, ItemVault};
 use dudes_in_space_api::recipe::ItemRecipe;

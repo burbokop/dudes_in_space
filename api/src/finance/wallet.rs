@@ -373,13 +373,17 @@ pub struct WalletRegistry {
 
 impl Default for WalletRegistry {
     fn default() -> Self {
-        Self {
-            data: RefCell::new(BTreeMap::new()),
-        }
+        Self::new()
     }
 }
 
 impl WalletRegistry {
+    pub fn new() -> Self {
+        Self {
+            data: RefCell::new(BTreeMap::new()),
+        }
+    }
+
     pub(crate) fn register(
         &self,
         b: Wallet,

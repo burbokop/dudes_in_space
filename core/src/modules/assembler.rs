@@ -715,20 +715,26 @@ impl DynDeserializeSeed<dyn Module> for AssemblerDynSeed {
 
 #[cfg(test)]
 mod tests {
-    use super::{Assembler, AssemblerSeed};
+    use super::*;
+    use dudes_in_space_api::item::ItemStorage;
     use dudes_in_space_api::module::{Module, ProcessTokenContext};
     use dudes_in_space_api::person::{DynObjective, Person};
     use dudes_in_space_api::recipe::ModuleFactory;
+    use dudes_in_space_api::utils::physics::M3;
     use dyn_serde::{DynDeserializeSeedVault, from_intermediate_seed};
     use rand::rng;
     use serde_intermediate::{Intermediate, to_intermediate};
 
     #[test]
     fn serde() {
-        let mut assembler = Assembler::new(vec![]);
-        assert!(assembler.can_insert_person());
+        let item_vault = Rc::new(ItemVault::new());
+        let bank_registry = Rc::new(BankRegistry::new());
+        let wallet_registry = Rc::new(WalletRegistry::new());
+
+        let mut assembler = Assembler::new(ItemStorage::new(item_vault.clone(), M3(1000)));
+        assert!(assembler.free_person_slots_count() > 0);
         assert!(assembler.insert_person(Person::random(&mut rng())));
-        assert!(!assembler.can_insert_person());
+        assert_eq!(assembler.free_person_slots_count(), 0);
 
         let intermediate = to_intermediate(&assembler).unwrap();
         let json = serde_json::to_string(&intermediate).unwrap();
@@ -742,6 +748,9 @@ mod tests {
             AssemblerSeed::new(
                 &module_factory_vault,
                 &objective_vault,
+                &bank_registry,
+                &wallet_registry,
+                item_vault,
                 &process_token_context,
             ),
             &parsed_intermediate,

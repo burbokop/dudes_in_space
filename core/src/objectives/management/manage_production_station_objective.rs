@@ -8,10 +8,14 @@ use crate::objectives::crafting::{
 use crate::objectives::crafting::{
     CraftItemsByHashObjectiveArgs, CraftItemsByHashObjectiveError, RequireModulesObjective,
 };
+use crate::utils::SortProductionCandidate as _;
+use crate::utils::{
+    ProductionCandidate, ProductionFromEnvironmentCandidate, ProductionFromIngredientsCandidate,
+};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
-use dudes_in_space_api::finance::{BankRegistry, Money, PossiblyNegativeMoney};
+use dudes_in_space_api::finance::{BankRegistry, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
 use dudes_in_space_api::module::{AdminTradingConsole, ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
@@ -30,7 +34,6 @@ use dyn_serde::{
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -782,384 +785,55 @@ impl Display for ManageProductionStationObjectiveError {
 
 impl Error for ManageProductionStationObjectiveError {}
 
-impl Display for ManageProductionStationObjective {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &self.state {
-            State::Idle => write!(f, "Idle"),
-            State::DecideBestProduct { .. } => {
-                write!(f, "DecideBestProduct")
-            }
-            State::RequireModules { objective, .. } => write!(f, "RequireModules -> {}", objective),
-            State::AssembleSpecificCrafter { craft_objective } => {
-                write!(f, "RequireModules -> {}", craft_objective)
-            }
-            State::ExecuteProductionFromIngredients {
-                craft_objective, ..
-            } => write!(f, "ExecuteProductionFromIngredients -> {}", craft_objective),
-            State::ExecuteProductionFromEnvironment {
-                output_objective, ..
-            } => write!(
-                f,
-                "ExecuteProductionFromEnvironment -> {}",
-                output_objective
-            ),
-        }
-    }
-}
-
-fn calc_items_in_demand(
-    search_result: &FindBestOffersForItemsResult,
-    output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
-) -> BTreeMap<ItemId, Money> {
-    search_result
-        .average_sell_offers
-        .clone()
-        .into_iter()
-        .filter(|(item, _)| {
-            output_recipes_to_consider
-                .iter()
-                .find(|recipe| {
-                    recipe
-                        .items()
-                        .find(|recipe_item| *recipe_item == item)
-                        .is_some()
-                })
-                .is_some()
-        })
-        .collect()
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct ProductionCandidateEstimate {
-    /// Price of all ingredients needed to produce one unit of product.
-    cost_price: Money,
-    profit: PossiblyNegativeMoney,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct ProductionFromIngredientsCandidate {
-    product: ItemId,
-    average_product_sell_price: Money,
-    average_ingredients_buy_price: BTreeMap<ItemId, Money>,
-    has_all_ingredients_on_market: bool,
-    has_producers_on_market: bool,
-    recipe: ItemRecipe,
-    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
-    estimate: Option<ProductionCandidateEstimate>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct ProductionFromEnvironmentCandidate {
-    product: ItemId,
-    average_product_sell_price: Money,
-    has_producers_on_market: bool,
-    recipe: OutputItemRecipe,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "tp")]
-pub(crate) enum ProductionCandidate {
-    FromIngredients(ProductionFromIngredientsCandidate),
-    FromEnvironment(ProductionFromEnvironmentCandidate),
-}
-
-impl ProductionCandidate {
-    fn product(&self) -> &ItemId {
-        match &self {
-            ProductionCandidate::FromIngredients(c) => &c.product,
-            ProductionCandidate::FromEnvironment(c) => &c.product,
-        }
-    }
-
-    fn has_producers_on_market(&self) -> bool {
-        match &self {
-            Self::FromIngredients(c) => c.has_producers_on_market,
-            Self::FromEnvironment(c) => c.has_producers_on_market,
-        }
-    }
-}
-
-impl Display for ProductionCandidateEstimate {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "estimate(c: {}, p: {})", self.cost_price, self.profit,)
-    }
-}
-
-impl Display for ProductionFromIngredientsCandidate {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &self.estimate {
-            None => write!(
-                f,
-                "p: {}, avr_prod_sell_price: {}, has_all_ing_on_m: {}, has_producers_on_m: {}, r: {}",
-                self.product,
-                self.average_product_sell_price,
-                self.has_all_ingredients_on_market,
-                self.has_producers_on_market,
-                self.recipe,
-            ),
-            Some(estimate) => write!(
-                f,
-                "p: {}, avr_prod_sell_price: {}, has_all_ing_on_m: {}, has_producers_on_m: {}, r: {}, est: {}",
-                self.product,
-                self.average_product_sell_price,
-                self.has_all_ingredients_on_market,
-                self.recipe,
-                self.has_producers_on_market,
-                estimate,
-            ),
-        }
-    }
-}
-
-impl Display for ProductionFromEnvironmentCandidate {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "p: {}, avr_prod_sell_price: {}, has_producers_on_m: {}, r: {}",
-            self.product,
-            self.average_product_sell_price,
-            self.has_producers_on_market,
-            self.recipe,
-        )
-    }
-}
-
-impl Display for ProductionCandidate {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::FromIngredients(c) => c.fmt(f),
-            Self::FromEnvironment(c) => c.fmt(f),
-        }
-    }
-}
-
-impl ProductionCandidate {
-    fn build_vec(
-        search_result: &FindBestOffersForItemsResult,
-        items_to_consider: BTreeMap<ItemId, Money>,
-        recipes_to_consider: &BTreeSet<ItemRecipe>,
-        output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
-        bank_registry: &BankRegistry,
-    ) -> Vec<Self> {
-        items_to_consider
-            .into_iter()
-            .filter_map(|(item, _)| {
-                let has_producers_on_market = search_result
-                    .average_buy_offers
-                    .iter()
-                    .find(|(offer_item, _)| *offer_item == &item)
-                    .is_some();
-
-                match recipes_to_consider.iter().find(|recipe| {
-                    recipe
-                        .output
-                        .items()
-                        .find(|recipe_item| *recipe_item == &item)
-                        .is_some()
-                }) {
-                    None => {
-                        match output_recipes_to_consider.iter().find(|recipe| {
-                            recipe
-                                .items()
-                                .find(|recipe_item| *recipe_item == &item)
-                                .is_some()
-                        }) {
-                            None => {
-                                todo!()
-                            }
-                            Some(recipe) => {
-                                // TODO: Should check if the output recipe requires some action to produce
-                                // if not return true
-                                // if yes, check if it can do this action (for example, mine asteroids or collect gas from nebula, or some other natural occurring resource)
-
-                                if let Some((_, average_product_sell_price)) = search_result
-                                    .average_sell_offers
-                                    .iter()
-                                    .find(|(offer_item, _)| *offer_item == &item)
-                                {
-                                    Some(Self::FromEnvironment(
-                                        ProductionFromEnvironmentCandidate {
-                                            product: item.clone(),
-                                            average_product_sell_price: average_product_sell_price
-                                                .clone(),
-                                            has_producers_on_market,
-                                            recipe: recipe.clone(),
-                                        },
-                                    ))
-                                } else {
-                                    None
-                                }
-                            }
-                        }
-                    }
-                    Some(recipe) => {
-                        assert!(!recipe.input.is_empty());
-
-                        let mut has_all_ingredients_on_market: bool = true;
-                        let mut average_ingredients_buy_price: BTreeMap<ItemId, Money> =
-                            Default::default();
-                        let mut sum_ingredients_cost_price: Option<Money> = None;
-                        for (item, count) in &recipe.input {
-                            if let Some((_, average_buy_price)) = search_result
-                                .average_buy_offers
-                                .iter()
-                                .find(|(offer_item, _)| *offer_item == item)
-                            {
-                                average_ingredients_buy_price
-                                    .try_insert(item.clone(), average_buy_price.clone())
-                                    .unwrap();
-
-                                let stack_price = average_buy_price.clone() * *count;
-                                match &mut sum_ingredients_cost_price {
-                                    None => sum_ingredients_cost_price = Some(stack_price),
-                                    Some(sum_ingredients_cost_price) => sum_ingredients_cost_price
-                                        .add_assign_same_currency(stack_price)
-                                        .unwrap(),
-                                }
-                            } else {
-                                has_all_ingredients_on_market = false;
-                            }
-                        }
-
-                        if let Some((_, average_product_sell_price)) = search_result
-                            .average_sell_offers
-                            .iter()
-                            .find(|(offer_item, _)| *offer_item == &item)
-                        {
-                            Some(Self::FromIngredients(ProductionFromIngredientsCandidate {
-                                product: item.clone(),
-                                average_product_sell_price: average_product_sell_price.clone(),
-                                average_ingredients_buy_price,
-                                has_all_ingredients_on_market,
-                                has_producers_on_market,
-                                recipe: recipe.clone(),
-                                estimate: sum_ingredients_cost_price.map(
-                                    |sum_ingredients_cost_price| ProductionCandidateEstimate {
-                                        cost_price: sum_ingredients_cost_price.clone(),
-                                        profit: average_product_sell_price
-                                            .clone()
-                                            .sub(bank_registry, sum_ingredients_cost_price),
-                                    },
-                                ),
-                            }))
-                        } else {
-                            None
-                        }
-                    }
-                }
-            })
-            .collect()
-    }
-}
-
-fn cmp_option<T, F: FnOnce(T, T) -> Ordering>(a: Option<T>, b: Option<T>, f: F) -> Ordering {
-    let a_is_none = a.is_none();
-    if let (Some(a), Some(b)) = (a, b) {
-        f(a, b)
-    } else if a_is_none {
-        Ordering::Less
-    } else {
-        Ordering::Greater
-    }
-}
-
 fn choose_candidate(
     search_result: &FindBestOffersForItemsResult,
     output_recipes_to_consider: &BTreeSet<OutputItemRecipe>,
     recipes_to_consider: &BTreeSet<ItemRecipe>,
     bank_registry: &BankRegistry,
     logger: &mut PersonLogger,
-    forced_product: Option<ItemId>,
+    preferred_product: Option<ItemId>,
 ) -> Option<ProductionCandidate> {
-    let items_in_demand = calc_items_in_demand(&search_result, &output_recipes_to_consider);
+    let mut production_candidates = ProductionCandidate::build_for_items_in_demand(
+        search_result,
+        recipes_to_consider,
+        output_recipes_to_consider,
+        bank_registry,
+    );
+    if !production_candidates.is_empty() {
+        logger.info(format!(
+            "Production candidates ({}):",
+            production_candidates.len()
+        ));
 
-    if !items_in_demand.is_empty() {
-        items_in_demand.iter().for_each(|(item, _)| {
-            logger.info(format!("items_in_demand: {:?}", item));
-        });
+        for i in &production_candidates {
+            logger.info(format!("\t{}", i));
+        }
 
-        let mut production_candidates = ProductionCandidate::build_vec(
-            search_result,
-            items_in_demand,
-            recipes_to_consider,
-            output_recipes_to_consider,
-            bank_registry,
-        );
-        if !production_candidates.is_empty() {
-            if let Some(forced_product) = &forced_product {
-                production_candidates.retain(|x| *x.product() == *forced_product);
-                logger.info(format!(
-                    "Production candidates (With forced product: {}) ({}):",
-                    production_candidates.len(),
-                    forced_product
-                ));
-            } else {
-                logger.info(format!(
-                    "Production candidates ({}):",
-                    production_candidates.len()
-                ));
-            }
+        production_candidates.sort(bank_registry, preferred_product.clone());
 
-            for i in &production_candidates {
-                logger.info(format!("\t{}", i));
-            }
-
-            production_candidates.sort_by(|a, b| {
-                a.has_producers_on_market()
-                    .cmp(&b.has_producers_on_market())
-                    .then_with(|| match (a, b) {
-                        (
-                            ProductionCandidate::FromIngredients(a),
-                            ProductionCandidate::FromIngredients(b),
-                        ) => a
-                            .has_producers_on_market
-                            .cmp(&b.has_producers_on_market)
-                            .then(
-                                a.has_all_ingredients_on_market
-                                    .cmp(&b.has_all_ingredients_on_market),
-                            )
-                            .then_with(|| {
-                                cmp_option(a.estimate.as_ref(), b.estimate.as_ref(), |a, b| {
-                                    a.profit.cmp(bank_registry, &b.profit)
-                                })
-                            })
-                            .then(
-                                a.average_ingredients_buy_price
-                                    .len()
-                                    .cmp(&b.average_ingredients_buy_price.len()),
-                            ),
-                        (
-                            ProductionCandidate::FromEnvironment(a),
-                            ProductionCandidate::FromEnvironment(b),
-                        ) => a.has_producers_on_market.cmp(&b.has_producers_on_market),
-                        (
-                            ProductionCandidate::FromIngredients(a),
-                            ProductionCandidate::FromEnvironment(b),
-                        ) => Ordering::Less,
-                        (
-                            ProductionCandidate::FromEnvironment(a),
-                            ProductionCandidate::FromIngredients(b),
-                        ) => Ordering::Equal,
-                    })
-            });
-
+        if let Some(preferred_product) = &preferred_product {
+            logger.info(format!(
+                "Sorted production candidates (Preferred product: {}) ({}):",
+                production_candidates.len(),
+                preferred_product
+            ));
+        } else {
             logger.info(format!(
                 "Sorted production candidates ({}):",
                 production_candidates.len()
             ));
-            for production_candidate in &production_candidates {
-                logger.info(format!("\t{}", production_candidate));
-            }
-
-            let best_candidate = production_candidates.first().unwrap();
-            Some(best_candidate.clone())
-        } else {
-            todo!(
-                "Find item with best profit setting buy price as cheap as possible while sustaining margin"
-            )
         }
+
+        for production_candidate in &production_candidates {
+            logger.info(format!("\t{}", production_candidate));
+        }
+
+        let best_candidate = production_candidates.first().unwrap();
+        Some(best_candidate.clone())
     } else {
-        todo!("Has no items in demand. wait until some items are needed")
+        todo!(
+            "Find item with best profit setting buy price as cheap as possible while sustaining margin"
+        )
     }
 }
 
@@ -1228,6 +902,31 @@ fn place_or_update_offers(
                         .unwrap();
                 }
             }
+        }
+    }
+}
+
+impl Display for ManageProductionStationObjective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self.state {
+            State::Idle => write!(f, "Idle"),
+            State::DecideBestProduct { .. } => {
+                write!(f, "DecideBestProduct")
+            }
+            State::RequireModules { objective, .. } => write!(f, "RequireModules -> {}", objective),
+            State::AssembleSpecificCrafter { craft_objective } => {
+                write!(f, "RequireModules -> {}", craft_objective)
+            }
+            State::ExecuteProductionFromIngredients {
+                craft_objective, ..
+            } => write!(f, "ExecuteProductionFromIngredients -> {}", craft_objective),
+            State::ExecuteProductionFromEnvironment {
+                output_objective, ..
+            } => write!(
+                f,
+                "ExecuteProductionFromEnvironment -> {}",
+                output_objective
+            ),
         }
     }
 }

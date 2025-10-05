@@ -11,6 +11,27 @@ use std::ops::{Div, Mul};
 pub type Currency = String;
 pub type MoneyAmount = i64;
 
+#[macro_export]
+macro_rules! money {
+    ($amount:literal, $currency:literal) => {
+        dudes_in_space_api::finance::Money {
+            currency: $currency.into(),
+            amount: dudes_in_space_api::utils::math::NonNeg::new($amount).unwrap(),
+        }
+    };
+}
+
+/// TODO remove and make money! return PossiblyNegativeMoney if amount literal is negative
+#[macro_export]
+macro_rules! possibly_negative_money {
+    ($amount:literal, $currency:literal) => {
+        dudes_in_space_api::finance::PossiblyNegativeMoney {
+            currency: $currency.into(),
+            amount: $amount,
+        }
+    };
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Money {
     pub currency: Currency,

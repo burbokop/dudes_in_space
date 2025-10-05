@@ -100,6 +100,10 @@ impl InputItemRecipe {
         self.input.iter().map(|(item, _)| item)
     }
 
+    pub fn count(&self, item: &ItemId) -> Option<ItemCount> {
+        self.input.get(item).cloned()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemCount)> {
         self.input.iter()
     }
@@ -200,6 +204,10 @@ impl OutputItemRecipe {
 
     pub fn items(&self) -> impl Iterator<Item = &ItemId> {
         self.output.iter().map(|(item, _)| item)
+    }
+
+    pub fn count(&self, item: &ItemId) -> Option<ItemCount> {
+        self.output.get(item).cloned()
     }
 
     pub fn contains(&self, item: &ItemId) -> bool {
