@@ -503,7 +503,14 @@ impl<'a> AdminTradingConsole for Console<'a> {
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
         assert!(count_range.is_valid());
-        todo!()
+        if let Some(x) = self.sell_offers.iter_mut().find(|o| o.id == id) {
+            x.item = item;
+            x.count_range = count_range;
+            x.price_per_unit = price_per_unit;
+            Some(x)
+        } else {
+            None
+        }
     }
 
     fn place_buy_custom_vessel_offer(

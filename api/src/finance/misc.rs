@@ -85,6 +85,14 @@ impl Money {
         }
     }
 
+    pub fn mul_ceil(self, f: Float) -> Self {
+        Self {
+            currency: self.currency,
+            amount: NonNeg::new((self.amount.into_inner() as Float * f).ceil() as MoneyAmount)
+                .unwrap(),
+        }
+    }
+
     pub fn cmp_same_currency(&self, other: &Money) -> Result<Ordering, DifferentCurrenciesError> {
         if self.currency != other.currency {
             return Err(DifferentCurrenciesError);
@@ -145,7 +153,22 @@ impl Money {
     }
 
     pub fn add(self, bank_registry: &BankRegistry, other: Money) -> Self {
-        todo!()
+        if self.currency == other.currency {
+            return Self {
+                currency: self.currency,
+                amount: self.amount + other.amount,
+            };
+        }
+
+        let other_amount = other
+            .convert_to_currency(bank_registry, self.currency.clone())
+            .unwrap()
+            .amount;
+
+        Self {
+            currency: self.currency,
+            amount: self.amount + other_amount,
+        }
     }
 
     pub fn sub(self, bank_registry: &BankRegistry, other: Money) -> PossiblyNegativeMoney {
@@ -170,7 +193,7 @@ impl Money {
     }
 
     pub fn add_assign(&mut self, bank_registry: &BankRegistry, other: Money) {
-        todo!()
+        *self = self.clone().add(bank_registry, other);
     }
 
     pub fn sub_assign(&mut self, bank_registry: &BankRegistry, other: Money) {

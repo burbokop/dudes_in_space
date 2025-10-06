@@ -1,4 +1,4 @@
-use crate::finance::Money;
+use crate::finance::{BankRegistry, Money};
 use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack, ItemStorage};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map};
@@ -108,14 +108,18 @@ impl InputItemRecipe {
         self.input.iter()
     }
 
-    pub fn __cost(&self, money_per_unit: &BTreeMap<ItemId, Money>) -> Result<Money, CostError> {
+    pub fn cost(
+        &self,
+        bank_registry: &BankRegistry,
+        money_per_unit: &BTreeMap<ItemId, Money>,
+    ) -> Result<Money, CostError> {
         let mut result: Option<Money> = None;
         for (item, count) in self.iter() {
             if let Some(price) = money_per_unit.get(item) {
                 let stack_price = price.clone() * *count;
                 match &mut result {
                     None => result = Some(stack_price),
-                    Some(result) => result.add_assign_same_currency(stack_price).unwrap(),
+                    Some(result) => result.add_assign(bank_registry, stack_price),
                 }
             } else {
                 return Err(CostError::NoMoneyPerUnitFound);

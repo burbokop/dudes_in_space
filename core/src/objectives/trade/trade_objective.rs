@@ -207,7 +207,15 @@ impl Objective for TradeObjective {
             }
             Self::MoveToCockpit { dst } => todo!(),
             Self::SearchForBuyOffers { future } => match future.take() {
-                Ok(x) => todo!(),
+                Ok(search_result) => {
+                    // *self = Self::SearchForCockpit;
+                    // return Ok(ObjectiveStatus::InProgress);
+
+                    assert_ne!(search_result.max_profit_buy_offer.offer.count_range.end, 0);
+                    assert_ne!(search_result.max_profit_sell_offer.offer.count_range.end, 0);
+
+                    todo!("{:#?}", search_result)
+                }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },

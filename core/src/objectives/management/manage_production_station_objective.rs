@@ -568,7 +568,6 @@ impl Objective for ManageProductionStationObjective {
                                                     .average_ingredients_buy_price
                                                     .get(item)
                                                     .cloned()
-                                                    .map(|x|x*LURE_MULTIPLIER)
                                                     .unwrap_or_else(||
                                                         Money {
                                                             currency: this_person.preferred_currency_or_create_default(
@@ -576,7 +575,7 @@ impl Objective for ManageProductionStationObjective {
                                                             ),
                                                             amount: NonNeg::new( 1).unwrap(),
                                                         }
-                                                    )
+                                                    ).mul_ceil(LURE_MULTIPLIER)
                                             }
                                         })
                                         .collect();
@@ -602,7 +601,10 @@ impl Objective for ManageProductionStationObjective {
                                     let real_ingredients_cost_price = production_candidate
                                         .recipe
                                         .input
-                                        .__cost(&extract_items_prices(&offer_update_instructions))
+                                        .cost(
+                                            environment_context.bank_registry(),
+                                            &extract_items_prices(&offer_update_instructions),
+                                        )
                                         .unwrap();
 
                                     let product_count_in_storage = output_has_in_storage
@@ -616,6 +618,21 @@ impl Objective for ManageProductionStationObjective {
                                         0..0
                                     };
 
+                                    let product_price_derived_from_cost_price =
+                                        real_ingredients_cost_price * this_person.notes.margin()
+                                            / production_candidate
+                                                .recipe
+                                                .output
+                                                .count(&production_candidate.product)
+                                                .unwrap()
+                                                as Float;
+
+                                    let product_price_derived_from_average_price =
+                                        production_candidate.average_product_sell_price.clone()
+                                            * this_person.notes.margin();
+
+                                    // TODO: consider using some blend of `product_price_derived_from_cost_price` and `product_price_derived_from_average_price`
+
                                     offer_update_instructions.push(OfferUpdateInstruction {
                                         kind: OfferUpdateInstructionKind::Buy,
                                         id: self
@@ -624,14 +641,7 @@ impl Objective for ManageProductionStationObjective {
                                             .cloned(),
                                         item: production_candidate.product.clone(),
                                         count_range: product_count_range.into(),
-                                        price_per_unit: real_ingredients_cost_price
-                                            * this_person.notes.margin()
-                                            / production_candidate
-                                                .recipe
-                                                .output
-                                                .count(&production_candidate.product)
-                                                .unwrap()
-                                                as Float,
+                                        price_per_unit: product_price_derived_from_cost_price,
                                     });
 
                                     drop(crafting_module);

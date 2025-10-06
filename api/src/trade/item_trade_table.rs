@@ -120,40 +120,50 @@ impl ItemRecord {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
-            .filter(|offer| {
-                volume_range(&offer.offer.item, offer.offer.count_range, item_vault)
-                    .contains(&free_storage_space)
-            })
-            .map(|offer| {
-                (
+            .filter_map(|offer| {
+                if offer.offer.count_range.end == 0 {
+                    return None;
+                }
+
+                let range = volume_range(&offer.offer.item, offer.offer.count_range, item_vault);
+                if range.start > free_storage_space {
+                    return None;
+                }
+
+                Some((
                     total_price(
                         &offer.offer.item,
-                        free_storage_space,
+                        range.end.min(free_storage_space),
                         offer.offer.price_per_unit.clone(),
                         item_vault,
                     ),
                     offer,
-                )
+                ))
             })
             .min_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))?;
 
         let (max_sell_price, max_price_sell_offer) = self
             .sell_offers
             .iter()
-            .filter(|offer| {
-                volume_range(&offer.offer.item, offer.offer.count_range, item_vault)
-                    .contains(&free_storage_space)
-            })
-            .map(|offer| {
-                (
+            .filter_map(|offer| {
+                if offer.offer.count_range.end == 0 {
+                    return None;
+                }
+
+                let range = volume_range(&offer.offer.item, offer.offer.count_range, item_vault);
+                if range.start > free_storage_space {
+                    return None;
+                }
+
+                Some((
                     total_price(
                         &offer.offer.item,
-                        free_storage_space,
+                        range.end.min(free_storage_space),
                         offer.offer.price_per_unit.clone(),
                         item_vault,
                     ),
                     offer,
-                )
+                ))
             })
             .max_by(|(a, _), (b, _)| a.cmp(bank_registry, &b))?;
 

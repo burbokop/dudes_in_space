@@ -139,11 +139,6 @@ impl Environment {
 
                 let trade_table = ItemTradeTable::build(&self.vessels);
 
-                println!("trade_table:");
-                for (item, record) in trade_table.iter() {
-                    println!("\t{}", record);
-                }
-
                 if let Some((
                     (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
                     max_profit_record,
