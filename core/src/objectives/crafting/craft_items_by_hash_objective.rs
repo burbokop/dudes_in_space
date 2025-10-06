@@ -49,6 +49,10 @@ where
     Ok(Some(x))
 }
 
+fn is_cycle_zero(c: &Cycle) -> bool {
+    *c == 0
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct CraftItemsByHashObjective {
     args: CraftItemsByHashObjectiveArgs,
@@ -59,6 +63,8 @@ pub(crate) struct CraftItemsByHashObjective {
         deserialize_with = "deserialize_data"
     )]
     crafting_module: Option<ModuleId>,
+    #[serde(default, skip_serializing_if = "is_cycle_zero")]
+    cycles_without_ingredients: Cycle,
 }
 
 impl CraftItemsByHashObjective {
@@ -68,6 +74,7 @@ impl CraftItemsByHashObjective {
             args,
             state: State::SearchingForCraftingModule,
             crafting_module: None,
+            cycles_without_ingredients: 0,
         }
     }
 
@@ -188,12 +195,21 @@ impl Objective for CraftItemsByHashObjective {
                             .recipe_by_hash(self.args.recipe_hash)
                             .unwrap();
 
-                        if !crafting_console.has_resources_for_recipe(recipe_index) {
+                        if crafting_console.has_resources_for_recipe(recipe_index) {
+                            self.cycles_without_ingredients = 0;
+                        } else {
                             return match self.args.behaviour_if_lack_ingredients {
                                 BehaviourIfLackIngredients::WaitIndefinitely => {
                                     Ok(ObjectiveStatus::InProgress)
                                 }
-                                BehaviourIfLackIngredients::WaitFor { .. } => todo!(),
+                                BehaviourIfLackIngredients::WaitFor { cycles } => {
+                                    self.cycles_without_ingredients += 1;
+                                    if self.cycles_without_ingredients > cycles {
+                                        Err(CraftItemsByHashObjectiveError::LackIngredients)
+                                    } else {
+                                        Ok(ObjectiveStatus::InProgress)
+                                    }
+                                }
                                 BehaviourIfLackIngredients::Error => {
                                     Err(CraftItemsByHashObjectiveError::LackIngredients)
                                 }
@@ -255,11 +271,22 @@ impl Error for CraftItemsByHashObjectiveError {}
 
 impl Display for CraftItemsByHashObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let c = self.cycles_without_ingredients;
         match &self.state {
             State::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),
             State::Crafting { interrupted, .. } => {
                 if *interrupted {
                     write!(f, "Crafting (interrupted)")
+                } else if c > 0 {
+                    match self.args.behaviour_if_lack_ingredients {
+                        BehaviourIfLackIngredients::WaitIndefinitely => {
+                            write!(f, "Crafting {} / indefinitely", c)
+                        }
+                        BehaviourIfLackIngredients::WaitFor { cycles } => {
+                            write!(f, "Crafting {} / {}", c, cycles)
+                        }
+                        BehaviourIfLackIngredients::Error => unreachable!(),
+                    }
                 } else {
                     write!(f, "Crafting")
                 }

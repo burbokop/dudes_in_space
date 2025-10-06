@@ -28,6 +28,20 @@ impl<'a> BorrowedBankRegistry<'a> {
     {
         self.data.get(currency).map(|x| x.borrow_mut())
     }
+
+    pub(crate) fn bank_with_most_customers<'b>(&'b self) -> Option<Ref<'b, Bank>>
+    where
+        'b: 'a,
+    {
+        self.data
+            .iter()
+            .max_by(|(_, bank0), (_, bank1)| {
+                let bank0_cc = bank0.borrow().customers_count();
+                let bank1_cc = bank1.borrow().customers_count();
+                bank1_cc.cmp(&bank0_cc)
+            })
+            .map(|(_, x)| x.borrow())
+    }
 }
 
 impl BankRegistry {

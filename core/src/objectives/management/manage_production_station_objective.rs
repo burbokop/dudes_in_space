@@ -27,6 +27,7 @@ use dudes_in_space_api::trade::OfferId;
 use dudes_in_space_api::utils::math::NonNeg;
 use dudes_in_space_api::utils::range::Range;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
+use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
@@ -98,14 +99,11 @@ enum State {
         input_limit: BTreeMap<ItemId, ItemCount>,
         craft_objective: CraftItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
-        sell_offers: BTreeMap<ItemId, OfferId>,
-        buy_offers: BTreeMap<ItemId, OfferId>,
     },
     ExecuteProductionFromEnvironment {
         production_candidate: ProductionFromEnvironmentCandidate,
         output_objective: OutputItemsByHashObjective,
         move_to_trading_terminal_objective: MoveToModuleObjective,
-        buy_offers: BTreeMap<ItemId, OfferId>,
     },
 }
 
@@ -122,6 +120,10 @@ where
 pub(crate) struct ManageProductionStationObjective {
     #[deserialize_seed_xxx(seed = self.seed.state_seed)]
     state: State,
+    #[serde(default)]
+    sell_offers: BTreeMap<ItemId, OfferId>,
+    #[serde(default)]
+    buy_offers: BTreeMap<ItemId, OfferId>,
     #[serde(default, deserialize_with = "deserialize_forced_product")]
     forced_product: Option<ItemId>,
 }
@@ -131,6 +133,8 @@ impl ManageProductionStationObjective {
         logger.info("ManageProductionStationObjective::new");
         Self {
             state: State::Idle,
+            sell_offers: Default::default(),
+            buy_offers: Default::default(),
             forced_product: None,
         }
     }
@@ -460,8 +464,6 @@ impl Objective for ManageProductionStationObjective {
                                 move_to_trading_terminal_objective: MoveToModuleObjective::new(
                                     terminals.first().unwrap().id(),
                                 ),
-                                buy_offers: BTreeMap::new(),
-                                sell_offers: BTreeMap::new(),
                             };
                             Ok(ObjectiveStatus::InProgress)
                         }
@@ -482,7 +484,6 @@ impl Objective for ManageProductionStationObjective {
                                 move_to_trading_terminal_objective: MoveToModuleObjective::new(
                                     terminals.first().unwrap().id(),
                                 ),
-                                buy_offers: BTreeMap::new(),
                             };
                             Ok(ObjectiveStatus::InProgress)
                         }
@@ -510,8 +511,6 @@ impl Objective for ManageProductionStationObjective {
                 input_limit,
                 craft_objective,
                 move_to_trading_terminal_objective,
-                buy_offers,
-                sell_offers,
             } => {
                 match craft_objective.pursue(
                     this_person,
@@ -551,6 +550,10 @@ impl Objective for ManageProductionStationObjective {
                                         production_candidate.recipe.output.items().cloned(),
                                     );
 
+                                    // TODO: make it depend on input amount in storage (if amount is low, increase multiplier up to 2 times)
+                                    // Note: copy the formula from ManageDockyardObjective
+                                    static LURE_MULTIPLIER: Float = 1. + 1. / 8.;
+
                                     let mut offer_update_instructions: Vec<OfferUpdateInstruction> = input_needed
                                         .iter()
                                         .map(|(item, count)| {
@@ -558,13 +561,14 @@ impl Objective for ManageProductionStationObjective {
 
                                             OfferUpdateInstruction {
                                                 kind: OfferUpdateInstructionKind::Sell,
-                                                id: sell_offers.get(item).cloned(),
+                                                id: self.sell_offers.get(item).cloned(),
                                                 item: item.clone(),
                                                 count_range: (1..*count).into(),
                                                 price_per_unit: production_candidate
                                                     .average_ingredients_buy_price
                                                     .get(item)
                                                     .cloned()
+                                                    .map(|x|x*LURE_MULTIPLIER)
                                                     .unwrap_or_else(||
                                                         Money {
                                                             currency: this_person.preferred_currency_or_create_default(
@@ -577,27 +581,65 @@ impl Objective for ManageProductionStationObjective {
                                         })
                                         .collect();
 
+                                    fn extract_items_prices(
+                                        instructions: &Vec<OfferUpdateInstruction>,
+                                    ) -> BTreeMap<ItemId, Money>
+                                    {
+                                        let mut result = BTreeMap::new();
+                                        for instruction in instructions.iter() {
+                                            assert_eq!(
+                                                instruction.kind,
+                                                OfferUpdateInstructionKind::Sell
+                                            );
+                                            result.insert(
+                                                instruction.item.clone(),
+                                                instruction.price_per_unit.clone(),
+                                            );
+                                        }
+                                        result
+                                    }
+
+                                    let real_ingredients_cost_price = production_candidate
+                                        .recipe
+                                        .input
+                                        .__cost(&extract_items_prices(&offer_update_instructions))
+                                        .unwrap();
+
+                                    let product_count_in_storage = output_has_in_storage
+                                        .get(&production_candidate.product)
+                                        .unwrap()
+                                        .clone();
+
+                                    let product_count_range = if product_count_in_storage > 0 {
+                                        1..product_count_in_storage
+                                    } else {
+                                        0..0
+                                    };
+
                                     offer_update_instructions.push(OfferUpdateInstruction {
                                         kind: OfferUpdateInstructionKind::Buy,
-                                        id: buy_offers.get(&production_candidate.product).cloned(),
-                                        item: production_candidate.product.clone(),
-                                        count_range: (1..output_has_in_storage
+                                        id: self
+                                            .buy_offers
                                             .get(&production_candidate.product)
-                                            .unwrap()
-                                            .clone())
-                                            .into(),
-                                        price_per_unit: production_candidate
-                                            .average_product_sell_price
-                                            .clone()
-                                            * this_person.notes.margin(),
+                                            .cloned(),
+                                        item: production_candidate.product.clone(),
+                                        count_range: product_count_range.into(),
+                                        price_per_unit: real_ingredients_cost_price
+                                            * this_person.notes.margin()
+                                            / production_candidate
+                                                .recipe
+                                                .output
+                                                .count(&production_candidate.product)
+                                                .unwrap()
+                                                as Float,
                                     });
 
                                     drop(crafting_module);
                                     place_or_update_offers(
                                         this_module.trading_admin_console_mut().unwrap(),
                                         offer_update_instructions,
-                                        sell_offers,
-                                        buy_offers,
+                                        &mut self.sell_offers,
+                                        &mut self.buy_offers,
                                     );
 
                                     craft_objective.resume();
@@ -636,7 +678,6 @@ impl Objective for ManageProductionStationObjective {
                 production_candidate,
                 output_objective,
                 move_to_trading_terminal_objective,
-                buy_offers,
             } => {
                 match output_objective.pursue(
                     this_person,
@@ -671,15 +712,25 @@ impl Objective for ManageProductionStationObjective {
                                         .content()
                                         .counts(production_candidate.recipe.items().cloned());
 
+                                    let product_count_in_storage = output_has_in_storage
+                                        .get(&production_candidate.product)
+                                        .unwrap()
+                                        .clone();
+
+                                    let product_count_range = if product_count_in_storage > 0 {
+                                        1..product_count_in_storage
+                                    } else {
+                                        0..0
+                                    };
+
                                     let offer_update_instructions = vec![OfferUpdateInstruction {
                                         kind: OfferUpdateInstructionKind::Buy,
-                                        id: buy_offers.get(&production_candidate.product).cloned(),
-                                        item: production_candidate.product.clone(),
-                                        count_range: (1..output_has_in_storage
+                                        id: self
+                                            .buy_offers
                                             .get(&production_candidate.product)
-                                            .unwrap()
-                                            .clone())
-                                            .into(),
+                                            .cloned(),
+                                        item: production_candidate.product.clone(),
+                                        count_range: product_count_range.into(),
                                         price_per_unit: production_candidate
                                             .average_product_sell_price
                                             .clone()
@@ -691,7 +742,7 @@ impl Objective for ManageProductionStationObjective {
                                         this_module.trading_admin_console_mut().unwrap(),
                                         offer_update_instructions,
                                         &mut BTreeMap::new(),
-                                        buy_offers,
+                                        &mut self.buy_offers,
                                     );
 
                                     output_objective.resume();
@@ -837,6 +888,7 @@ fn choose_candidate(
     }
 }
 
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
 enum OfferUpdateInstructionKind {
     Buy,
     Sell,

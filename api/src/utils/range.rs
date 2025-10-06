@@ -60,6 +60,11 @@ impl<Idx: PartialOrd<Idx>> Range<Idx> {
     }
 
     #[inline]
+    pub fn is_valid(&self) -> bool {
+        self.start <= self.end
+    }
+
+    #[inline]
     pub fn is_empty(&self) -> bool {
         !(self.start < self.end)
     }

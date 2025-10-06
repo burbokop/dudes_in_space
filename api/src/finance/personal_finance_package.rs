@@ -46,17 +46,24 @@ impl PersonalFinancePackage {
         bank_registry: &BankRegistry,
         new_bank: Bank,
     ) -> Currency {
-        match self.wallet.borrow().most_worth_currency(bank_registry) {
-            None => match self.bank().map(|b| b.currency().clone()) {
-                None => {
-                    let currency = new_bank.currency().clone();
-                    self.bank = Some(bank_registry.register(new_bank).unwrap());
-                    currency
-                }
-                Some(c) => c,
-            },
-            Some(c) => c.currency,
+        if let Some(m) = self.wallet.borrow().most_worth_currency(bank_registry) {
+            return m.currency;
         }
+
+        if let Some(c) = self.bank().map(|b| b.currency().clone()) {
+            return c;
+        }
+
+        {
+            let bank_registry = bank_registry.borrow();
+            if let Some(c) = bank_registry.bank_with_most_customers() {
+                return c.currency().clone();
+            }
+        }
+
+        let currency = new_bank.currency().clone();
+        self.bank = Some(bank_registry.register(new_bank).unwrap());
+        currency
     }
 
     pub fn increase_credit_limit_or_create(

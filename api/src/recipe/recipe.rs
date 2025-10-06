@@ -108,10 +108,35 @@ impl InputItemRecipe {
         self.input.iter()
     }
 
-    pub fn cost(&self, money_per_unit: &BTreeMap<ItemId, Money>) -> Option<Money> {
+    pub fn __cost(&self, money_per_unit: &BTreeMap<ItemId, Money>) -> Result<Money, CostError> {
+        let mut result: Option<Money> = None;
+        for (item, count) in self.iter() {
+            if let Some(price) = money_per_unit.get(item) {
+                let stack_price = price.clone() * *count;
+                match &mut result {
+                    None => result = Some(stack_price),
+                    Some(result) => result.add_assign_same_currency(stack_price).unwrap(),
+                }
+            } else {
+                return Err(CostError::NoMoneyPerUnitFound);
+            }
+        }
+
+        result.ok_or_else(|| CostError::EmptyRecipe)
+    }
+}
+
+#[derive(Debug)]
+pub enum CostError {
+    EmptyRecipe,
+    NoMoneyPerUnitFound,
+}
+impl Display for CostError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
+impl Error for CostError {}
 
 impl<const N: usize> From<[(ItemId, ItemCount); N]> for InputItemRecipe {
     fn from(arr: [(ItemId, ItemCount); N]) -> Self {

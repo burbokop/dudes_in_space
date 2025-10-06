@@ -443,6 +443,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
+        assert!(count_range.is_valid());
         Some(self.buy_offers.push_mut(BuyOffer {
             id: OfferId::new_v4(),
             item,
@@ -458,6 +459,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
+        assert!(count_range.is_valid());
         if let Some(x) = self.buy_offers.iter_mut().find(|o| o.id == id) {
             x.item = item;
             x.count_range = count_range;
@@ -482,6 +484,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
+        assert!(count_range.is_valid());
         let offer = SellOffer {
             id: OfferId::new_v4(),
             item,
@@ -499,6 +502,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         count_range: Range<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
+        assert!(count_range.is_valid());
         todo!()
     }
 
