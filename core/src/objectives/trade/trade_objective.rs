@@ -1,7 +1,8 @@
 use crate::objectives::trade::{BuyGoodsObjective, SellGoodsObjective};
 use dudes_in_space_api::environment::{
-    EnvironmentContext, FindBestBuyOffer, FindBestBuyOfferResult,
+    EnvironmentContext, FindBestBuyOffer, FindBestBuyOfferResult, PlaceOrders, PlaceOrdersResult,
 };
+use dudes_in_space_api::item::ItemCount;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
@@ -60,9 +61,13 @@ pub(crate) enum TradeObjective {
     MoveToCockpit {
         dst: ModuleId,
     },
-    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.req_future_seed)])]
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.find_future_seed)])]
     SearchForBuyOffers {
         future: ReqFuture<FindBestBuyOfferResult>,
+    },
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.place_future_seed)])]
+    WaitForOrdersToBePlaced {
+        future: ReqFuture<PlaceOrdersResult>,
     },
     MoveToVesselToBuy {
         buy_goods_objective: BuyGoodsObjective,
@@ -75,13 +80,15 @@ pub(crate) enum TradeObjective {
 
 #[derive(Clone)]
 pub(crate) struct TradeObjectiveSeed<'context> {
-    req_future_seed: ReqFutureSeed<'context, FindBestBuyOfferResult>,
+    find_future_seed: ReqFutureSeed<'context, FindBestBuyOfferResult>,
+    place_future_seed: ReqFutureSeed<'context, PlaceOrdersResult>,
 }
 
 impl<'context> TradeObjectiveSeed<'context> {
     pub(crate) fn new(context: &'context ReqContext) -> Self {
         Self {
-            req_future_seed: ReqFutureSeed::new(context),
+            find_future_seed: ReqFutureSeed::new(context),
+            place_future_seed: ReqFutureSeed::new(context),
         }
     }
 }
@@ -208,18 +215,55 @@ impl Objective for TradeObjective {
             Self::MoveToCockpit { dst } => todo!(),
             Self::SearchForBuyOffers { future } => match future.take() {
                 Ok(search_result) => {
-                    // *self = Self::SearchForCockpit;
-                    // return Ok(ObjectiveStatus::InProgress);
-
                     assert_ne!(search_result.max_profit_buy_offer.offer.count_range.end, 0);
                     assert_ne!(search_result.max_profit_sell_offer.offer.count_range.end, 0);
+                    assert_eq!(
+                        search_result.max_profit_buy_offer.offer.item,
+                        search_result.max_profit_sell_offer.offer.item
+                    );
 
-                    todo!("{:#?}", search_result)
+                    let item = environment_context
+                        .item_vault()
+                        .get(search_result.max_profit_buy_offer.offer.item.clone())
+                        .unwrap();
+                    let item = item.upgrade().unwrap();
+
+                    let free_storage_space = ((tie(this_module, this_vessel)
+                        .total_primary_free_space()
+                        / item.volume) as ItemCount)
+                        .min(search_result.max_profit_buy_offer.offer.count_range.end)
+                        .min(search_result.max_profit_sell_offer.offer.count_range.end);
+
+                    assert_ne!(free_storage_space, 0);
+
+                    *self = Self::WaitForOrdersToBePlaced {
+                        future: PlaceOrders {
+                            buy_offers: vec![(
+                                search_result.max_profit_buy_offer,
+                                free_storage_space,
+                            )],
+                            sell_offers: vec![(
+                                search_result.max_profit_sell_offer,
+                                free_storage_space,
+                            )],
+                        }
+                        .push(environment_context.request_storage_mut()),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
                 }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::MoveToVesselToBuy { .. } => todo!(),
+            Self::WaitForOrdersToBePlaced { future } => match future.take() {
+                Ok(result) => {
+                    todo!()
+                }
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
+                Err(ReqTakeError::AlreadyTaken) => unreachable!(),
+            },
+            Self::MoveToVesselToBuy {
+                buy_goods_objective,
+            } => todo!(),
             Self::SearchForSellOffers => todo!(),
             Self::MoveToVesselToSell { .. } => todo!(),
         }
@@ -303,6 +347,7 @@ impl Display for TradeObjective {
             Self::MoveToVesselToBuy { .. } => write!(f, "MoveToVesselToBuy"),
             Self::SearchForSellOffers => write!(f, "SearchForSellOffers"),
             Self::MoveToVesselToSell { .. } => write!(f, "MoveToVesselToSell"),
+            Self::WaitForOrdersToBePlaced { .. } => write!(f, "WaitForOrdersToBePlaced"),
         }
     }
 }

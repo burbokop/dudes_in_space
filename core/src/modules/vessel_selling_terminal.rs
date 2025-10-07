@@ -21,7 +21,7 @@ use dudes_in_space_api::trade::{
     OrderHolder, OrderSeed, SellOffer, SellOrder, WeakBuyCustomVesselOrder, WeakBuyOrder,
     WeakBuyVesselOrder, WeakSellOrder,
 };
-use dudes_in_space_api::utils::range::Range;
+use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -214,7 +214,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
     fn place_buy_offer(
         &mut self,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
         todo!()
@@ -224,7 +224,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         &mut self,
         id: OfferId,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
         todo!()
@@ -241,7 +241,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
     fn place_sell_offer(
         &mut self,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
         todo!()
@@ -251,7 +251,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         &mut self,
         id: OfferId,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
         todo!()
@@ -483,6 +483,14 @@ impl TradingConsole for VesselSellingTerminal {
     }
 
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder> {
+        todo!()
+    }
+
+    fn can_place_buy_order(&self, offer: &BuyOffer, count: ItemCount) -> bool {
+        todo!()
+    }
+
+    fn can_place_sell_order(&self, offer: &SellOffer, count: ItemCount) -> bool {
         todo!()
     }
 

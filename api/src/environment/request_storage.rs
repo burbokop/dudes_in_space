@@ -1,10 +1,10 @@
 use crate::finance::{Money, MoneyAmount, WalletId};
-use crate::item::{ItemId, ItemVolume};
+use crate::item::{ItemCount, ItemId, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::person::PersonId;
 use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef,
-    SellOffer, WeakBuyCustomVesselOrder,
+    SellOffer, WeakBuyCustomVesselOrder, WeakBuyOrder, WeakSellOrder,
 };
 use crate::utils::math::NonNeg;
 use crate::utils::request::{ReqFuture, ReqPromise};
@@ -33,6 +33,9 @@ pub struct RequestStorage {
     #[serde(default)]
     pub(crate) place_buy_custom_vessel_order_requests:
         VecDeque<EnvironmentRequest<PlaceBuyCustomVesselOrder, PlaceBuyCustomVesselOrderResult>>,
+
+    #[serde(default)]
+    pub(crate) place_orders_requests: VecDeque<EnvironmentRequest<PlaceOrders, PlaceOrdersResult>>,
 
     #[serde(default)]
     pub(crate) request_credit_limit_increase_requests:
@@ -188,6 +191,33 @@ pub enum PlaceBuyCustomVesselOrderResult {
     Ok(WeakBuyCustomVesselOrder),
     NotEnoughMoneyInWallet,
     OfferNotFound,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlaceOrders {
+    pub buy_offers: Vec<(OfferRef<BuyOffer>, ItemCount)>,
+    pub sell_offers: Vec<(OfferRef<SellOffer>, ItemCount)>,
+}
+
+impl PlaceOrders {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<PlaceOrdersResult> {
+        let (promise, future) = ReqPromise::new();
+        context.place_orders_requests.push_back(EnvironmentRequest {
+            promise,
+            input: self,
+        });
+        future
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "tp")]
+pub enum PlaceOrdersResult {
+    Ok {
+        buy_orders: Vec<WeakBuyOrder>,
+        sell_orders: Vec<WeakSellOrder>,
+    },
+    CanNotPlaceOffer,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

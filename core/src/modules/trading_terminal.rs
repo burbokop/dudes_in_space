@@ -20,7 +20,7 @@ use dudes_in_space_api::trade::{
     BuyVesselOffer, BuyVesselOrder, OfferId, OrderHolder, OrderSeed, SellOffer, SellOrder,
     WeakBuyCustomVesselOrder, WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
-use dudes_in_space_api::utils::range::Range;
+use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
@@ -379,7 +379,7 @@ impl Module for TradingTerminal {
     }
 
     fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
-        todo!()
+        Some(self)
     }
 }
 
@@ -392,16 +392,66 @@ impl TradingConsole for TradingTerminal {
         &self.sell_offers
     }
 
-    fn buy_vessel_offers(&self) -> &[BuyVesselOffer] {
-        &[]
-    }
-
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {
-        todo!()
+        let offer: &BuyOffer = self
+            .buy_offers
+            .iter()
+            .find(|BuyOffer { id, .. }| *id == offer.id)?;
+
+        if !offer.count_range.contains(&count) {
+            return None;
+        }
+
+        let (order, weak_order) = BuyOrder::new();
+
+        // TODO: transfer money from the person who placed the order (transport ship pilot) to special temporary wallet that must live inside just created order
+
+        self.buy_orders.push(order);
+        Some(weak_order)
     }
 
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder> {
-        todo!()
+        let offer: &SellOffer = self
+            .sell_offers
+            .iter()
+            .find(|SellOffer { id, .. }| *id == offer.id)?;
+
+        if !offer.count_range.contains(&count) {
+            return None;
+        }
+
+        let (order, weak_order) = SellOrder::new();
+
+        // TODO: transfer money from the person who placed the offer (station manager) to special temporary wallet that must live inside just created order
+
+        self.sell_orders.push(order);
+        Some(weak_order)
+    }
+
+    fn can_place_buy_order(&self, offer: &BuyOffer, count: ItemCount) -> bool {
+        match self
+            .buy_offers
+            .iter()
+            .find(|BuyOffer { id, .. }| *id == offer.id)
+        {
+            None => false,
+            Some(offer) => offer.count_range.contains(&count),
+        }
+    }
+
+    fn can_place_sell_order(&self, offer: &SellOffer, count: ItemCount) -> bool {
+        match self
+            .sell_offers
+            .iter()
+            .find(|SellOffer { id, .. }| *id == offer.id)
+        {
+            None => false,
+            Some(offer) => offer.count_range.contains(&count),
+        }
+    }
+
+    fn buy_vessel_offers(&self) -> &[BuyVesselOffer] {
+        &[]
     }
 
     fn place_buy_vessel_order(
@@ -440,7 +490,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
     fn place_buy_offer(
         &mut self,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
         assert!(count_range.is_valid());
@@ -456,7 +506,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         &mut self,
         id: OfferId,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer> {
         assert!(count_range.is_valid());
@@ -481,7 +531,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
     fn place_sell_offer(
         &mut self,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
         assert!(count_range.is_valid());
@@ -499,7 +549,7 @@ impl<'a> AdminTradingConsole for Console<'a> {
         &mut self,
         id: OfferId,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer> {
         assert!(count_range.is_valid());

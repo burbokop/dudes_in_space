@@ -3,7 +3,7 @@ use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::utils::range::Range;
+use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -16,14 +16,14 @@ use std::fmt::{Display, Formatter};
 // #[deserialize_seed_xxx(seed = crate::objectives::management::place_buy_custom_vessel_offer_objective::PlaceBuyCustomVesselOfferObjectiveSeed::<'context>)]
 pub(crate) enum PlaceSellOffersObjective {
     FindTerminal {
-        offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>,
+        offers: BTreeMap<ItemId, (RangeInclusive<ItemCount>, Money)>,
     },
     MoveToTerminal {
         dst: ModuleId,
-        offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>,
+        offers: BTreeMap<ItemId, (RangeInclusive<ItemCount>, Money)>,
     },
     PlaceOffers {
-        offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>,
+        offers: BTreeMap<ItemId, (RangeInclusive<ItemCount>, Money)>,
     },
     Done,
 }
@@ -31,7 +31,7 @@ pub(crate) enum PlaceSellOffersObjective {
 struct PlaceSellOfferObjectiveSeed {}
 
 impl PlaceSellOffersObjective {
-    pub fn new(offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>) -> Self {
+    pub fn new(offers: BTreeMap<ItemId, (RangeInclusive<ItemCount>, Money)>) -> Self {
         Self::FindTerminal { offers }
     }
 }

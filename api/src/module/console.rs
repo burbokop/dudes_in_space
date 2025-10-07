@@ -13,7 +13,7 @@ use crate::trade::{
     WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::utils::math::Vector;
-use crate::utils::range::Range;
+use crate::utils::range::RangeInclusive;
 use crate::vessel::DockingClamp;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -219,6 +219,8 @@ pub trait TradingConsole {
     fn sell_offers(&self) -> &[SellOffer];
     fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder>;
     fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
+    fn can_place_buy_order(&self, offer: &BuyOffer, count: ItemCount) -> bool;
+    fn can_place_sell_order(&self, offer: &SellOffer, count: ItemCount) -> bool;
 
     fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
     fn place_buy_vessel_order(
@@ -249,7 +251,7 @@ pub trait AdminTradingConsole {
     fn place_buy_offer(
         &mut self,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer>;
 
@@ -257,7 +259,7 @@ pub trait AdminTradingConsole {
         &mut self,
         id: OfferId,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&BuyOffer>;
 
@@ -270,7 +272,7 @@ pub trait AdminTradingConsole {
     fn place_sell_offer(
         &mut self,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer>;
 
@@ -278,7 +280,7 @@ pub trait AdminTradingConsole {
         &mut self,
         id: OfferId,
         item: ItemId,
-        count_range: Range<ItemCount>,
+        count_range: RangeInclusive<ItemCount>,
         price_per_unit: Money,
     ) -> Option<&SellOffer>;
 

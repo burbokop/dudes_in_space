@@ -2,7 +2,7 @@ use crate::finance::Money;
 use crate::item::{ItemCount, ItemId};
 use crate::module::{ModuleCapability, ModuleId};
 use crate::utils::non_nil_uuid::NonNilUuid;
-use crate::utils::range::Range;
+use crate::utils::range::RangeInclusive;
 use crate::vessel::VesselId;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,7 +14,7 @@ pub type OfferId = NonNilUuid;
 pub struct BuyOffer {
     pub id: OfferId,
     pub item: ItemId,
-    pub count_range: Range<ItemCount>,
+    pub count_range: RangeInclusive<ItemCount>,
     pub price_per_unit: Money,
 }
 
@@ -37,7 +37,7 @@ pub struct BuyCustomVesselOffer {
 pub struct SellOffer {
     pub id: OfferId,
     pub item: ItemId,
-    pub count_range: Range<ItemCount>,
+    pub count_range: RangeInclusive<ItemCount>,
     pub price_per_unit: Money,
 }
 

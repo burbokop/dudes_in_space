@@ -1,7 +1,7 @@
 use crate::environment::{
     EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
-    RequestStorage,
+    PlaceOrdersResult, RequestStorage,
 };
 use crate::finance::{
     BankRegistry, CurrencyGenerator, Money, NotEnoughMoneyInWallet, WalletRegistry,
@@ -390,6 +390,90 @@ impl Environment {
                     .make_ready(req_context, PlaceBuyCustomVesselOrderResult::OfferNotFound)
                     .unwrap();
                 return false;
+            });
+
+        self.request_storage
+            .place_orders_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                // Check if placing of all orders is possible (To ensure atomicity)
+
+                for (offer, count) in &req.input.buy_offers {
+                    let vessel = self
+                        .vessels
+                        .iter()
+                        .find(|v| v.id() == offer.vessel_id)
+                        .unwrap();
+                    let module = vessel.module_by_id(offer.module_id).unwrap();
+                    let trading_console = module.trading_console().unwrap();
+                    let ok = trading_console.can_place_buy_order(&offer.offer, *count);
+
+                    assert!(ok, "TODO: return error in response");
+                }
+
+                for (offer, count) in &req.input.sell_offers {
+                    let vessel = self
+                        .vessels
+                        .iter()
+                        .find(|v| v.id() == offer.vessel_id)
+                        .unwrap();
+                    let module = vessel.module_by_id(offer.module_id).unwrap();
+                    let trading_console = module.trading_console().unwrap();
+                    let ok = trading_console.can_place_sell_order(&offer.offer, *count);
+
+                    assert!(ok, "TODO: return error in response");
+                }
+
+                // Place all orders
+
+                let buy_orders: Vec<_> = req
+                    .input
+                    .buy_offers
+                    .iter()
+                    .map(|(offer, count)| {
+                        let vessel = self
+                            .vessels
+                            .iter()
+                            .find(|v| v.id() == offer.vessel_id)
+                            .unwrap();
+                        let mut module = vessel.module_by_id_mut(offer.module_id).unwrap();
+                        let trading_console = module.trading_console_mut().unwrap();
+                        trading_console
+                            .place_buy_order(&offer.offer, *count)
+                            .unwrap()
+                    })
+                    .collect();
+
+                let sell_orders: Vec<_> = req
+                    .input
+                    .sell_offers
+                    .iter()
+                    .map(|(offer, count)| {
+                        let vessel = self
+                            .vessels
+                            .iter()
+                            .find(|v| v.id() == offer.vessel_id)
+                            .unwrap();
+                        let mut module = vessel.module_by_id_mut(offer.module_id).unwrap();
+                        let trading_console = module.trading_console_mut().unwrap();
+                        trading_console
+                            .place_sell_order(&offer.offer, *count)
+                            .unwrap()
+                    })
+                    .collect();
+
+                req.promise
+                    .make_ready(
+                        req_context,
+                        PlaceOrdersResult::Ok {
+                            buy_orders,
+                            sell_orders,
+                        },
+                    )
+                    .unwrap();
+
+                req.promise.check_pending(req_context)
             });
 
         self.request_storage

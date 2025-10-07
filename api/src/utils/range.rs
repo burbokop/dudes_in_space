@@ -9,7 +9,7 @@ pub struct Range<Idx> {
     pub end: Idx,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RangeInclusive<Idx> {
     pub start: Idx,
     pub end: Idx,
@@ -81,9 +81,15 @@ impl<Idx: PartialOrd<Idx>> RangeInclusive<Idx> {
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        !(self.start <= self.end)
+    pub fn is_valid(&self) -> bool {
+        self.start <= self.end
     }
+
+    // Commented because inclusive ranges cannot be empty
+    // #[inline]
+    // pub fn is_empty(&self) -> bool {
+    //     !(self.start <= self.end)
+    // }
 }
 
 impl<T> RangeBounds<T> for RangeInclusive<T> {
@@ -107,5 +113,11 @@ impl<T> RangeBounds<T> for RangeInclusive<&T> {
 impl<T: Display> Display for Range<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}..{}", self.start, self.end)
+    }
+}
+
+impl<T: Display> Display for RangeInclusive<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..={}", self.start, self.end)
     }
 }

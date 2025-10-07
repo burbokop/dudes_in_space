@@ -3,7 +3,7 @@ use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
 use crate::module::ModuleCapability;
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
 use crate::utils::math::NonNeg;
-use crate::utils::range::Range;
+use crate::utils::range::{Range, RangeInclusive};
 use crate::utils::utils::Float;
 use crate::vessel::Vessel;
 use std::collections::BTreeMap;
@@ -125,7 +125,8 @@ impl ItemRecord {
                     return None;
                 }
 
-                let range = volume_range(&offer.offer.item, offer.offer.count_range, item_vault);
+                let range =
+                    volume_range_inclusive(&offer.offer.item, offer.offer.count_range, item_vault);
                 if range.start > free_storage_space {
                     return None;
                 }
@@ -150,7 +151,8 @@ impl ItemRecord {
                     return None;
                 }
 
-                let range = volume_range(&offer.offer.item, offer.offer.count_range, item_vault);
+                let range =
+                    volume_range_inclusive(&offer.offer.item, offer.offer.count_range, item_vault);
                 if range.start > free_storage_space {
                     return None;
                 }
@@ -266,6 +268,18 @@ fn volume_range(
 ) -> Range<ItemVolume> {
     let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
     Range {
+        start: item.volume * count_range.start,
+        end: item.volume * count_range.end,
+    }
+}
+
+fn volume_range_inclusive(
+    item_id: &ItemId,
+    count_range: RangeInclusive<ItemCount>,
+    item_vault: &ItemVault,
+) -> RangeInclusive<ItemVolume> {
+    let item = item_vault.get(item_id.clone()).unwrap().upgrade().unwrap();
+    RangeInclusive {
         start: item.volume * count_range.start,
         end: item.volume * count_range.end,
     }

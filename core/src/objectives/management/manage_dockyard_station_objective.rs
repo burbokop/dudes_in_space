@@ -15,7 +15,7 @@ use dudes_in_space_api::person::{
 };
 use dudes_in_space_api::trade::OrderId;
 use dudes_in_space_api::utils::math::{NonNeg, map_into_range};
-use dudes_in_space_api::utils::range::Range;
+use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
@@ -61,11 +61,11 @@ enum ManageDockyardStationObjective {
     RequireModules {
         objective: RequireModulesObjective,
         prices_on_market: BTreeMap<ItemId, Money>,
-        input_offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>,
+        input_offers: BTreeMap<ItemId, (RangeInclusive<ItemCount>, Money)>,
     },
     PlaceBuyCustomVesselOffer {
         objective: PlaceBuyCustomVesselOfferObjective,
-        input_offers: BTreeMap<ItemId, (Range<ItemCount>, Money)>,
+        input_offers: BTreeMap<ItemId, (RangeInclusive<ItemCount>, Money)>,
     },
     PlaceSellOffers {
         terminal_to_observe: ModuleId,
@@ -168,7 +168,7 @@ impl Objective for ManageDockyardStationObjective {
 
                     let capacity_dedicated_for_this_objective = min_free_space_storage.free_space();
 
-                    let mut input_offers: BTreeMap<String, (Range<ItemCount>, Money)> =
+                    let mut input_offers: BTreeMap<String, (RangeInclusive<ItemCount>, Money)> =
                         Default::default();
 
                     for (item, count) in min_counts {
@@ -234,7 +234,7 @@ impl Objective for ManageDockyardStationObjective {
                         // TODO: if occupied_space == capacity_for_item then no need for order
                         assert!(occupied_space < capacity_for_item);
 
-                        let count_range = (1..capacity_for_item - occupied_space).into();
+                        let count_range = (1..=(capacity_for_item - occupied_space)).into();
 
                         input_offers.insert(
                             item.id.clone(),

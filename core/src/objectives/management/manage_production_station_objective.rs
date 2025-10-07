@@ -25,7 +25,7 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::trade::OfferId;
 use dudes_in_space_api::utils::math::NonNeg;
-use dudes_in_space_api::utils::range::Range;
+use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::VesselInternalConsole;
@@ -563,7 +563,7 @@ impl Objective for ManageProductionStationObjective {
                                                 kind: OfferUpdateInstructionKind::Sell,
                                                 id: self.sell_offers.get(item).cloned(),
                                                 item: item.clone(),
-                                                count_range: (1..*count).into(),
+                                                count_range: (1..=*count).into(),
                                                 price_per_unit: production_candidate
                                                     .average_ingredients_buy_price
                                                     .get(item)
@@ -613,9 +613,9 @@ impl Objective for ManageProductionStationObjective {
                                         .clone();
 
                                     let product_count_range = if product_count_in_storage > 0 {
-                                        1..product_count_in_storage
+                                        1..=product_count_in_storage
                                     } else {
-                                        0..0
+                                        0..=0
                                     };
 
                                     let product_price_derived_from_cost_price =
@@ -728,9 +728,9 @@ impl Objective for ManageProductionStationObjective {
                                         .clone();
 
                                     let product_count_range = if product_count_in_storage > 0 {
-                                        1..product_count_in_storage
+                                        1..=product_count_in_storage
                                     } else {
-                                        0..0
+                                        0..=0
                                     };
 
                                     let offer_update_instructions = vec![OfferUpdateInstruction {
@@ -908,7 +908,7 @@ struct OfferUpdateInstruction {
     pub kind: OfferUpdateInstructionKind,
     pub id: Option<OfferId>,
     pub item: ItemId,
-    pub count_range: Range<ItemCount>,
+    pub count_range: RangeInclusive<ItemCount>,
     pub price_per_unit: Money,
 }
 
