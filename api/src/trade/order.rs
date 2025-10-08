@@ -1,5 +1,5 @@
 use crate::finance::{Money, Wallet, WalletId};
-use crate::item::{Item, ItemRefStack};
+use crate::item::{Item, ItemCount, ItemId, ItemRefStack};
 use crate::module::{
     ModuleCapability, ProcessToken, ProcessTokenContext, ProcessTokenExpiredError, ProcessTokenMut,
     ProcessTokenMutSeed,
@@ -47,8 +47,18 @@ pub struct BuyOrder {
     data: Rc<BuyOrderImpl>,
 }
 
+// TODO: must transfer money from pledge wallet back to customer wallet if order if canceled (or dropped, for example if module containing the order is destroyed).
+// Possible implementation can be by saving pledge wallet to wallet registry in special map for pledge wallets which contains also id of customer wallet
+// and on `Environment::proceed` all pledge wallets with ony one ref will be dropped and their money transferred to corresponding customer wallets.
+// In this case pledge wallets that are destroyed on app exit won't be considered as "lost" because `Environment::proceed` shouldn't be called after serialization.
 impl BuyOrder {
-    pub fn new() -> (Self, WeakBuyOrder) {
+    pub fn new(
+        pledge_wallet: Wallet,
+        customer_wallet_id: WalletId,
+        vessel_to_buy_from: VesselId,
+        item: ItemId,
+        count: ItemCount,
+    ) -> (Self, WeakBuyOrder) {
         todo!()
     }
 
@@ -89,6 +99,10 @@ impl WeakSellOrder {
     }
 }
 
+// TODO: must transfer money from pledge wallet back to owner wallet if order if canceled (or dropped, for example if module containing the order is destroyed).
+// Possible implementation can be by saving pledge wallet to wallet registry in special map for pledge wallets which contains also id of customer wallet
+// and on `Environment::proceed` all pledge wallets with ony one ref will be dropped and their money transferred to corresponding customer wallets.
+// In this case pledge wallets that are destroyed on app exit won't be considered as "lost" because `Environment::proceed` shouldn't be called after serialization.
 #[derive(Debug)]
 pub struct SellOrder {
     id: OrderId,
@@ -96,7 +110,13 @@ pub struct SellOrder {
 }
 
 impl SellOrder {
-    pub fn new() -> (Self, WeakSellOrder) {
+    pub fn new(
+        pledge_wallet: Wallet,
+        owner_wallet_id: WalletId,
+        vessel_to_sell_to: VesselId,
+        item: ItemId,
+        count: ItemCount,
+    ) -> (Self, WeakSellOrder) {
         todo!()
     }
 

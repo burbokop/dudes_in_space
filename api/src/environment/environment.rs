@@ -399,6 +399,10 @@ impl Environment {
 
                 // Check if placing of all orders is possible (To ensure atomicity)
 
+                let customer_wallet = wallet_registry.get(&req.input.customer_wallet).unwrap();
+                let customer_wallet = customer_wallet.upgrade().unwrap();
+                let customer_wallet_ref = customer_wallet.borrow();
+
                 for (offer, count) in &req.input.buy_offers {
                     let vessel = self
                         .vessels
@@ -407,7 +411,11 @@ impl Environment {
                         .unwrap();
                     let module = vessel.module_by_id(offer.module_id).unwrap();
                     let trading_console = module.trading_console().unwrap();
-                    let ok = trading_console.can_place_buy_order(&offer.offer, *count);
+                    let ok = trading_console.can_place_buy_order(
+                        &customer_wallet_ref,
+                        &offer.offer,
+                        *count,
+                    );
 
                     assert!(ok, "TODO: return error in response");
                 }
@@ -420,10 +428,14 @@ impl Environment {
                         .unwrap();
                     let module = vessel.module_by_id(offer.module_id).unwrap();
                     let trading_console = module.trading_console().unwrap();
-                    let ok = trading_console.can_place_sell_order(&offer.offer, *count);
+                    let ok =
+                        trading_console.can_place_sell_order(wallet_registry, &offer.offer, *count);
 
                     assert!(ok, "TODO: return error in response");
                 }
+
+                drop(customer_wallet_ref);
+                let mut customer_wallet_ref = customer_wallet.borrow_mut();
 
                 // Place all orders
 
@@ -440,7 +452,12 @@ impl Environment {
                         let mut module = vessel.module_by_id_mut(offer.module_id).unwrap();
                         let trading_console = module.trading_console_mut().unwrap();
                         trading_console
-                            .place_buy_order(&offer.offer, *count)
+                            .place_buy_order(
+                                &mut customer_wallet_ref,
+                                offer.vessel_id,
+                                &offer.offer,
+                                *count,
+                            )
                             .unwrap()
                     })
                     .collect();
@@ -458,7 +475,12 @@ impl Environment {
                         let mut module = vessel.module_by_id_mut(offer.module_id).unwrap();
                         let trading_console = module.trading_console_mut().unwrap();
                         trading_console
-                            .place_sell_order(&offer.offer, *count)
+                            .place_sell_order(
+                                wallet_registry,
+                                offer.vessel_id,
+                                &offer.offer,
+                                *count,
+                            )
                             .unwrap()
                     })
                     .collect();

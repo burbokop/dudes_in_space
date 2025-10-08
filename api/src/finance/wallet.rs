@@ -402,7 +402,7 @@ impl WalletRegistry {
         Ok(b)
     }
 
-    pub(crate) fn get(&self, wallet_id: &WalletId) -> Option<WeakWallet> {
+    pub fn get(&self, wallet_id: &WalletId) -> Option<WeakWallet> {
         self.data.borrow().get(wallet_id).cloned()
     }
 }

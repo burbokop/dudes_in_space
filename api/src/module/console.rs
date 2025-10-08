@@ -1,4 +1,4 @@
-use crate::finance::{Money, NotEnoughMoneyInWallet, Wallet};
+use crate::finance::{Money, NotEnoughMoneyInWallet, Wallet, WalletId, WalletRegistry};
 use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use crate::module::module::ModuleId;
 use crate::module::{ModuleCapability, ModuleStorage, ModuleTypeId, PackageId, ProcessToken};
@@ -14,7 +14,7 @@ use crate::trade::{
 };
 use crate::utils::math::Vector;
 use crate::utils::range::RangeInclusive;
-use crate::vessel::DockingClamp;
+use crate::vessel::{DockingClamp, VesselId};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// interface through which a person can interact with a module
@@ -217,10 +217,32 @@ pub trait DockyardConsole {
 pub trait TradingConsole {
     fn buy_offers(&self) -> &[BuyOffer];
     fn sell_offers(&self) -> &[SellOffer];
-    fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder>;
-    fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder>;
-    fn can_place_buy_order(&self, offer: &BuyOffer, count: ItemCount) -> bool;
-    fn can_place_sell_order(&self, offer: &SellOffer, count: ItemCount) -> bool;
+    fn place_buy_order(
+        &mut self,
+        customer_wallet: &mut Wallet,
+        vessel_to_buy_from: VesselId,
+        offer: &BuyOffer,
+        count: ItemCount,
+    ) -> Option<WeakBuyOrder>;
+    fn place_sell_order(
+        &mut self,
+        wallet_registry: &WalletRegistry,
+        vessel_to_sell_to: VesselId,
+        offer: &SellOffer,
+        count: ItemCount,
+    ) -> Option<WeakSellOrder>;
+    fn can_place_buy_order(
+        &self,
+        customer_wallet: &Wallet,
+        offer: &BuyOffer,
+        count: ItemCount,
+    ) -> bool;
+    fn can_place_sell_order(
+        &self,
+        wallet_registry: &WalletRegistry,
+        offer: &SellOffer,
+        count: ItemCount,
+    ) -> bool;
 
     fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
     fn place_buy_vessel_order(
@@ -248,6 +270,10 @@ pub trait TradingConsole {
 }
 
 pub trait AdminTradingConsole {
+    /// Set a wallet which will be used for all trading operations.
+    /// If a wallet is not set, orders cannot be placed
+    fn set_operational_wallet(&mut self, wallet: WalletId);
+
     fn place_buy_offer(
         &mut self,
         item: ItemId,

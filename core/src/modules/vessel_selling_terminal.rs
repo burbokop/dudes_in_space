@@ -1,7 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{
-    BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
+    BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletId, WalletRegistry,
 };
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
@@ -23,7 +23,7 @@ use dudes_in_space_api::trade::{
 };
 use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselId, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, VecSeed,
     from_intermediate_seed,
@@ -211,6 +211,10 @@ impl<'a> ModuleConsole for Console<'a> {
 }
 
 impl<'a> AdminTradingConsole for Console<'a> {
+    fn set_operational_wallet(&mut self, wallet: WalletId) {
+        todo!()
+    }
+
     fn place_buy_offer(
         &mut self,
         item: ItemId,
@@ -478,19 +482,41 @@ impl TradingConsole for VesselSellingTerminal {
         &[]
     }
 
-    fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {
+    fn place_buy_order(
+        &mut self,
+        customer_wallet: &mut Wallet,
+        vessel_to_buy_from: VesselId,
+        offer: &BuyOffer,
+        count: ItemCount,
+    ) -> Option<WeakBuyOrder> {
         todo!()
     }
 
-    fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder> {
+    fn place_sell_order(
+        &mut self,
+        wallet_registry: &WalletRegistry,
+        vessel_to_sell_to: VesselId,
+        offer: &SellOffer,
+        count: ItemCount,
+    ) -> Option<WeakSellOrder> {
         todo!()
     }
 
-    fn can_place_buy_order(&self, offer: &BuyOffer, count: ItemCount) -> bool {
+    fn can_place_buy_order(
+        &self,
+        customer_wallet: &Wallet,
+        offer: &BuyOffer,
+        count: ItemCount,
+    ) -> bool {
         todo!()
     }
 
-    fn can_place_sell_order(&self, offer: &SellOffer, count: ItemCount) -> bool {
+    fn can_place_sell_order(
+        &self,
+        wallet_registry: &WalletRegistry,
+        offer: &SellOffer,
+        count: ItemCount,
+    ) -> bool {
         todo!()
     }
 

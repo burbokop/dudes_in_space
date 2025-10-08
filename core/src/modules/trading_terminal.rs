@@ -1,7 +1,7 @@
 use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{
-    BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletRegistry,
+    BankRegistry, Money, NotEnoughMoneyInWallet, Wallet, WalletId, WalletRegistry,
 };
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
@@ -22,14 +22,14 @@ use dudes_in_space_api::trade::{
 };
 use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselId, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, VecSeed,
     from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -57,6 +57,16 @@ pub(crate) struct TradingTerminal {
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     #[deserialize_seed_xxx(seed = self.seed.person_seed)]
     operator: Option<Person>,
+    #[serde(default, deserialize_with = "deserialize_operational_wallet")]
+    operational_wallet: Option<WalletId>,
+}
+
+fn deserialize_operational_wallet<'de, D>(data: D) -> Result<Option<WalletId>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let x = WalletId::deserialize(data).map(Some).unwrap_or(None);
+    Ok(x)
 }
 
 struct TradingTerminalSeed<'h, 'a, 'b, 'v> {
@@ -93,6 +103,7 @@ impl TradingTerminal {
             buy_orders: vec![],
             sell_orders: vec![],
             operator: None,
+            operational_wallet: None,
         })
     }
 }
@@ -111,6 +122,7 @@ struct Console<'a> {
     id: ModuleId,
     buy_offers: &'a mut Vec<BuyOffer>,
     sell_offers: &'a mut Vec<SellOffer>,
+    operational_wallet: &'a mut Option<WalletId>,
 }
 
 impl<'a> ModuleConsole for Console<'a> {
@@ -243,6 +255,7 @@ impl Module for TradingTerminal {
             id: self.id,
             buy_offers: &mut self.buy_offers,
             sell_offers: &mut self.sell_offers,
+            operational_wallet: &mut self.operational_wallet,
         };
 
         if let Some(operator) = &mut self.operator {
@@ -392,7 +405,13 @@ impl TradingConsole for TradingTerminal {
         &self.sell_offers
     }
 
-    fn place_buy_order(&mut self, offer: &BuyOffer, count: ItemCount) -> Option<WeakBuyOrder> {
+    fn place_buy_order(
+        &mut self,
+        customer_wallet: &mut Wallet,
+        vessel_to_buy_from: VesselId,
+        offer: &BuyOffer,
+        count: ItemCount,
+    ) -> Option<WeakBuyOrder> {
         let offer: &BuyOffer = self
             .buy_offers
             .iter()
@@ -402,15 +421,32 @@ impl TradingConsole for TradingTerminal {
             return None;
         }
 
-        let (order, weak_order) = BuyOrder::new();
+        let total_price = offer.price_per_unit.clone() * count;
 
-        // TODO: transfer money from the person who placed the order (transport ship pilot) to special temporary wallet that must live inside just created order
+        let mut pledge_wallet = Wallet::new();
+        customer_wallet
+            .transfer_to(&mut pledge_wallet, total_price)
+            .unwrap();
+
+        let (order, weak_order) = BuyOrder::new(
+            pledge_wallet,
+            customer_wallet.id().clone(),
+            vessel_to_buy_from,
+            offer.item.clone(),
+            count,
+        );
 
         self.buy_orders.push(order);
         Some(weak_order)
     }
 
-    fn place_sell_order(&mut self, offer: &SellOffer, count: ItemCount) -> Option<WeakSellOrder> {
+    fn place_sell_order(
+        &mut self,
+        wallet_registry: &WalletRegistry,
+        vessel_to_sell_to: VesselId,
+        offer: &SellOffer,
+        count: ItemCount,
+    ) -> Option<WeakSellOrder> {
         let offer: &SellOffer = self
             .sell_offers
             .iter()
@@ -420,33 +456,70 @@ impl TradingConsole for TradingTerminal {
             return None;
         }
 
-        let (order, weak_order) = SellOrder::new();
+        let total_price = offer.price_per_unit.clone() * count;
 
-        // TODO: transfer money from the person who placed the offer (station manager) to special temporary wallet that must live inside just created order
+        let mut pledge_wallet = Wallet::new();
+        let operational_wallet = wallet_registry.get(&self.operational_wallet?).unwrap();
+        let operational_wallet = operational_wallet.upgrade().unwrap();
+        let mut operational_wallet = operational_wallet.borrow_mut();
+
+        operational_wallet
+            .transfer_to(&mut pledge_wallet, total_price)
+            .unwrap();
+
+        let (order, weak_order) = SellOrder::new(
+            pledge_wallet,
+            self.operational_wallet?.clone(),
+            vessel_to_sell_to,
+            offer.item.clone(),
+            count,
+        );
 
         self.sell_orders.push(order);
         Some(weak_order)
     }
 
-    fn can_place_buy_order(&self, offer: &BuyOffer, count: ItemCount) -> bool {
+    fn can_place_buy_order(
+        &self,
+        customer_wallet: &Wallet,
+        offer: &BuyOffer,
+        count: ItemCount,
+    ) -> bool {
         match self
             .buy_offers
             .iter()
             .find(|BuyOffer { id, .. }| *id == offer.id)
         {
             None => false,
-            Some(offer) => offer.count_range.contains(&count),
+            Some(offer) => {
+                if !offer.count_range.contains(&count) {
+                    return false;
+                }
+
+                todo!("Check if customer_wallet has enough money")
+            }
         }
     }
 
-    fn can_place_sell_order(&self, offer: &SellOffer, count: ItemCount) -> bool {
+    fn can_place_sell_order(
+        &self,
+        wallet_registry: &WalletRegistry,
+        offer: &SellOffer,
+        count: ItemCount,
+    ) -> bool {
         match self
             .sell_offers
             .iter()
             .find(|SellOffer { id, .. }| *id == offer.id)
         {
             None => false,
-            Some(offer) => offer.count_range.contains(&count),
+            Some(offer) => {
+                if !offer.count_range.contains(&count) {
+                    return false;
+                }
+
+                todo!("Check if owner wallet has enough money")
+            }
         }
     }
 
@@ -487,6 +560,10 @@ impl TradingConsole for TradingTerminal {
 }
 
 impl<'a> AdminTradingConsole for Console<'a> {
+    fn set_operational_wallet(&mut self, wallet: WalletId) {
+        *self.operational_wallet = Some(wallet);
+    }
+
     fn place_buy_offer(
         &mut self,
         item: ItemId,
@@ -655,6 +732,7 @@ impl ModuleFactory for TradingTerminalFactory {
             buy_orders: vec![],
             sell_orders: vec![],
             operator: None,
+            operational_wallet: None,
         })
     }
 

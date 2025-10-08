@@ -238,6 +238,7 @@ impl Objective for TradeObjective {
 
                     *self = Self::WaitForOrdersToBePlaced {
                         future: PlaceOrders {
+                            customer_wallet: this_person.finance.wallet().id().clone(),
                             buy_offers: vec![(
                                 search_result.max_profit_buy_offer,
                                 free_storage_space,

@@ -15,7 +15,7 @@ use crate::utils::{
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
-use dudes_in_space_api::finance::{BankRegistry, Money};
+use dudes_in_space_api::finance::{BankRegistry, Money, WalletId};
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
 use dudes_in_space_api::module::{AdminTradingConsole, ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
@@ -648,6 +648,7 @@ impl Objective for ManageProductionStationObjective {
                                     place_or_update_offers(
                                         this_module.trading_admin_console_mut().unwrap(),
                                         offer_update_instructions,
+                                        this_person.finance.wallet().id().clone(),
                                         &mut self.sell_offers,
                                         &mut self.buy_offers,
                                     );
@@ -751,6 +752,7 @@ impl Objective for ManageProductionStationObjective {
                                     place_or_update_offers(
                                         this_module.trading_admin_console_mut().unwrap(),
                                         offer_update_instructions,
+                                        this_person.finance.wallet().id().clone(),
                                         &mut BTreeMap::new(),
                                         &mut self.buy_offers,
                                     );
@@ -915,9 +917,11 @@ struct OfferUpdateInstruction {
 fn place_or_update_offers(
     trading_console: &mut dyn AdminTradingConsole,
     instructions: Vec<OfferUpdateInstruction>,
+    operational_wallet: WalletId,
     sell_offers: &mut BTreeMap<ItemId, OfferId>,
     buy_offers: &mut BTreeMap<ItemId, OfferId>,
 ) {
+    trading_console.set_operational_wallet(operational_wallet);
     for instruction in instructions {
         match instruction.kind {
             OfferUpdateInstructionKind::Buy => {

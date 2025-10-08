@@ -195,6 +195,7 @@ pub enum PlaceBuyCustomVesselOrderResult {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlaceOrders {
+    pub customer_wallet: WalletId,
     pub buy_offers: Vec<(OfferRef<BuyOffer>, ItemCount)>,
     pub sell_offers: Vec<(OfferRef<SellOffer>, ItemCount)>,
 }
