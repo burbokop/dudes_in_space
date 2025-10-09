@@ -411,13 +411,21 @@ impl Environment {
                         .unwrap();
                     let module = vessel.module_by_id(offer.module_id).unwrap();
                     let trading_console = module.trading_console().unwrap();
-                    let ok = trading_console.can_place_buy_order(
+
+                    match trading_console.dry_place_buy_order(
                         &customer_wallet_ref,
                         &offer.offer,
                         *count,
-                    );
+                    ) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            req.promise
+                                .make_ready(req_context, PlaceOrdersResult::PlaceBuyOrderError(err))
+                                .unwrap();
 
-                    assert!(ok, "TODO: return error in response");
+                            return false;
+                        }
+                    }
                 }
 
                 for (offer, count) in &req.input.sell_offers {
@@ -428,10 +436,23 @@ impl Environment {
                         .unwrap();
                     let module = vessel.module_by_id(offer.module_id).unwrap();
                     let trading_console = module.trading_console().unwrap();
-                    let ok =
-                        trading_console.can_place_sell_order(wallet_registry, &offer.offer, *count);
+                    match trading_console.dry_place_sell_order(
+                        wallet_registry,
+                        &offer.offer,
+                        *count,
+                    ) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            req.promise
+                                .make_ready(
+                                    req_context,
+                                    PlaceOrdersResult::PlaceSellOrderError(err),
+                                )
+                                .unwrap();
 
-                    assert!(ok, "TODO: return error in response");
+                            return false;
+                        }
+                    }
                 }
 
                 drop(customer_wallet_ref);
@@ -495,7 +516,7 @@ impl Environment {
                     )
                     .unwrap();
 
-                req.promise.check_pending(req_context)
+                false
             });
 
         self.request_storage

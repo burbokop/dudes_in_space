@@ -15,6 +15,7 @@ use crate::trade::{
 use crate::utils::math::Vector;
 use crate::utils::range::RangeInclusive;
 use crate::vessel::{DockingClamp, VesselId};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// interface through which a person can interact with a module
@@ -223,26 +224,26 @@ pub trait TradingConsole {
         vessel_to_buy_from: VesselId,
         offer: &BuyOffer,
         count: ItemCount,
-    ) -> Option<WeakBuyOrder>;
+    ) -> Result<WeakBuyOrder, PlaceBuyOrderError>;
     fn place_sell_order(
         &mut self,
         wallet_registry: &WalletRegistry,
         vessel_to_sell_to: VesselId,
         offer: &SellOffer,
         count: ItemCount,
-    ) -> Option<WeakSellOrder>;
-    fn can_place_buy_order(
+    ) -> Result<WeakSellOrder, PlaceSellOrderError>;
+    fn dry_place_buy_order(
         &self,
         customer_wallet: &Wallet,
         offer: &BuyOffer,
         count: ItemCount,
-    ) -> bool;
-    fn can_place_sell_order(
+    ) -> Result<(), PlaceBuyOrderError>;
+    fn dry_place_sell_order(
         &self,
         wallet_registry: &WalletRegistry,
         offer: &SellOffer,
         count: ItemCount,
-    ) -> bool;
+    ) -> Result<(), PlaceSellOrderError>;
 
     fn buy_vessel_offers(&self) -> &[BuyVesselOffer];
     fn place_buy_vessel_order(
@@ -342,4 +343,19 @@ pub(crate) trait GunnerControlPanel {
     fn fire_at(&self, _vessel_id: u32) {
         todo!()
     }
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum PlaceBuyOrderError {
+    OfferNotFound,
+    CountIsNotInRange,
+    NotEnoughMoneyInCustomerWallet,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum PlaceSellOrderError {
+    OfferNotFound,
+    CountIsNotInRange,
+    EmptyOperationalWallet,
+    NotEnoughMoneyInOperationalWallet,
 }

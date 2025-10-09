@@ -1,9 +1,13 @@
 use crate::objectives::trade::{BuyGoodsObjective, SellGoodsObjective};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestBuyOffer, FindBestBuyOfferResult, PlaceOrders, PlaceOrdersResult,
+    RequestCreditLimitIncrease, RequestCreditLimitIncreaseResult,
 };
+use dudes_in_space_api::finance::{Money, WithdrawalError};
 use dudes_in_space_api::item::ItemCount;
-use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
+use dudes_in_space_api::module::{
+    ModuleCapability, ModuleConsole, ModuleId, PlaceBuyOrderError, PlaceSellOrderError,
+};
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
@@ -65,6 +69,12 @@ pub(crate) enum TradeObjective {
     SearchForBuyOffers {
         future: ReqFuture<FindBestBuyOfferResult>,
     },
+    #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.credit_limit_increase_future_seed)])]
+    WaitForCreditLimitIncreased {
+        future: ReqFuture<RequestCreditLimitIncreaseResult>,
+        place_orders_request: PlaceOrders,
+        total_money_needed: Money,
+    },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.place_future_seed)])]
     WaitForOrdersToBePlaced {
         future: ReqFuture<PlaceOrdersResult>,
@@ -82,6 +92,7 @@ pub(crate) enum TradeObjective {
 pub(crate) struct TradeObjectiveSeed<'context> {
     find_future_seed: ReqFutureSeed<'context, FindBestBuyOfferResult>,
     place_future_seed: ReqFutureSeed<'context, PlaceOrdersResult>,
+    credit_limit_increase_future_seed: ReqFutureSeed<'context, RequestCreditLimitIncreaseResult>,
 }
 
 impl<'context> TradeObjectiveSeed<'context> {
@@ -89,6 +100,7 @@ impl<'context> TradeObjectiveSeed<'context> {
         Self {
             find_future_seed: ReqFutureSeed::new(context),
             place_future_seed: ReqFutureSeed::new(context),
+            credit_limit_increase_future_seed: ReqFutureSeed::new(context),
         }
     }
 }
@@ -228,37 +240,120 @@ impl Objective for TradeObjective {
                         .unwrap();
                     let item = item.upgrade().unwrap();
 
-                    let free_storage_space = ((tie(this_module, this_vessel)
-                        .total_primary_free_space()
+                    let count = ((tie(this_module, this_vessel).total_primary_free_space()
                         / item.volume) as ItemCount)
                         .min(search_result.max_profit_buy_offer.offer.count_range.end)
                         .min(search_result.max_profit_sell_offer.offer.count_range.end);
 
-                    assert_ne!(free_storage_space, 0);
+                    assert_ne!(count, 0);
+
+                    let total_money_needed = search_result
+                        .max_profit_buy_offer
+                        .offer
+                        .price_per_unit
+                        .clone()
+                        * count;
+
+                    let place_orders_request = PlaceOrders {
+                        customer_wallet: this_person.finance.wallet().id().clone(),
+                        buy_offers: vec![(search_result.max_profit_buy_offer, count)],
+                        sell_offers: vec![(search_result.max_profit_sell_offer, count)],
+                    };
+
+                    match this_person.ensure_has_money_in_wallet(
+                        environment_context.bank_registry(),
+                        environment_context.wallet_registry(),
+                        total_money_needed.clone(),
+                    ) {
+                        Ok(_) => {}
+                        Err(WithdrawalError::CreditLimitReached {
+                            bank_owner,
+                            requested,
+                            limit,
+                        }) => {
+                            *self = Self::WaitForCreditLimitIncreased {
+                                place_orders_request,
+                                total_money_needed,
+                                future: RequestCreditLimitIncrease {
+                                    recipient: bank_owner,
+                                    new_limit: requested,
+                                }
+                                .push(environment_context.request_storage_mut()),
+                            };
+                            return Ok(ObjectiveStatus::InProgress);
+                        }
+                        Err(WithdrawalError::InDebt) => todo!("person: {:?}", this_person),
+                    }
 
                     *self = Self::WaitForOrdersToBePlaced {
-                        future: PlaceOrders {
-                            customer_wallet: this_person.finance.wallet().id().clone(),
-                            buy_offers: vec![(
-                                search_result.max_profit_buy_offer,
-                                free_storage_space,
-                            )],
-                            sell_offers: vec![(
-                                search_result.max_profit_sell_offer,
-                                free_storage_space,
-                            )],
-                        }
-                        .push(environment_context.request_storage_mut()),
+                        future: place_orders_request
+                            .push(environment_context.request_storage_mut()),
                     };
                     Ok(ObjectiveStatus::InProgress)
                 }
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
-            Self::WaitForOrdersToBePlaced { future } => match future.take() {
-                Ok(result) => {
+            Self::WaitForCreditLimitIncreased {
+                place_orders_request,
+                future,
+                total_money_needed,
+            } => match future.take() {
+                Ok(RequestCreditLimitIncreaseResult::LimitIncreased) => {
+                    match this_person.ensure_has_money_in_wallet(
+                        environment_context.bank_registry(),
+                        environment_context.wallet_registry(),
+                        total_money_needed.clone(),
+                    ) {
+                        Ok(_) => {}
+                        Err(WithdrawalError::CreditLimitReached {
+                            bank_owner,
+                            requested,
+                            limit,
+                        }) => unreachable!(),
+                        Err(WithdrawalError::InDebt) => todo!("person: {:?}", this_person),
+                    }
+
+                    *self = Self::WaitForOrdersToBePlaced {
+                        future: place_orders_request
+                            .clone()
+                            .push(environment_context.request_storage_mut()),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
+                Ok(RequestCreditLimitIncreaseResult::RequestDenied) => {
                     todo!()
                 }
+                Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
+                Err(ReqTakeError::AlreadyTaken) => unreachable!(),
+            },
+            Self::WaitForOrdersToBePlaced { future } => match future.take() {
+                Ok(PlaceOrdersResult::Ok { .. }) => todo!(),
+                Ok(PlaceOrdersResult::PlaceBuyOrderError(PlaceBuyOrderError::OfferNotFound)) => {
+                    todo!()
+                }
+                Ok(PlaceOrdersResult::PlaceBuyOrderError(
+                    PlaceBuyOrderError::CountIsNotInRange,
+                )) => todo!(),
+                Ok(PlaceOrdersResult::PlaceBuyOrderError(
+                    PlaceBuyOrderError::NotEnoughMoneyInCustomerWallet,
+                )) => unreachable!(
+                    "Because `ensure_has_money_in_wallet` expected to be called before"
+                ),
+                Ok(PlaceOrdersResult::PlaceSellOrderError(PlaceSellOrderError::OfferNotFound)) => {
+                    todo!()
+                }
+                Ok(PlaceOrdersResult::PlaceSellOrderError(
+                    PlaceSellOrderError::CountIsNotInRange,
+                )) => todo!(),
+                Ok(PlaceOrdersResult::PlaceSellOrderError(
+                    PlaceSellOrderError::EmptyOperationalWallet,
+                )) => todo!(
+                    "Exclude offers with no operational wallet from search and mark this arm as unreachable"
+                ),
+                Ok(PlaceOrdersResult::PlaceSellOrderError(
+                    PlaceSellOrderError::NotEnoughMoneyInOperationalWallet,
+                )) => todo!(),
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
@@ -349,6 +444,7 @@ impl Display for TradeObjective {
             Self::SearchForSellOffers => write!(f, "SearchForSellOffers"),
             Self::MoveToVesselToSell { .. } => write!(f, "MoveToVesselToSell"),
             Self::WaitForOrdersToBePlaced { .. } => write!(f, "WaitForOrdersToBePlaced"),
+            Self::WaitForCreditLimitIncreased { .. } => write!(f, "WaitForCreditLimitIncreased"),
         }
     }
 }

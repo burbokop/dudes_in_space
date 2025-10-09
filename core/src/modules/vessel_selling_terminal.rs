@@ -6,7 +6,8 @@ use dudes_in_space_api::finance::{
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
     AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
-    ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessTokenContext, TradingConsole,
+    ModuleId, ModuleStorage, ModuleTypeId, PackageId, PlaceBuyOrderError, PlaceSellOrderError,
+    ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -488,7 +489,7 @@ impl TradingConsole for VesselSellingTerminal {
         vessel_to_buy_from: VesselId,
         offer: &BuyOffer,
         count: ItemCount,
-    ) -> Option<WeakBuyOrder> {
+    ) -> Result<WeakBuyOrder, PlaceBuyOrderError> {
         todo!()
     }
 
@@ -498,25 +499,25 @@ impl TradingConsole for VesselSellingTerminal {
         vessel_to_sell_to: VesselId,
         offer: &SellOffer,
         count: ItemCount,
-    ) -> Option<WeakSellOrder> {
+    ) -> Result<WeakSellOrder, PlaceSellOrderError> {
         todo!()
     }
 
-    fn can_place_buy_order(
+    fn dry_place_buy_order(
         &self,
         customer_wallet: &Wallet,
         offer: &BuyOffer,
         count: ItemCount,
-    ) -> bool {
+    ) -> Result<(), PlaceBuyOrderError> {
         todo!()
     }
 
-    fn can_place_sell_order(
+    fn dry_place_sell_order(
         &self,
         wallet_registry: &WalletRegistry,
         offer: &SellOffer,
         count: ItemCount,
-    ) -> bool {
+    ) -> Result<(), PlaceSellOrderError> {
         todo!()
     }
 

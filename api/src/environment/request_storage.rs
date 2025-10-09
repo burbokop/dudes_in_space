@@ -1,6 +1,6 @@
 use crate::finance::{Money, MoneyAmount, WalletId};
 use crate::item::{ItemCount, ItemId, ItemVolume};
-use crate::module::ModuleCapability;
+use crate::module::{ModuleCapability, PlaceBuyOrderError, PlaceSellOrderError};
 use crate::person::PersonId;
 use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef,
@@ -193,7 +193,7 @@ pub enum PlaceBuyCustomVesselOrderResult {
     OfferNotFound,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaceOrders {
     pub customer_wallet: WalletId,
     pub buy_offers: Vec<(OfferRef<BuyOffer>, ItemCount)>,
@@ -218,7 +218,8 @@ pub enum PlaceOrdersResult {
         buy_orders: Vec<WeakBuyOrder>,
         sell_orders: Vec<WeakSellOrder>,
     },
-    CanNotPlaceOffer,
+    PlaceBuyOrderError(PlaceBuyOrderError),
+    PlaceSellOrderError(PlaceSellOrderError),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

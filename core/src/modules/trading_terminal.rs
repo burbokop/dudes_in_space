@@ -6,7 +6,8 @@ use dudes_in_space_api::finance::{
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
     AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
-    ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
+    ModuleId, ModuleStorage, ModuleTypeId, PackageId, PlaceBuyOrderError, PlaceSellOrderError,
+    TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -411,14 +412,15 @@ impl TradingConsole for TradingTerminal {
         vessel_to_buy_from: VesselId,
         offer: &BuyOffer,
         count: ItemCount,
-    ) -> Option<WeakBuyOrder> {
+    ) -> Result<WeakBuyOrder, PlaceBuyOrderError> {
         let offer: &BuyOffer = self
             .buy_offers
             .iter()
-            .find(|BuyOffer { id, .. }| *id == offer.id)?;
+            .find(|BuyOffer { id, .. }| *id == offer.id)
+            .unwrap();
 
         if !offer.count_range.contains(&count) {
-            return None;
+            return Err(PlaceBuyOrderError::CountIsNotInRange);
         }
 
         let total_price = offer.price_per_unit.clone() * count;
@@ -437,7 +439,7 @@ impl TradingConsole for TradingTerminal {
         );
 
         self.buy_orders.push(order);
-        Some(weak_order)
+        Ok(weak_order)
     }
 
     fn place_sell_order(
@@ -446,20 +448,23 @@ impl TradingConsole for TradingTerminal {
         vessel_to_sell_to: VesselId,
         offer: &SellOffer,
         count: ItemCount,
-    ) -> Option<WeakSellOrder> {
+    ) -> Result<WeakSellOrder, PlaceSellOrderError> {
         let offer: &SellOffer = self
             .sell_offers
             .iter()
-            .find(|SellOffer { id, .. }| *id == offer.id)?;
+            .find(|SellOffer { id, .. }| *id == offer.id)
+            .unwrap();
 
         if !offer.count_range.contains(&count) {
-            return None;
+            return Err(PlaceSellOrderError::CountIsNotInRange);
         }
 
         let total_price = offer.price_per_unit.clone() * count;
 
         let mut pledge_wallet = Wallet::new();
-        let operational_wallet = wallet_registry.get(&self.operational_wallet?).unwrap();
+        let operational_wallet = wallet_registry
+            .get(&self.operational_wallet.unwrap())
+            .unwrap();
         let operational_wallet = operational_wallet.upgrade().unwrap();
         let mut operational_wallet = operational_wallet.borrow_mut();
 
@@ -469,56 +474,75 @@ impl TradingConsole for TradingTerminal {
 
         let (order, weak_order) = SellOrder::new(
             pledge_wallet,
-            self.operational_wallet?.clone(),
+            self.operational_wallet.unwrap().clone(),
             vessel_to_sell_to,
             offer.item.clone(),
             count,
         );
 
         self.sell_orders.push(order);
-        Some(weak_order)
+        Ok(weak_order)
     }
 
-    fn can_place_buy_order(
+    fn dry_place_buy_order(
         &self,
         customer_wallet: &Wallet,
         offer: &BuyOffer,
         count: ItemCount,
-    ) -> bool {
+    ) -> Result<(), PlaceBuyOrderError> {
         match self
             .buy_offers
             .iter()
             .find(|BuyOffer { id, .. }| *id == offer.id)
         {
-            None => false,
+            None => Err(PlaceBuyOrderError::OfferNotFound),
             Some(offer) => {
                 if !offer.count_range.contains(&count) {
-                    return false;
+                    return Err(PlaceBuyOrderError::CountIsNotInRange);
                 }
 
-                todo!("Check if customer_wallet has enough money")
+                if !customer_wallet.contains(offer.price_per_unit.clone() * count) {
+                    return Err(PlaceBuyOrderError::NotEnoughMoneyInCustomerWallet);
+                }
+
+                Ok(())
             }
         }
     }
 
-    fn can_place_sell_order(
+    fn dry_place_sell_order(
         &self,
         wallet_registry: &WalletRegistry,
         offer: &SellOffer,
         count: ItemCount,
-    ) -> bool {
+    ) -> Result<(), PlaceSellOrderError> {
         match self
             .sell_offers
             .iter()
             .find(|SellOffer { id, .. }| *id == offer.id)
         {
-            None => false,
+            None => Err(PlaceSellOrderError::OfferNotFound),
             Some(offer) => {
                 if !offer.count_range.contains(&count) {
-                    return false;
+                    return Err(PlaceSellOrderError::CountIsNotInRange);
                 }
 
-                todo!("Check if owner wallet has enough money")
+                if self.operational_wallet.is_none() {
+                    return Err(PlaceSellOrderError::EmptyOperationalWallet);
+                }
+
+                if !wallet_registry
+                    .get(&self.operational_wallet.unwrap())
+                    .unwrap()
+                    .upgrade()
+                    .unwrap()
+                    .borrow_mut()
+                    .contains(offer.price_per_unit.clone() * count)
+                {
+                    return Err(PlaceSellOrderError::NotEnoughMoneyInOperationalWallet);
+                }
+
+                Ok(())
             }
         }
     }

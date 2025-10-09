@@ -98,7 +98,7 @@ impl Wallet {
     }
 
     /// Checks whether the wallet contains money of exact currency
-    pub(crate) fn contains(&self, money: Money) -> bool {
+    pub fn contains(&self, money: Money) -> bool {
         match self.content.get(&money.currency) {
             None => false,
             Some(amount) => money.amount <= *amount,
