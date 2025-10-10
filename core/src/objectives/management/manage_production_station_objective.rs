@@ -922,6 +922,11 @@ fn place_or_update_offers(
     buy_offers: &mut BTreeMap<ItemId, OfferId>,
 ) {
     trading_console.set_operational_wallet(operational_wallet);
+
+    if true {
+        todo!("Ensure u have enough money in operational wallet for these offers");
+    }
+
     for instruction in instructions {
         match instruction.kind {
             OfferUpdateInstructionKind::Buy => {

@@ -509,7 +509,11 @@ impl Module for OreManifold {
     }
 
     fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
-        todo!()
+        match role {
+            StorageRole::Input => vec![],
+            StorageRole::Output => vec![&self.storage],
+            StorageRole::NoRole => vec![],
+        }
     }
 
     fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {

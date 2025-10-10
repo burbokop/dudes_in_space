@@ -1,6 +1,6 @@
 use crate::objectives::trade::{BuyGoodsObjective, SellGoodsObjective};
 use dudes_in_space_api::environment::{
-    EnvironmentContext, FindBestBuyOffer, FindBestBuyOfferResult, PlaceOrders, PlaceOrdersResult,
+    EnvironmentContext, FindBestOfferPair, FindBestOfferPairResult, PlaceOrders, PlaceOrdersResult,
     RequestCreditLimitIncrease, RequestCreditLimitIncreaseResult,
 };
 use dudes_in_space_api::finance::{Money, WithdrawalError};
@@ -66,8 +66,8 @@ pub(crate) enum TradeObjective {
         dst: ModuleId,
     },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.find_future_seed)])]
-    SearchForBuyOffers {
-        future: ReqFuture<FindBestBuyOfferResult>,
+    SearchForOffers {
+        future: ReqFuture<FindBestOfferPairResult>,
     },
     #[deserialize_seed_xxx(seeds = [(future, self.seed.seed.credit_limit_increase_future_seed)])]
     WaitForCreditLimitIncreased {
@@ -82,7 +82,6 @@ pub(crate) enum TradeObjective {
     MoveToVesselToBuy {
         buy_goods_objective: BuyGoodsObjective,
     },
-    SearchForSellOffers,
     MoveToVesselToSell {
         sell_goods_objective: SellGoodsObjective,
     },
@@ -90,7 +89,7 @@ pub(crate) enum TradeObjective {
 
 #[derive(Clone)]
 pub(crate) struct TradeObjectiveSeed<'context> {
-    find_future_seed: ReqFutureSeed<'context, FindBestBuyOfferResult>,
+    find_future_seed: ReqFutureSeed<'context, FindBestOfferPairResult>,
     place_future_seed: ReqFutureSeed<'context, PlaceOrdersResult>,
     credit_limit_increase_future_seed: ReqFutureSeed<'context, RequestCreditLimitIncreaseResult>,
 }
@@ -205,8 +204,8 @@ impl Objective for TradeObjective {
                     .contains(&ModuleCapability::Cockpit)
                 {
                     logger.info("Already in a cockpit.");
-                    *self = Self::SearchForBuyOffers {
-                        future: FindBestBuyOffer {
+                    *self = Self::SearchForOffers {
+                        future: FindBestOfferPair {
                             free_storage_space: tie(this_module, this_vessel)
                                 .total_primary_free_space(),
                         }
@@ -225,7 +224,7 @@ impl Objective for TradeObjective {
                 todo!()
             }
             Self::MoveToCockpit { dst } => todo!(),
-            Self::SearchForBuyOffers { future } => match future.take() {
+            Self::SearchForOffers { future } => match future.take() {
                 Ok(search_result) => {
                     assert_ne!(search_result.max_profit_buy_offer.offer.count_range.end, 0);
                     assert_ne!(search_result.max_profit_sell_offer.offer.count_range.end, 0);
@@ -348,19 +347,20 @@ impl Objective for TradeObjective {
                 )) => todo!(),
                 Ok(PlaceOrdersResult::PlaceSellOrderError(
                     PlaceSellOrderError::EmptyOperationalWallet,
-                )) => todo!(
-                    "Exclude offers with no operational wallet from search and mark this arm as unreachable"
+                )) => unreachable!(
+                    "Because offers with no operational wallet are excluded from search"
                 ),
                 Ok(PlaceOrdersResult::PlaceSellOrderError(
                     PlaceSellOrderError::NotEnoughMoneyInOperationalWallet,
-                )) => todo!(),
+                )) => unreachable!(
+                    "Because offers with that has not enough money in operational wallet are excluded from search"
+                ),
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
             Self::MoveToVesselToBuy {
                 buy_goods_objective,
             } => todo!(),
-            Self::SearchForSellOffers => todo!(),
             Self::MoveToVesselToSell { .. } => todo!(),
         }
     }
@@ -439,9 +439,8 @@ impl Display for TradeObjective {
             Self::MoveToVessel { .. } => write!(f, "MoveToVessel"),
             Self::SearchForCockpit => write!(f, "SearchForCockpit"),
             Self::MoveToCockpit { .. } => write!(f, "MoveToCockpit"),
-            Self::SearchForBuyOffers { .. } => write!(f, "SearchForBuyOffers"),
+            Self::SearchForOffers { .. } => write!(f, "SearchForOffers"),
             Self::MoveToVesselToBuy { .. } => write!(f, "MoveToVesselToBuy"),
-            Self::SearchForSellOffers => write!(f, "SearchForSellOffers"),
             Self::MoveToVesselToSell { .. } => write!(f, "MoveToVesselToSell"),
             Self::WaitForOrdersToBePlaced { .. } => write!(f, "WaitForOrdersToBePlaced"),
             Self::WaitForCreditLimitIncreased { .. } => write!(f, "WaitForCreditLimitIncreased"),

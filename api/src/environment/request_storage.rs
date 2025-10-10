@@ -15,8 +15,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct RequestStorage {
     #[serde(default)]
-    pub(crate) find_best_buy_offer_requests:
-        VecDeque<EnvironmentRequest<FindBestBuyOffer, FindBestBuyOfferResult>>,
+    pub(crate) find_find_best_offer_pair_requests:
+        VecDeque<EnvironmentRequest<FindBestOfferPair, FindBestOfferPairResult>>,
 
     #[serde(default)]
     pub(crate) find_best_buy_vessel_offer_requests:
@@ -69,22 +69,22 @@ impl FindBestOffersForItems {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindBestBuyOffer {
+pub struct FindBestOfferPair {
     pub free_storage_space: ItemVolume,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindBestBuyOfferResult {
+pub struct FindBestOfferPairResult {
     pub max_estimated_profit: Money,
     pub max_profit_buy_offer: OfferRef<BuyOffer>,
     pub max_profit_sell_offer: OfferRef<SellOffer>,
 }
 
-impl FindBestBuyOffer {
-    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestBuyOfferResult> {
+impl FindBestOfferPair {
+    pub fn push(self, context: &mut RequestStorage) -> ReqFuture<FindBestOfferPairResult> {
         let (promise, future) = ReqPromise::new();
         context
-            .find_best_buy_offer_requests
+            .find_find_best_offer_pair_requests
             .push_back(EnvironmentRequest {
                 promise,
                 input: self,

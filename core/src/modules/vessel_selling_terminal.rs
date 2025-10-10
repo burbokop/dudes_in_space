@@ -475,6 +475,10 @@ impl Module for VesselSellingTerminal {
 }
 
 impl TradingConsole for VesselSellingTerminal {
+    fn operational_wallet(&self) -> Option<&WalletId> {
+        todo!()
+    }
+
     fn buy_offers(&self) -> &[BuyOffer] {
         &[]
     }

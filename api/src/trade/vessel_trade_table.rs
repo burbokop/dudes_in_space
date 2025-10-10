@@ -36,6 +36,7 @@ impl<'a> VesselTradeTable<'a> {
                                     vessel_id: vessel.id(),
                                     module_id: module.id(),
                                     offer: offer.clone(),
+                                    active: true,
                                 })
                                 .collect::<Vec<_>>()
                         })
@@ -60,6 +61,7 @@ impl<'a> VesselTradeTable<'a> {
                                             vessel_id: vessel.id(),
                                             module_id: module.id(),
                                             offer: offer.clone(),
+                                            active: true,
                                         },
                                         Ref::clone(&module),
                                     )

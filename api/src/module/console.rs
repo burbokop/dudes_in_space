@@ -216,6 +216,8 @@ pub trait DockyardConsole {
 }
 
 pub trait TradingConsole {
+    fn operational_wallet(&self) -> Option<&WalletId>;
+
     fn buy_offers(&self) -> &[BuyOffer];
     fn sell_offers(&self) -> &[SellOffer];
     fn place_buy_order(

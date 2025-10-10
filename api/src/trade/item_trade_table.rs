@@ -1,13 +1,14 @@
-use crate::finance::{BankRegistry, Money, MoneyAmount};
+use crate::finance::{BankRegistry, Money, MoneyAmount, WalletRegistry};
 use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
-use crate::module::ModuleCapability;
+use crate::module::{Module, ModuleCapability};
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
 use crate::utils::math::NonNeg;
 use crate::utils::range::{Range, RangeInclusive};
 use crate::utils::utils::Float;
-use crate::vessel::Vessel;
+use crate::vessel::{Vessel, VesselId};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
 
 #[derive(Debug)]
 pub(crate) struct ItemRecord {
@@ -116,11 +117,16 @@ impl ItemRecord {
         bank_registry: &BankRegistry,
         free_storage_space: ItemVolume,
         item_vault: &ItemVault,
+        only_active: bool,
     ) -> Option<(Money, OfferRef<BuyOffer>, OfferRef<SellOffer>)> {
         let (min_buy_price, min_price_buy_offer) = self
             .buy_offers
             .iter()
             .filter_map(|offer| {
+                if only_active && !offer.active {
+                    return None;
+                }
+
                 if offer.offer.count_range.end == 0 {
                     return None;
                 }
@@ -147,6 +153,10 @@ impl ItemRecord {
             .sell_offers
             .iter()
             .filter_map(|offer| {
+                if only_active && !offer.active {
+                    return None;
+                }
+
                 if offer.offer.count_range.end == 0 {
                     return None;
                 }
@@ -194,7 +204,11 @@ impl ItemTradeTable {
         self.data.get(id)
     }
 
-    pub(crate) fn build(vessels: &[Vessel]) -> Self {
+    pub(crate) fn build(
+        bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
+        vessels: &[Vessel],
+    ) -> Self {
         let buy_offer_refs: Vec<_> = vessels
             .iter()
             .map(|vessel| {
@@ -203,13 +217,15 @@ impl ItemTradeTable {
                     .map(|module| {
                         module
                             .trading_console()
-                            .unwrap()
-                            .buy_offers()
+                            .filter(|console| console.operational_wallet().is_some())
+                            .map(|console| console.buy_offers())
+                            .unwrap_or(&[])
                             .iter()
                             .map(|offer| OfferRef {
                                 vessel_id: vessel.id(),
                                 module_id: module.id(),
                                 offer: offer.clone(),
+                                active: true,
                             })
                             .collect::<Vec<_>>()
                     })
@@ -224,17 +240,12 @@ impl ItemTradeTable {
                 vessel
                     .modules_with_capability(ModuleCapability::TradingTerminal)
                     .map(|module| {
-                        module
-                            .trading_console()
-                            .unwrap()
-                            .sell_offers()
-                            .iter()
-                            .map(|offer| OfferRef {
-                                vessel_id: vessel.id(),
-                                module_id: module.id(),
-                                offer: offer.clone(),
-                            })
-                            .collect::<Vec<_>>()
+                        collect_sell_offers_from_module(
+                            bank_registry,
+                            wallet_registry,
+                            vessel.id(),
+                            module.deref(),
+                        )
                     })
             })
             .flatten()
@@ -259,6 +270,37 @@ impl ItemTradeTable {
 
         Self { data }
     }
+}
+
+fn collect_sell_offers_from_module(
+    bank_registry: &BankRegistry,
+    wallet_registry: &WalletRegistry,
+    vessel_id: VesselId,
+    module: &dyn Module,
+) -> Vec<OfferRef<SellOffer>> {
+    if let Some(console) = module.trading_console() {
+        if let Some(operational_wallet) = console.operational_wallet() {
+            if let Some(operational_wallet) = wallet_registry.get(operational_wallet) {
+                let operational_wallet = operational_wallet.upgrade().unwrap();
+                let operational_wallet = operational_wallet.borrow();
+
+                return console
+                    .sell_offers()
+                    .iter()
+                    .map(|offer| OfferRef {
+                        vessel_id,
+                        module_id: module.id(),
+                        offer: offer.clone(),
+                        active: operational_wallet.contains_if_converted(
+                            bank_registry,
+                            offer.price_per_unit.clone() * offer.count_range.end,
+                        ),
+                    })
+                    .collect();
+            }
+        }
+    }
+    vec![]
 }
 
 fn volume_range(

@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc, Weak};
+use std::time::{Duration, Instant};
 
 pub type WalletId = NonNilUuid;
 
@@ -105,6 +106,10 @@ impl Wallet {
         }
     }
 
+    pub fn contains_if_converted(&self, bank_registry: &BankRegistry, money: Money) -> bool {
+        self.missing_if_converted(bank_registry, money).is_none()
+    }
+
     pub(crate) fn convert_all_into(
         &mut self,
         bank_registry: &BankRegistry,
@@ -161,7 +166,7 @@ impl Wallet {
 
     /// Checks whether the wallet contains money if converted to this currency.
     /// Returns `None` if it has enough and `MoneyAmount` if missing.
-    pub(crate) fn missing_if_converted(
+    fn missing_if_converted(
         &self,
         bank_registry: &BankRegistry,
         money: Money,
@@ -227,7 +232,21 @@ impl Wallet {
             target_money: Money,
         }
 
+        #[cfg(debug_assertions)]
+        let begin = Instant::now();
+
         'l: loop {
+            #[cfg(debug_assertions)]
+            if (Instant::now() - begin) > Duration::from_secs(1) {
+                panic!("Infinite loop")
+            }
+
+            if self.content.len() == 1 {
+                if let Some(amount) = self.content.get(&target_money.currency) {
+                    break *amount >= target_money.amount;
+                }
+            }
+
             for (currency, amount) in self.content.clone() {
                 if *currency == target_money.currency {
                     continue;
@@ -358,7 +377,7 @@ impl WeakWallet {
     }
 
     // pub fn as_ref<'a>(&'a self) -> Ref<'a, Wallet> {
-    //     todo!()
+    //     self.data.upgrade().unwrap().borrow()
     // }
     //
     // pub fn as_mut<'a>(&'a self) -> RefMut<'a, Wallet> {

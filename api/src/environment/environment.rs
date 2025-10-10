@@ -1,5 +1,5 @@
 use crate::environment::{
-    EnvironmentContext, FindBestBuyOfferResult, FindBestBuyVesselOfferResult,
+    EnvironmentContext, FindBestBuyVesselOfferResult, FindBestOfferPairResult,
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
     PlaceOrdersResult, RequestStorage,
 };
@@ -133,11 +133,12 @@ impl Environment {
         currency_generator: &CurrencyGenerator,
     ) {
         self.request_storage
-            .find_best_buy_offer_requests
+            .find_find_best_offer_pair_requests
             .retain_mut(|req| {
                 assert!(req.promise.check_pending(req_context));
 
-                let trade_table = ItemTradeTable::build(&self.vessels);
+                let trade_table =
+                    ItemTradeTable::build(bank_registry, wallet_registry, &self.vessels);
 
                 if let Some((
                     (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
@@ -150,6 +151,7 @@ impl Environment {
                                 bank_registry,
                                 req.input.free_storage_space,
                                 item_vault,
+                                true,
                             )?,
                             record,
                         ))
@@ -159,7 +161,7 @@ impl Environment {
                     req.promise
                         .make_ready(
                             req_context,
-                            FindBestBuyOfferResult {
+                            FindBestOfferPairResult {
                                 max_estimated_profit,
                                 max_profit_buy_offer,
                                 max_profit_sell_offer,
@@ -270,7 +272,10 @@ impl Environment {
                 let mut average_sell_offers: BTreeMap<ItemId, Money> = Default::default();
 
                 for item in &req.input.items {
-                    if let Some(record) = ItemTradeTable::build(&self.vessels).get(item) {
+                    if let Some(record) =
+                        ItemTradeTable::build(bank_registry, wallet_registry, &self.vessels)
+                            .get(item)
+                    {
                         if let Some(o) = record.cheapest_buy_offer(bank_registry) {
                             max_profit_buy_offers.insert(item.clone(), o.clone());
                         }

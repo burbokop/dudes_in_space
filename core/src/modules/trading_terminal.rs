@@ -398,6 +398,10 @@ impl Module for TradingTerminal {
 }
 
 impl TradingConsole for TradingTerminal {
+    fn operational_wallet(&self) -> Option<&WalletId> {
+        self.operational_wallet.as_ref()
+    }
+
     fn buy_offers(&self) -> &[BuyOffer] {
         &self.buy_offers
     }

@@ -46,6 +46,9 @@ pub struct OfferRef<Offer> {
     pub vessel_id: VesselId,
     pub module_id: ModuleId,
     pub offer: Offer,
+    /// Offer is active if there is enough money in the operational wallet for this offer.
+    #[serde(default)]
+    pub active: bool,
 }
 
 impl Display for BuyOffer {
