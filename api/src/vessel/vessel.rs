@@ -178,7 +178,7 @@ impl Vessel {
         self.pos
     }
 
-    pub(crate) fn traverse<R>(&self, mut f: impl FnMut(VesselIdPathRef, &Vessel) -> R) -> R
+    pub fn traverse<R>(&self, mut f: impl FnMut(VesselIdPathRef, &Vessel) -> R) -> R
     where
         R: Try<Output = ()>,
     {

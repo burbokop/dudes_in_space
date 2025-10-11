@@ -5,7 +5,7 @@ use crate::render::render_models::person_render_model::PersonRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::scene_graph::{ColumnLayout, Frame, GraphicsNode, GridLayout, RowLayout};
 use crate::render::{
-    HorisontalAlignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTexture,
+    Alignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTexture,
     ModuleTextureContainerRef, RenderError,
 };
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
@@ -44,7 +44,7 @@ fn draw_top_info<T: sdl2::render::RenderTarget>(
             module.type_id()
         ),
         text_box,
-        HorisontalAlignment::Center,
+        Alignment::center(),
         Color {
             r: 0.,
             g: 0.,
@@ -77,7 +77,7 @@ fn draw_bottom_info<T: sdl2::render::RenderTarget>(
             module.primary_capabilities()
         ),
         text_box,
-        HorisontalAlignment::Center,
+        Alignment::center(),
         Color {
             r: 0.,
             g: 0.,
@@ -148,7 +148,7 @@ impl<'a, 'b, 'c, 'd, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawPers
             None => renderer.draw_confined_text(
                 "Vacant",
                 bounding_box,
-                HorisontalAlignment::Center,
+                Alignment::center(),
                 Color {
                     r: 0.,
                     g: 0.,
@@ -235,7 +235,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemRecipe<'a> {
         renderer.draw_confined_text(
             &format!("{} -> {}", self.recipe.input, self.recipe.output),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color {
                 r: 0.,
                 g: 0.,
@@ -295,7 +295,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawInputItemRecipe<
         renderer.draw_confined_text(
             &format!("{} ->", self.recipe),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color {
                 r: 0.,
                 g: 0.,
@@ -355,7 +355,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawOutputItemRecipe
         renderer.draw_confined_text(
             &format!("-> {}", self.recipe),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color {
                 r: 0.,
                 g: 0.,
@@ -419,7 +419,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawAssemblyRecipe<'
                 self.recipe.output_description().type_id(),
             ),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color {
                 r: 0.,
                 g: 0.,
@@ -566,7 +566,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemSafe<'a> {
         renderer.draw_confined_text(
             &format!("{:?}", self.safe,),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color {
                 r: 0.,
                 g: 0.,
@@ -641,7 +641,7 @@ impl<'texture, 'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T>
                     renderer.draw_confined_text(
                         &format!("{}", module.type_id()),
                         bounding_box,
-                        HorisontalAlignment::Center,
+                        Alignment::center(),
                         Color::black(),
                     );
                     renderer.draw_rect(bounding_box, Color::black());
@@ -863,7 +863,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnector
         renderer.draw_confined_text(
             &format!("{:?}", self.connector),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color {
                 r: 0.,
                 g: 0.,
@@ -975,7 +975,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawBuyOffer<'a> {
         renderer.draw_confined_text(
             &format!("Buy {}", self.offer),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color::black(),
         );
         draw_bounding_box(renderer, bounding_box);
@@ -1030,7 +1030,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawSellOffer<'a> {
         renderer.draw_confined_text(
             &format!("Sell {}", self.offer),
             bounding_box,
-            HorisontalAlignment::Center,
+            Alignment::center(),
             Color::black(),
         );
         draw_bounding_box(renderer, bounding_box);

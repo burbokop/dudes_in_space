@@ -3,7 +3,7 @@ use crate::render::{
     FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
 };
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Matrix, Point, Rect};
+use dudes_in_space_api::utils::math::{Matrix, Point, Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 use sdl2::gfx::primitives::DrawRenderer;
 use std::error::Error;
@@ -60,6 +60,34 @@ impl Alignment {
         }
     }
 
+    pub fn left_top() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Left,
+            vertical: VerticalAlignment::Top,
+        }
+    }
+
+    pub fn left_bottom() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Left,
+            vertical: VerticalAlignment::Bottom,
+        }
+    }
+
+    pub fn right_top() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Right,
+            vertical: VerticalAlignment::Top,
+        }
+    }
+
+    pub fn right_bottom() -> Self {
+        Self {
+            horisontal: HorisontalAlignment::Right,
+            vertical: VerticalAlignment::Bottom,
+        }
+    }
+
     pub fn center() -> Self {
         Self {
             horisontal: HorisontalAlignment::Center,
@@ -91,7 +119,7 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
         }
     }
 
-    pub fn size(&self) -> Point<u32> {
+    pub fn size(&self) -> Size<u32> {
         self.canvas.output_size().unwrap().into()
     }
 
@@ -257,7 +285,13 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
                         *centered_rect.h(),
                     )
                         .into(),
-                    (HorisontalAlignment::Center, VerticalAlignment::Top) => todo!(),
+                    (HorisontalAlignment::Center, VerticalAlignment::Top) => (
+                        *centered_rect.x(),
+                        *position.y() + offset_y,
+                        *centered_rect.w(),
+                        *centered_rect.h(),
+                    )
+                        .into(),
                     (HorisontalAlignment::Right, VerticalAlignment::Top) => todo!(),
                     (HorisontalAlignment::Left, VerticalAlignment::Center) => (
                         *position.x(),
@@ -286,11 +320,23 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
         Ok(())
     }
 
+    pub fn text_size(text: &str) -> Size<usize> {
+        if text.len() > 0 {
+            let text = text.replace('\t', TAB);
+            let lines_count = text.lines().count();
+            let longest_line_len = text.lines().max_by_key(|line| line.len()).unwrap().len();
+
+            (longest_line_len, lines_count).into()
+        } else {
+            (0, 0).into()
+        }
+    }
+
     pub fn draw_confined_text(
         &mut self,
         text: &str,
         bounding_box: Rect<Float>,
-        alignment: HorisontalAlignment,
+        alignment: Alignment,
         color: Color,
     ) {
         if !self.intersects_with_view_port(&bounding_box) {
@@ -361,7 +407,7 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
                     (width, height).into(),
                 );
 
-                let rect = match alignment {
+                let rect = match alignment.horisontal {
                     HorisontalAlignment::Left => (
                         *bounding_box.x(),
                         *centered_rect.y(),

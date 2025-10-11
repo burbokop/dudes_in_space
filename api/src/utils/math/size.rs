@@ -1,5 +1,6 @@
 use std::ops::{Div, Mul};
 
+use crate::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -43,6 +44,29 @@ impl Size<f64> {
         Size {
             w: self.w as f32,
             h: self.h as f32,
+        }
+    }
+}
+
+impl Size<u32> {
+    pub fn as_f32(self) -> Size<f32> {
+        Size {
+            w: self.w as f32,
+            h: self.h as f32,
+        }
+    }
+
+    pub fn as_f64(self) -> Size<f64> {
+        Size {
+            w: self.w as f64,
+            h: self.h as f64,
+        }
+    }
+
+    pub fn as_float(self) -> Size<Float> {
+        Size {
+            w: self.w as f64,
+            h: self.h as f64,
         }
     }
 }

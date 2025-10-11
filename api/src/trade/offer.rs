@@ -80,3 +80,9 @@ impl Display for BuyCustomVesselOffer {
         )
     }
 }
+
+impl<T: Display> Display for OfferRef<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.({})", self.vessel_id, self.module_id, self.offer)
+    }
+}

@@ -44,7 +44,8 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for GridLayout<'a, T> {
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        let (bounding_box, delta) = bounding_box.homogeneous_mul(DEFAULT_MARGIN);
+        let (bounding_box, delta) =
+            bounding_box.homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
         let margin = delta.abs() / 2.;
         let cell_spacing = delta.abs() / 2.;
 

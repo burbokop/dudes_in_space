@@ -15,19 +15,24 @@ impl<'a, T: sdl2::render::RenderTarget + 'a> From<RowLayout<'a, T>>
     }
 }
 
-impl<'a, T: sdl2::render::RenderTarget> RowLayout<'a, T> {
+impl<'a, T: sdl2::render::RenderTarget + 'a> RowLayout<'a, T> {
     pub fn new(elems: Vec<Box<dyn GraphicsNode<T> + 'a>>) -> Self {
         Self { elems }
+    }
+
+    pub fn boxed(elems: Vec<Box<dyn GraphicsNode<T> + 'a>>) -> Box<dyn GraphicsNode<T> + 'a> {
+        Box::new(Self { elems })
     }
 }
 
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for RowLayout<'a, T> {
     fn visible(&self) -> bool {
-        !self.elems.is_empty() && self.elems.iter().all(|x| x.visible())
+        self.elems.iter().any(|x| x.visible())
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
-        let (bounding_box, margin) = bounding_box.homogeneous_mul(DEFAULT_MARGIN);
+        let (bounding_box, margin) =
+            bounding_box.homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
 
         if !renderer.intersects_with_view_port(&bounding_box) {
             return;
@@ -58,6 +63,25 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for RowLayout<'a, T> {
             }
         }
     }
+    fn implicit_size(&self) -> Option<Size<Float>> {
+        let v: Vec<_> = self
+            .elems
+            .iter()
+            .filter_map(|elem| elem.visible().then(|| elem.implicit_size()).flatten())
+            .collect();
+
+        if v.is_empty() {
+            return None;
+        }
+
+        let mut result: Size<_> = (0., 0.).into();
+
+        for size in v {
+            result = (*result.w() + *size.w(), Float::max(*result.h(), *size.h())).into();
+        }
+
+        Some(result)
+    }
 }
 
 #[derive(Default)]
@@ -76,26 +100,32 @@ impl ExtRowLayoutOptions {
 }
 
 pub struct ExtRowLayout<'a, T: sdl2::render::RenderTarget> {
-    elems: Vec<(Box<dyn GraphicsNode<T> + 'a>, ExtRowLayoutOptions)>,
+    elems: Vec<(ExtRowLayoutOptions, Box<dyn GraphicsNode<T> + 'a>)>,
 }
 
-impl<'a, T: sdl2::render::RenderTarget> ExtRowLayout<'a, T> {
-    pub(crate) fn new(elems: Vec<(Box<dyn GraphicsNode<T> + 'a>, ExtRowLayoutOptions)>) -> Self {
+impl<'a, T: sdl2::render::RenderTarget + 'a> ExtRowLayout<'a, T> {
+    pub(crate) fn new(elems: Vec<(ExtRowLayoutOptions, Box<dyn GraphicsNode<T> + 'a>)>) -> Self {
         Self { elems }
+    }
+
+    pub fn boxed(
+        elems: Vec<(ExtRowLayoutOptions, Box<dyn GraphicsNode<T> + 'a>)>,
+    ) -> Box<dyn GraphicsNode<T> + 'a> {
+        Box::new(Self { elems })
     }
 }
 
 impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for ExtRowLayout<'a, T> {
     fn visible(&self) -> bool {
-        self.elems.iter().all(|x| x.0.visible())
+        self.elems.iter().any(|(_, x)| x.visible())
     }
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         // TODO: allow more than 2 elements
         assert_eq!(self.elems.len(), 2);
 
-        let (elem0, _) = &self.elems[0];
-        let (elem1, _) = &self.elems[1];
+        let (_, elem0) = &self.elems[0];
+        let (_, elem1) = &self.elems[1];
 
         let e0_size = elem0.implicit_size().unwrap();
 
@@ -118,5 +148,25 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for ExtRowLayout<'a, T> 
 
         elem0.draw(renderer, e0_bb);
         elem1.draw(renderer, e1_bb);
+    }
+
+    fn implicit_size(&self) -> Option<Size<Float>> {
+        let v: Vec<_> = self
+            .elems
+            .iter()
+            .filter_map(|(_, elem)| elem.visible().then(|| elem.implicit_size()).flatten())
+            .collect();
+
+        if v.is_empty() {
+            return None;
+        }
+
+        let mut result: Size<_> = (0., 0.).into();
+
+        for size in v {
+            result = (*result.w() + *size.w(), Float::max(*result.h(), *size.h())).into();
+        }
+
+        Some(result)
     }
 }

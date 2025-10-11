@@ -1,4 +1,5 @@
 mod column_layout;
+mod flickable;
 mod graphics_node;
 mod grid_layout;
 mod row_layout;
@@ -6,6 +7,8 @@ mod text;
 
 #[allow(unused_imports)]
 pub(crate) use column_layout::*;
+#[allow(unused_imports)]
+pub(crate) use flickable::*;
 #[allow(unused_imports)]
 pub(crate) use graphics_node::*;
 #[allow(unused_imports)]

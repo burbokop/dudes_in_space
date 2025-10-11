@@ -15,7 +15,9 @@ use crate::utils::{
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
-use dudes_in_space_api::finance::{BankRegistry, Money, WalletId};
+use dudes_in_space_api::finance::{
+    BankRegistry, EnsureContainsError, Money, Wallet, WalletRegistry,
+};
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
 use dudes_in_space_api::module::{AdminTradingConsole, ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
@@ -646,12 +648,15 @@ impl Objective for ManageProductionStationObjective {
 
                                     drop(crafting_module);
                                     place_or_update_offers(
+                                        environment_context.bank_registry(),
+                                        environment_context.wallet_registry(),
                                         this_module.trading_admin_console_mut().unwrap(),
                                         offer_update_instructions,
-                                        this_person.finance.wallet().id().clone(),
+                                        &mut this_person.finance.wallet_mut(),
                                         &mut self.sell_offers,
                                         &mut self.buy_offers,
-                                    );
+                                    )
+                                    .unwrap();
 
                                     craft_objective.resume();
                                     Ok(ObjectiveStatus::InProgress)
@@ -750,12 +755,15 @@ impl Objective for ManageProductionStationObjective {
 
                                     drop(crafting_module);
                                     place_or_update_offers(
+                                        environment_context.bank_registry(),
+                                        environment_context.wallet_registry(),
                                         this_module.trading_admin_console_mut().unwrap(),
                                         offer_update_instructions,
-                                        this_person.finance.wallet().id().clone(),
+                                        &mut this_person.finance.wallet_mut(),
                                         &mut BTreeMap::new(),
                                         &mut self.buy_offers,
-                                    );
+                                    )
+                                    .unwrap();
 
                                     output_objective.resume();
                                     Ok(ObjectiveStatus::InProgress)
@@ -915,16 +923,24 @@ struct OfferUpdateInstruction {
 }
 
 fn place_or_update_offers(
+    bank_registry: &BankRegistry,
+    wallet_registry: &WalletRegistry,
     trading_console: &mut dyn AdminTradingConsole,
     instructions: Vec<OfferUpdateInstruction>,
-    operational_wallet: WalletId,
+    operational_wallet: &mut Wallet,
     sell_offers: &mut BTreeMap<ItemId, OfferId>,
     buy_offers: &mut BTreeMap<ItemId, OfferId>,
-) {
-    trading_console.set_operational_wallet(operational_wallet);
+) -> Result<(), EnsureContainsError> {
+    trading_console.set_operational_wallet(operational_wallet.id().clone());
 
-    if true {
-        todo!("Ensure u have enough money in operational wallet for these offers");
+    for instruction in &instructions {
+        if instruction.kind == OfferUpdateInstructionKind::Sell {
+            operational_wallet.ensure_contains(
+                bank_registry,
+                wallet_registry,
+                instruction.price_per_unit.clone() * instruction.count_range.end,
+            )?;
+        }
     }
 
     for instruction in instructions {
@@ -975,6 +991,7 @@ fn place_or_update_offers(
             }
         }
     }
+    Ok(())
 }
 
 impl Display for ManageProductionStationObjective {

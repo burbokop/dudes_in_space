@@ -1,4 +1,4 @@
-use super::{Abs, NonNeg, Point, Size, Sqr, Two, Vector};
+use super::{Abs, NonNeg, Point, Size, Sqr, Two, Vector, Zero};
 use crate::utils::range::Range;
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -346,6 +346,18 @@ impl<T> From<(Point<T>, Size<T>)> for Rect<T> {
     fn from(value: (Point<T>, Size<T>)) -> Self {
         let ((x, y), (w, h)) = (value.0.into(), value.1.into());
         Rect { x, y, w, h }
+    }
+}
+
+impl<T: Zero> From<Size<T>> for Rect<T> {
+    fn from(value: Size<T>) -> Self {
+        let (w, h) = value.into();
+        Rect {
+            x: Zero::zero(),
+            y: Zero::zero(),
+            w,
+            h,
+        }
     }
 }
 

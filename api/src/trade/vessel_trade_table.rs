@@ -51,7 +51,6 @@ impl<'a> VesselTradeTable<'a> {
                         .modules_with_capability(ModuleCapability::VesselSellingTerminal)
                         .map(|module| {
                             let console = module.trading_console().unwrap();
-
                             console
                                 .buy_custom_vessel_offer()
                                 .into_iter()

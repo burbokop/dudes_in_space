@@ -198,7 +198,7 @@ impl Wallet {
 
     /// If the wallet doesn't have enough money of specific currency, the function will try to convert from other currencies contained in the wallet
     /// Returns false if error (must guarantee to have no side effects in that case)
-    pub(crate) fn ensure_contains(
+    pub fn ensure_contains(
         &mut self,
         bank_registry: &BankRegistry,
         wallet_registry: &WalletRegistry,

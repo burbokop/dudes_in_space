@@ -1,5 +1,5 @@
 use crate::render::scene_graph::{GraphicsNode, GridLayout};
-use crate::render::{HorisontalAlignment, RenderError, Renderer};
+use crate::render::{Alignment, RenderError, Renderer};
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::Rect;
@@ -27,7 +27,7 @@ impl ItemStorageRenderModel {
                     renderer.draw_confined_text(
                         &format!("{}\n{}", stack.id(), stack.count()),
                         bounding_box,
-                        HorisontalAlignment::Center,
+                        Alignment::center(),
                         Color::black(),
                     );
                     renderer.draw_rect(bounding_box, Color::black());

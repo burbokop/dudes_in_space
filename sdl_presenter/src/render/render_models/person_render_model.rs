@@ -4,7 +4,7 @@ use crate::render::scene_graph::{
     ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
     GraphicsNode, Text,
 };
-use crate::render::{DEFAULT_MARGIN, HorisontalAlignment, RenderError, Renderer};
+use crate::render::{Alignment, DEFAULT_MARGIN, RenderError, Renderer};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Point, Rect, Size};
@@ -115,9 +115,15 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
                 .collect::<Vec<_>>()
                 .join("\n"),
             color: Color::black(),
-            alignment: HorisontalAlignment::Left,
+            alignment: Alignment::left(),
+            font_height: None,
         }
-        .draw(renderer, bounding_box.homogeneous_mul(DEFAULT_MARGIN).0);
+        .draw(
+            renderer,
+            bounding_box
+                .homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value())
+                .0,
+        );
     }
 }
 
@@ -140,17 +146,19 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawHeader<'a> {
         ColumnLayout::new(vec![
             Box::new(Text {
                 color: Color::from_uuid(self.person.id()),
-                alignment: HorisontalAlignment::Left,
+                alignment: Alignment::left(),
                 text: if let Some(boss) = self.person.boss() {
                     format!("{} (B: {})", self.person.name(), boss)
                 } else {
                     format!("{}", self.person.name())
                 },
+                font_height: None,
             }),
             Box::new(Text {
                 color: Color::from_uuid(self.person.id()),
-                alignment: HorisontalAlignment::Left,
+                alignment: Alignment::left(),
                 text: format!("{}", self.person.id()),
+                font_height: None,
             }),
             Box::new(
                 self.person
@@ -210,40 +218,40 @@ impl PersonRenderModel {
         if bounding_box.w() > bounding_box.h() {
             let row = ExtRowLayout::new(vec![
                 (
-                    Box::new(DrawLittleMan::new(person_color)),
                     ExtRowLayoutOptions::preserve_aspect_ratio(),
+                    Box::new(DrawLittleMan::new(person_color)),
                 ),
                 (
+                    Default::default(),
                     Box::new(DrawLog::new(
                         logger.get(&person.id()),
                         editor.log_lines_count_limit(),
                     )),
-                    Default::default(),
                 ),
             ]);
 
             let column = ExtColumnLayout::new(vec![
-                (Box::new(DrawHeader::new(person)), Default::default()),
-                (Box::new(row), ExtColumnLayoutOptions::relative_height(0.5)),
-                (Box::new(DrawFooter::new(person)), Default::default()),
+                (Default::default(), Box::new(DrawHeader::new(person))),
+                (ExtColumnLayoutOptions::relative_height(0.5), Box::new(row)),
+                (Default::default(), Box::new(DrawFooter::new(person))),
             ]);
 
             column.draw(renderer, bounding_box);
         } else {
             let column = ExtColumnLayout::new(vec![
-                (Box::new(DrawHeader::new(person)), Default::default()),
+                (Default::default(), Box::new(DrawHeader::new(person))),
                 (
-                    Box::new(DrawLittleMan::new(person_color)),
                     ExtColumnLayoutOptions::relative_height(0.2),
+                    Box::new(DrawLittleMan::new(person_color)),
                 ),
                 (
+                    ExtColumnLayoutOptions::relative_height(0.6),
                     Box::new(DrawLog::new(
                         logger.get(&person.id()),
                         editor.log_lines_count_limit(),
                     )),
-                    ExtColumnLayoutOptions::relative_height(0.6),
                 ),
-                (Box::new(DrawFooter::new(person)), Default::default()),
+                (Default::default(), Box::new(DrawFooter::new(person))),
             ]);
 
             column.draw(renderer, bounding_box);

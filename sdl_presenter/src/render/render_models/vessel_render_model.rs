@@ -120,7 +120,8 @@ impl<'texture> VesselRenderModel<'texture> {
                 Ok(())
             }
             Some(bounding_box) => {
-                let (bounding_box, delta) = bounding_box.homogeneous_mul(DEFAULT_MARGIN);
+                let (bounding_box, delta) =
+                    bounding_box.homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
                 let margin = delta.abs() / 2.;
                 let cell_spacing = delta.abs() / 2.;
 

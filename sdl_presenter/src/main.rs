@@ -1,20 +1,24 @@
 #![feature(fn_traits)]
 #![feature(map_try_insert)]
+#![feature(const_trait_impl)]
+#![feature(const_from)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 
 use crate::camera::Camera;
 use crate::editor::{Editor, EditorState};
-use crate::event_handler::EventHandler;
+use crate::event_handler::{EventHandler, Screen};
 use crate::person_table::PersonTable;
 use crate::render::{
-    Alignment, EnvironmentRenderModel, FontProvider, HorisontalAlignment,
-    ModuleTextureContainerBuilder, Renderer, VerticalAlignment,
+    Alignment, DEFAULT_MARGIN, EnvironmentRenderModel, FontProvider, HorisontalAlignment,
+    ModuleTextureContainerBuilder, Renderer, TradeTableRenderModel, VerticalAlignment,
 };
 use crate::utils::{load, load_camera, load_logger, save_camera};
+use crate::vessel_table::VesselTable;
+use dudes_in_space_api::trade::ItemTradeTable;
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::Matrix;
+use dudes_in_space_api::utils::math::{Matrix, Rect};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::core_components;
 use dudes_in_space_core::module_types;
@@ -30,6 +34,7 @@ mod logger;
 mod person_table;
 mod render;
 mod utils;
+mod vessel_table;
 
 struct AppPaths {
     save_path: PathBuf,
@@ -98,23 +103,33 @@ fn main() {
         )
         .build();
 
-    let render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());
+    let environment_render_model = EnvironmentRenderModel::new(module_bg_tex_container.get_ref());
+    let trade_table_render_model = TradeTableRenderModel::new();
     let font_provider = FontProvider::new();
     let mut renderer = Renderer::new(canvas, &texture_creator, font_provider);
     let components = core_components();
     let mut environment = load(&components, app_paths.save_path.clone());
     let mut person_table = PersonTable::new(&environment);
+    let mut vessel_table = VesselTable::new(&environment);
+
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut event_handler = EventHandler::new();
     let mut editor = Editor::new();
+    let mut trade_table = ItemTradeTable::build(
+        &components.bank_registry,
+        &components.wallet_registry,
+        environment.vessels(),
+    );
 
     'running: loop {
         match event_handler.handle_events(
             &mut environment,
+            &mut trade_table,
             &mut logger,
             &mut event_pump,
             &mut camera,
             &mut person_table,
+            &mut vessel_table,
             &mut editor,
             &components,
             &app_paths,
@@ -125,11 +140,26 @@ fn main() {
 
         renderer.begin();
         renderer.set_transformation(camera.transformation());
-        render_model
+        environment_render_model
             .render(&mut renderer, &environment, &editor, &logger, &person_table)
             .unwrap();
 
         renderer.set_transformation(Matrix::identity());
+
+        if event_handler.screen() == Screen::TradeTable {
+            let (trade_table_render_model_bb, _) = Rect::from(renderer.size().as_float())
+                .homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
+            trade_table_render_model
+                .render(
+                    &mut renderer,
+                    &trade_table,
+                    &vessel_table,
+                    trade_table_render_model_bb,
+                    &person_table,
+                    event_handler.trade_table_offset(),
+                )
+                .unwrap();
+        }
 
         renderer
             .draw_text(
@@ -171,7 +201,7 @@ fn main() {
                         vessel.name(),
                         vessel.id()
                     ),
-                    (16., *renderer.size().y() as Float - 16.).into(),
+                    (16., *renderer.size().h() as Float - 16.).into(),
                     16.,
                     Alignment {
                         horisontal: HorisontalAlignment::Left,

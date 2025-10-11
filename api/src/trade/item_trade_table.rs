@@ -11,7 +11,7 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub(crate) struct ItemRecord {
+pub struct ItemRecord {
     id: ItemId,
     buy_offers: Vec<OfferRef<BuyOffer>>,
     sell_offers: Vec<OfferRef<SellOffer>>,
@@ -24,6 +24,13 @@ impl ItemRecord {
             buy_offers: Default::default(),
             sell_offers: Default::default(),
         }
+    }
+
+    pub fn buy_offers(&self) -> &[OfferRef<BuyOffer>] {
+        &self.buy_offers
+    }
+    pub fn sell_offers(&self) -> &[OfferRef<SellOffer>] {
+        &self.sell_offers
     }
 
     pub(crate) fn cheapest_buy_offer(
@@ -191,20 +198,20 @@ impl ItemRecord {
 }
 
 #[derive(Debug)]
-pub(crate) struct ItemTradeTable {
+pub struct ItemTradeTable {
     data: BTreeMap<ItemId, ItemRecord>,
 }
 
 impl ItemTradeTable {
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemRecord)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ItemId, &ItemRecord)> {
         self.data.iter()
     }
 
-    pub(crate) fn get(&self, id: &ItemId) -> Option<&ItemRecord> {
+    pub fn get(&self, id: &ItemId) -> Option<&ItemRecord> {
         self.data.get(id)
     }
 
-    pub(crate) fn build(
+    pub fn build(
         bank_registry: &BankRegistry,
         wallet_registry: &WalletRegistry,
         vessels: &[Vessel],
