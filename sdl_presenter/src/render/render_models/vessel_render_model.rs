@@ -3,10 +3,7 @@ use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
 use crate::render::renderer::Renderer;
-use crate::render::{
-    Alignment, DEFAULT_MARGIN, HorisontalAlignment, ModuleTextureContainerRef, RenderError,
-    VerticalAlignment,
-};
+use crate::render::{Alignment, HorisontalAlignment, ModuleTextureContainerRef, RenderError, VerticalAlignment, OLD_DEFAULT_MARGIN};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Rect, Vector};
 use dudes_in_space_api::utils::utils::Float;
@@ -121,7 +118,7 @@ impl<'texture> VesselRenderModel<'texture> {
             }
             Some(bounding_box) => {
                 let (bounding_box, delta) =
-                    bounding_box.homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
+                    bounding_box.homogeneous_mul(OLD_DEFAULT_MARGIN.assume_relative().unwrap().value());
                 let margin = delta.abs() / 2.;
                 let cell_spacing = delta.abs() / 2.;
 

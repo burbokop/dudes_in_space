@@ -29,7 +29,7 @@ impl<'a, T: sdl2::render::RenderTarget + 'a> DrawRecord<'a, T> {
     {
         Box::new(DrawRecord {
             visible: !record.buy_offers().is_empty() || !record.sell_offers().is_empty(),
-            content: ExtColumnLayout::boxed(vec![
+            content: ExtColumnLayout::boxed(Pix(0.).into() ,vec![
                 (
                     ExtColumnLayoutOptions::relative_height(0.2),
                     Box::new(Text {
@@ -144,7 +144,7 @@ impl TradeTableRenderModel {
         Flickable::new(
             FlickableDirection::Vertical,
             (0., offset).into(),
-            ExtColumnLayout::boxed(
+            ExtColumnLayout::boxed(Pix(0.).into(),
                 trade_table
                     .iter()
                     .map(|(item, record)| {

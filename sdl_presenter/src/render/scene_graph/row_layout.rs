@@ -1,5 +1,5 @@
 use crate::render::scene_graph::GraphicsNode;
-use crate::render::{DEFAULT_MARGIN, Renderer};
+use crate::render::{ Renderer, OLD_DEFAULT_MARGIN};
 use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 
@@ -32,7 +32,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for RowLayout<'a, T> {
 
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         let (bounding_box, margin) =
-            bounding_box.homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
+            bounding_box.homogeneous_mul(OLD_DEFAULT_MARGIN.assume_relative().unwrap().value());
 
         if !renderer.intersects_with_view_port(&bounding_box) {
             return;

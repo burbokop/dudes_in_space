@@ -38,6 +38,13 @@ impl Distance {
             Distance::Pix(r) => Some(r),
         }
     }
+
+    pub(crate) fn to_pix(self, size: Pix) -> Pix {
+        match self {
+            Distance::Relative(r) => Pix(r.0 * size.0),
+            Distance::Pix(r) => r,
+        }
+    }
 }
 
 impl const From<Relative> for Distance {

@@ -10,10 +10,7 @@ use crate::camera::Camera;
 use crate::editor::{Editor, EditorState};
 use crate::event_handler::{EventHandler, Screen};
 use crate::person_table::PersonTable;
-use crate::render::{
-    Alignment, DEFAULT_MARGIN, EnvironmentRenderModel, FontProvider, HorisontalAlignment,
-    ModuleTextureContainerBuilder, Renderer, TradeTableRenderModel, VerticalAlignment,
-};
+use crate::render::{Alignment,  EnvironmentRenderModel, FontProvider, HorisontalAlignment, ModuleTextureContainerBuilder, Renderer, TradeTableRenderModel, VerticalAlignment, OLD_DEFAULT_MARGIN};
 use crate::utils::{load, load_camera, load_logger, save_camera};
 use crate::vessel_table::VesselTable;
 use dudes_in_space_api::trade::ItemTradeTable;
@@ -148,7 +145,7 @@ fn main() {
 
         if event_handler.screen() == Screen::TradeTable {
             let (trade_table_render_model_bb, _) = Rect::from(renderer.size().as_float())
-                .homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value());
+                .homogeneous_mul(OLD_DEFAULT_MARGIN.assume_relative().unwrap().value());
             trade_table_render_model
                 .render(
                     &mut renderer,

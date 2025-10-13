@@ -4,7 +4,7 @@ use crate::render::scene_graph::{
     ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
     GraphicsNode, Text,
 };
-use crate::render::{Alignment, DEFAULT_MARGIN, RenderError, Renderer};
+use crate::render::{Alignment,  RenderError, Renderer, Pix, OLD_DEFAULT_MARGIN};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Point, Rect, Size};
@@ -121,7 +121,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
         .draw(
             renderer,
             bounding_box
-                .homogeneous_mul(DEFAULT_MARGIN.assume_relative().unwrap().value())
+                .homogeneous_mul(OLD_DEFAULT_MARGIN.assume_relative().unwrap().value())
                 .0,
         );
     }
@@ -230,22 +230,24 @@ impl PersonRenderModel {
                 ),
             ]);
 
-            let column = ExtColumnLayout::new(vec![
-                (Default::default(), Box::new(DrawHeader::new(person))),
-                (ExtColumnLayoutOptions::relative_height(0.5), Box::new(row)),
-                (Default::default(), Box::new(DrawFooter::new(person))),
+            let column = ExtColumnLayout::new(Pix(0.).into(),vec![
+                (ExtColumnLayoutOptions::fill_height(), Box::new(DrawHeader::new(person))),
+                (ExtColumnLayoutOptions::fill_height()/*ExtColumnLayoutOptions::relative_height(0.5)*/, Box::new(row)),
+                (ExtColumnLayoutOptions::fill_height(), Box::new(DrawFooter::new(person))),
             ]);
 
             column.draw(renderer, bounding_box);
         } else {
-            let column = ExtColumnLayout::new(vec![
+            let column = ExtColumnLayout::new(Pix(0.).into(), vec![
                 (Default::default(), Box::new(DrawHeader::new(person))),
                 (
-                    ExtColumnLayoutOptions::relative_height(0.2),
+                    ExtColumnLayoutOptions::fill_height(),
+                    // ExtColumnLayoutOptions::relative_height(0.2),
                     Box::new(DrawLittleMan::new(person_color)),
                 ),
                 (
-                    ExtColumnLayoutOptions::relative_height(0.6),
+                    ExtColumnLayoutOptions::fill_height(),
+                    // ExtColumnLayoutOptions::relative_height(0.6),
                     Box::new(DrawLog::new(
                         logger.get(&person.id()),
                         editor.log_lines_count_limit(),

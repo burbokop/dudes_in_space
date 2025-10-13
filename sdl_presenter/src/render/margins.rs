@@ -2,10 +2,10 @@ use crate::render::{Distance, Relative};
 use std::convert::Into;
 
 pub(crate) struct Margins {
-    left: Distance,
-    right: Distance,
-    top: Distance,
-    bottom: Distance,
+    pub(crate) left: Distance,
+    pub(crate) right: Distance,
+    pub(crate) top: Distance,
+    pub(crate) bottom: Distance,
 }
 
 impl Margins {
@@ -28,7 +28,8 @@ impl Margins {
     }
 }
 
-pub static DEFAULT_MARGIN: Distance = Relative(0.95).into();
+pub static DEFAULT_MARGIN: Distance = Relative(0.05).into();
+pub static OLD_DEFAULT_MARGIN: Distance = Relative(0.95).into();
 
 impl Default for Margins {
     fn default() -> Self {
