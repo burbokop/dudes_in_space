@@ -405,6 +405,7 @@ dependencies = [
 name = "dudes_in_space_core"
 version = "0.0.1"
 dependencies = [
+ "burbomath",
  "dudes_in_space_api",
  "dyn_serde",
  "dyn_serde_macro",
@@ -822,6 +823,7 @@ name = "sdl_presenter"
 version = "0.0.1"
 dependencies = [
  "aseprite",
+ "burbomath",
  "clap",
  "dudes_in_space_api",
  "dudes_in_space_core",

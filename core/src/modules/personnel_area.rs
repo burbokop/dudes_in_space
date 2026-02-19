@@ -1,5 +1,5 @@
-use crate::CORE_PACKAGE_ID;
 use crate::modules::{CoreModule, ModuleVisitor, ModuleVisitorMut};
+use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage, StorageRole};
@@ -13,12 +13,12 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
+    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::Serialize;
-use serde_intermediate::{Intermediate, to_intermediate};
+use serde_intermediate::{to_intermediate, Intermediate};
 use std::error::Error;
 use std::rc::Rc;
 

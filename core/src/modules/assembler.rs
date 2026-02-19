@@ -1,9 +1,9 @@
-use crate::CORE_PACKAGE_ID;
 use crate::modules::{
     CargoContainerFactory, CoreModule, DockyardFactory, FabricatorFactory, ModuleVisitor,
     ModuleVisitorMut, OreManifoldFactory, PlantFacilityFactory, ShuttleFactory,
     TradingTerminalFactory, VesselSellingTerminalFactory,
 };
+use crate::CORE_PACKAGE_ID;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{
@@ -25,12 +25,12 @@ use dudes_in_space_api::recipe::{
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed, from_intermediate_seed,
+    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, VecSeed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::Serialize;
-use serde_intermediate::{Intermediate, to_intermediate};
+use serde_intermediate::{to_intermediate, Intermediate};
 use std::clone::Clone;
 use std::error::Error;
 use std::ops::Deref;
@@ -721,9 +721,9 @@ mod tests {
     use dudes_in_space_api::person::{DynObjective, Person};
     use dudes_in_space_api::recipe::ModuleFactory;
     use dudes_in_space_api::utils::physics::M3;
-    use dyn_serde::{DynDeserializeSeedVault, from_intermediate_seed};
+    use dyn_serde::{from_intermediate_seed, DynDeserializeSeedVault};
     use rand::rng;
-    use serde_intermediate::{Intermediate, to_intermediate};
+    use serde_intermediate::{to_intermediate, Intermediate};
 
     #[test]
     fn serde() {

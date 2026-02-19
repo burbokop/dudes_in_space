@@ -1,22 +1,21 @@
 #![feature(fn_traits)]
 #![feature(map_try_insert)]
 #![feature(const_trait_impl)]
-#![feature(const_from)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
+#![feature(const_convert)]
 
-use crate::camera::Camera;
 use crate::editor::{Editor, EditorState};
 use crate::event_handler::{EventHandler, Screen};
 use crate::person_table::PersonTable;
 use crate::render::{Alignment,  EnvironmentRenderModel, FontProvider, HorisontalAlignment, ModuleTextureContainerBuilder, Renderer, TradeTableRenderModel, VerticalAlignment, OLD_DEFAULT_MARGIN};
 use crate::utils::{load, load_camera, load_logger, save_camera};
 use crate::vessel_table::VesselTable;
+use burbomath::math::{Matrix, Rect};
 use dudes_in_space_api::trade::ItemTradeTable;
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Matrix, Rect};
-use dudes_in_space_api::utils::utils::Float;
+use dudes_in_space_api::utils::utils::{AsFloat as _, Float};
 use dudes_in_space_core::components::core_components;
 use dudes_in_space_core::module_types;
 use std::env::home_dir;
@@ -24,7 +23,6 @@ use std::ops::ControlFlow;
 use std::path::PathBuf;
 use std::time::Duration;
 
-mod camera;
 mod editor;
 mod event_handler;
 mod logger;
@@ -59,7 +57,7 @@ fn main() {
         logger_save_path: home_dir().unwrap().join(".dudes_in_space/logger.json"),
     };
 
-    let mut camera: Camera = load_camera(app_paths.camera_save_path.clone());
+    let mut camera = load_camera(app_paths.camera_save_path.clone());
     let mut logger = load_logger(app_paths.logger_save_path.clone());
     let texture_creator = canvas.texture_creator();
     let module_bg_tex_container = ModuleTextureContainerBuilder::new(&texture_creator)

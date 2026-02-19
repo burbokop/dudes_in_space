@@ -1,8 +1,8 @@
 use crate::modules::{Assembler, PersonnelArea};
+use burbomath::physics::M3;
 use dudes_in_space_api::environment::{Environment, Nebula};
 use dudes_in_space_api::item::{ItemStack, ItemStorage, ItemVault};
 use dudes_in_space_api::person::Person;
-use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::Vessel;
 use rand::Rng;
 use std::rc::Rc;

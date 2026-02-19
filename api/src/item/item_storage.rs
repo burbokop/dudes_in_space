@@ -1,6 +1,6 @@
 use crate::item::{Item, ItemCount, ItemId, ItemRefStack, ItemStack, ItemVault, ItemVolume};
 use crate::recipe::{InputItemRecipe, OutputItemRecipe};
-use crate::utils::physics::M3;
+use burbomath::physics::M3;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;

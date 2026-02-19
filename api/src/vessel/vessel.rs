@@ -5,13 +5,13 @@ use crate::person::{
     Logger, ObjectiveDeciderVault, PersonId, StatusCollector, SubordinationTable, VesselPermission,
     VesselPermissions,
 };
-use crate::utils::math::Point;
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
 use crate::vessel::{
     DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole,
     VesselInternalConsole, VesselModuleInterface,
 };
+use burbomath::math::Point;
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};

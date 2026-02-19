@@ -1,6 +1,6 @@
 use crate::finance::{BankRegistry, Currency, Money, MoneyAmount};
-use crate::utils::math::{NonNeg, Positive, Zero};
 use crate::utils::non_nil_uuid::NonNilUuid;
+use burbomath::math::{NonNeg, Positive, Zero};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::BTreeMap;

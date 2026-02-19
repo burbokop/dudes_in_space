@@ -8,13 +8,13 @@ use crate::render::{
     Alignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTexture,
     ModuleTextureContainerRef, RenderError,
 };
+use burbomath::math::Rect;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{Module, ModuleId, ModuleStorage};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::trade::{BuyCustomVesselOffer, BuyOffer, BuyVesselOffer, SellOffer};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::Rect;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
 use std::cell::RefCell;

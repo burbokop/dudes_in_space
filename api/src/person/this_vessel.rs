@@ -1,3 +1,5 @@
+use burbomath::physics::M3;
+
 use crate::item::{ItemStorage, ItemVolume, StorageRole};
 use crate::module::{
     ConcatModuleCapabilities, Module, ModuleCapability, ModuleConsole, ModuleId, ModuleTypeId,
@@ -7,7 +9,6 @@ use crate::recipe::{
     OutputItemRecipe, OutputItemRecipeHash,
 };
 
-use crate::utils::physics::M3;
 use crate::vessel::{DockingClamp, DockingClampConnection, VesselConsole, VesselInternalConsole};
 use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;

@@ -1,9 +1,10 @@
+use burbomath::math::NonNeg;
+use burbomath::range::{Range, RangeInclusive};
+
 use crate::finance::{BankRegistry, Money, MoneyAmount, WalletRegistry};
 use crate::item::{ItemCount, ItemId, ItemVault, ItemVolume};
 use crate::module::{Module, ModuleCapability};
 use crate::trade::{BuyOffer, OfferRef, SellOffer};
-use crate::utils::math::NonNeg;
-use crate::utils::range::{Range, RangeInclusive};
 use crate::utils::utils::Float;
 use crate::vessel::{Vessel, VesselId};
 use std::collections::BTreeMap;

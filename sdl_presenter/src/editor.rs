@@ -1,8 +1,8 @@
+use burbomath::math::Point;
+use burbomath::physics::M3;
 use dudes_in_space_api::environment::Environment;
 use dudes_in_space_api::item::{ItemStack, ItemStorage, ItemVault};
 use dudes_in_space_api::person::{Awareness, Boldness, Gender, Morale, Passion, Person};
-use dudes_in_space_api::utils::math::Point;
-use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{Vessel, VesselId};
 use dudes_in_space_core::{__modules, items};

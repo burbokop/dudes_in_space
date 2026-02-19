@@ -1,6 +1,6 @@
 use crate::render::Renderer;
+use burbomath::math::{Rect, Size};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 use std::ops::Add;
 

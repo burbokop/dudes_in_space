@@ -1,9 +1,9 @@
+use burbomath::range::RangeInclusive;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::utils::range::RangeInclusive;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

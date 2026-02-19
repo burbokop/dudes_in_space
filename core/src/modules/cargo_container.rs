@@ -1,4 +1,5 @@
 use crate::CORE_PACKAGE_ID;
+use burbomath::physics::M3;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::item::{
     ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
@@ -13,14 +14,13 @@ use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
-use dudes_in_space_api::utils::physics::M3;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
+use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
 use std::error::Error;
 use std::fmt::Debug;
 use std::rc::Rc;

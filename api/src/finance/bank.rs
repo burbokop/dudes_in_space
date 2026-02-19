@@ -1,8 +1,8 @@
 use crate::environment::Cycle;
 use crate::finance::{Currency, Money, MoneyAmount, Wallet, WalletId};
 use crate::person::PersonId;
-use crate::utils::math::{NonNeg, Positive, Zero, noneg_float};
-use crate::utils::utils::Float;
+use crate::utils::utils::{noneg_float, Float};
+use burbomath::math::{NonNeg, Positive, Zero};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::error::Error;

@@ -1,5 +1,5 @@
 #![feature(map_try_insert)]
-#![feature(push_mut)]
+// #![feature(push_mut)]
 #![deny(warnings)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
@@ -13,9 +13,9 @@ mod modules;
 mod objectives;
 mod utils;
 
+use burbomath::physics::{KgPerM3, M3};
 use dudes_in_space_api::item::{Item, ItemVault};
 use dudes_in_space_api::recipe::ItemRecipe;
-use dudes_in_space_api::utils::physics::{KgPerM3, M3};
 pub use modules::register_module_factories;
 pub use modules::register_modules;
 pub use modules::types as module_types;

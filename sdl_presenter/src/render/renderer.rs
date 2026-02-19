@@ -2,8 +2,8 @@ use crate::render::spritesheet::Spritesheet;
 use crate::render::{
     color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect, FontProvider,
 };
+use burbomath::math::{Matrix, Point, Rect, Size};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Matrix, Point, Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 use sdl2::gfx::primitives::DrawRenderer;
 use std::error::Error;

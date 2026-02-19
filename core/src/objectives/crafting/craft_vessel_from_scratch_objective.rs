@@ -2,11 +2,11 @@ use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
     CraftModulesObjectiveArgs, CraftModulesObjectiveError,
 };
+use burbomath::math::Zero;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::utils::math::Zero;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;

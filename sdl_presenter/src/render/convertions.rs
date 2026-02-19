@@ -1,5 +1,5 @@
+use burbomath::math::{Point, Rect};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Point, Rect};
 use dudes_in_space_api::utils::utils::Float;
 
 pub fn color_to_sdl2_rgba_color(c: Color) -> sdl2::pixels::Color {

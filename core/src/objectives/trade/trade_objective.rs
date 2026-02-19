@@ -10,17 +10,17 @@ use dudes_in_space_api::module::{
 };
 use dudes_in_space_api::person;
 use dudes_in_space_api::person::{
-    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
-    tie,
+    tie, DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger,
+    ThisPerson,
 };
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
 use dyn_serde::{
-    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
+    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Serialize};
-use serde_intermediate::{Intermediate, to_intermediate};
+use serde_intermediate::{to_intermediate, Intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::ops::ControlFlow;

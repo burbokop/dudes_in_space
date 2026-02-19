@@ -1,4 +1,4 @@
-use crate::utils::physics::{Kg, KgPerM3, M3};
+use burbomath::physics::{Kg, KgPerM3, M3};
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::error::Error;

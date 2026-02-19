@@ -6,9 +6,9 @@ use crate::trade::{
     BuyCustomVesselOffer, BuyCustomVesselOrderEstimate, BuyOffer, BuyVesselOffer, OfferRef,
     SellOffer, WeakBuyCustomVesselOrder, WeakBuyOrder, WeakSellOrder,
 };
-use crate::utils::math::NonNeg;
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
+use burbomath::math::NonNeg;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 

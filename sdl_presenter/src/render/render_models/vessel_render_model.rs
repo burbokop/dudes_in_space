@@ -7,8 +7,8 @@ use crate::render::{
     Alignment, HorisontalAlignment, ModuleTextureContainerRef, RenderError, VerticalAlignment,
     OLD_DEFAULT_MARGIN,
 };
+use burbomath::math::{Rect, Vector};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Rect, Vector};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{Vessel, VesselConsole};
 use std::cell::{RefCell, RefMut};

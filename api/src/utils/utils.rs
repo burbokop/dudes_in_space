@@ -1,14 +1,43 @@
-use crate::utils::math::NonNeg;
-use crate::utils::range::Range;
+use burbomath::{math::NonNeg, range::Range};
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use std::{
-    error::Error,
-    fmt::{Debug, Display},
-    ops::RangeBounds,
-    time::Duration,
+    error::Error, fmt::{Debug, Display}, ops::RangeBounds, time::Duration
 };
+use burbomath::math::Size;
 
 pub type Float = f64;
+
+/// TODO: replace with macro
+pub(crate) fn noneg_f32(value: f32) -> NonNeg<f32> {
+    assert!(value >= 0.);
+    NonNeg::new(value).unwrap()
+}
+
+/// TODO: replace with macro
+pub(crate) fn noneg_f64(value: f64) -> NonNeg<f64> {
+    assert!(value >= 0.);
+    NonNeg::new(value).unwrap()
+}
+
+/// TODO: replace with macro
+pub fn noneg_float(value: Float) -> NonNeg<Float> {
+    assert!(value >= 0.);
+    NonNeg::new(value).unwrap()
+}
+
+pub trait AsFloat {
+    type Output;
+    fn as_float(self) -> Self::Output;
+}
+
+impl AsFloat for Size<u32> {
+    type Output = Size<Float>;
+
+    fn as_float(self) -> Self::Output {
+        todo!()
+    }
+}
+
 
 pub(crate) fn normalize<const SIZE: usize>(v: [Float; SIZE]) -> [Float; SIZE] {
     let max = v.iter().cloned().reduce(Float::max).unwrap();

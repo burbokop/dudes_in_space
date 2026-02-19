@@ -5,9 +5,9 @@ use crate::render::scene_graph::{
     GraphicsNode, Text,
 };
 use crate::render::{Alignment, Pix, RenderError, Renderer, OLD_DEFAULT_MARGIN};
+use burbomath::math::{Point, Rect, Size};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Point, Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 use std::convert::Into;
 use std::ops::Deref;

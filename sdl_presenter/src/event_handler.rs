@@ -1,13 +1,13 @@
-use crate::AppPaths;
-use crate::camera::Camera;
 use crate::editor::{Editor, EditorPreset, EditorState};
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::utils::{save, save_logger};
 use crate::vessel_table::VesselTable;
+use crate::AppPaths;
+use burbomath::camera::Camera;
+use burbomath::math::Point;
 use dudes_in_space_api::environment::Environment;
 use dudes_in_space_api::trade::ItemTradeTable;
-use dudes_in_space_api::utils::math::Point;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_core::components::Components;
 use sdl2::mouse::MouseButton;
@@ -60,7 +60,7 @@ impl EventHandler {
         trade_table: &mut ItemTradeTable,
         logger: &mut MemLogger,
         event_pump: &mut sdl2::EventPump,
-        camera: &mut Camera,
+        camera: &mut Camera<Float>,
         person_table: &mut PersonTable,
         vessel_table: &mut VesselTable,
         editor: &mut Editor,

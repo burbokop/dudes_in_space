@@ -5,10 +5,10 @@ use crate::render::scene_graph::{
 };
 use crate::render::{Alignment, Margins, Pix, Relative, RenderError, Renderer};
 use crate::vessel_table::VesselTable;
+use burbomath::math::{Rect, Size};
 use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::trade::{ItemRecord, ItemTradeTable, OfferRef};
 use dudes_in_space_api::utils::color::Color;
-use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 
 pub(crate) struct TradeTableRenderModel {}

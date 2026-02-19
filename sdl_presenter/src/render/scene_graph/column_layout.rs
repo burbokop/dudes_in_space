@@ -1,6 +1,6 @@
 use crate::render::scene_graph::GraphicsNode;
 use crate::render::{Distance, Margins, Pix, Renderer, OLD_DEFAULT_MARGIN};
-use dudes_in_space_api::utils::math::{Rect, Size};
+use burbomath::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 
 pub struct ColumnLayout<'a, T: sdl2::render::RenderTarget> {

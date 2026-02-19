@@ -1,6 +1,6 @@
 use crate::person::PurchasedItemsMaxPrices;
-use crate::utils::math::NonNeg;
 use crate::utils::utils::Float;
+use burbomath::math::NonNeg;
 use serde::{Deserialize, Serialize};
 use serde_intermediate::Intermediate;
 use std::collections::BTreeMap;

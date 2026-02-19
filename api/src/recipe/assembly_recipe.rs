@@ -2,7 +2,7 @@ use crate::item::ItemVault;
 use crate::module::{Module, ModuleCapability, ModuleTypeId};
 use crate::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dyn_serde::{DynDeserializeSeedVault, DynSerialize};
-use dyn_serde_macro::{DeserializeSeedXXX, dyn_serde_trait};
+use dyn_serde_macro::{dyn_serde_trait, DeserializeSeedXXX};
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt::Debug;

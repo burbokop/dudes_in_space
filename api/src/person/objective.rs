@@ -4,14 +4,14 @@ use crate::environment::{
 };
 use crate::finance::{Bank, BankRegistry, CurrencyGenerator};
 use crate::module::ModuleConsole;
-use crate::person::ThisPerson;
 use crate::person::logger::PersonLogger;
+use crate::person::ThisPerson;
 use crate::utils::request::ReqContext;
 use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use rand::prelude::SliceRandom;
-use rand::{Rng, rng};
+use rand::{rng, Rng};
 use std::error::Error;
 use std::fmt::{Debug, Display};
 
