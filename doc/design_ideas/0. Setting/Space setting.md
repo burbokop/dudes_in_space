@@ -1,0 +1,5 @@
+# Space Setting
+
+Events take place in one star system. Interstellar travel (Or any FTL travel) is not possible due to relativity theory constraints.
+Objects move through space by the rules of Newtonian mechanics. This means that object that is not accelerating, will go by its trajectory indefinetly (Or as far as game can calculate, meaning indefinetly from player's subjective experiance). This includes all projectiles and debris. All weapons and ship equipment must agree with real 21 century technology level. The differance can manifest only in numerical values (For example liquid fuel engines can have higher ISP compared to real ones but not to the point when the "vibe" of flying a ship is much different from as in real life. You can not have one-staged ships like in Star treck).
+For development simplification game may avoid curved space time like in real world. Instead all events may take place in small regeon of space like in orbit of spcific body. There is planty of space in space anyway.

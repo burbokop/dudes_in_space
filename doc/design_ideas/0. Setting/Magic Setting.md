@@ -1,0 +1,3 @@
+# Magic Setting
+
+Everything as in "Space setting" but there is also a magic. The magic is not common though, and mostly NPC use conventional technology with conventional NASA vibe. But sometimes player can encounter some magic factions or NPCs. The magic works by comunicating with spirits and gods, that grant the user magic abilities for limited time. Magic rituals usually require some sacrifice, special skills or special bond with specific spirit, that is ussualy aquired in some plot missions. The magic may allow FTL, but since the magic itself is not wery common, so the FTL. 
