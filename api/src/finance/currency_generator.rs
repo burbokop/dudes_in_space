@@ -1,7 +1,7 @@
 use crate::finance::BankRegistry;
 use crate::person::ThisPerson;
-use rand::seq::IndexedRandom;
 use rand::Rng;
+use rand::seq::IndexedRandom;
 use std::collections::BTreeSet;
 
 static NAMES: &[&str] = &[

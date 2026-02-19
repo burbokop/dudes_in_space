@@ -1,9 +1,12 @@
+use burbomath::math::Size;
 use burbomath::{math::NonNeg, range::Range};
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use std::{
-    error::Error, fmt::{Debug, Display}, ops::RangeBounds, time::Duration
+    error::Error,
+    fmt::{Debug, Display},
+    ops::RangeBounds,
+    time::Duration,
 };
-use burbomath::math::Size;
 
 pub type Float = f64;
 
@@ -37,7 +40,6 @@ impl AsFloat for Size<u32> {
         todo!()
     }
 }
-
 
 pub(crate) fn normalize<const SIZE: usize>(v: [Float; SIZE]) -> [Float; SIZE] {
     let max = v.iter().cloned().reduce(Float::max).unwrap();

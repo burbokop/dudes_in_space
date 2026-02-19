@@ -10,11 +10,11 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::utils::request::ReqContext;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
-    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
-use serde_intermediate::{to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -128,6 +128,7 @@ impl Objective for TradeFromScratchObjective {
                         }
                     })? {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
+                    ObjectiveStatus::Passive => todo!(),
                     ObjectiveStatus::Done(_) => {
                         logger.info("ExecuteTrade");
                         *self = TradeFromScratchObjective::ExecuteTrade {

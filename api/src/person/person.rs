@@ -15,9 +15,9 @@ use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::VesselInternalConsole;
 use dyn_serde::{DynDeserializeSeedVault, TypeId};
 use dyn_serde_macro::DeserializeSeedXXX;
+use rand::Rng;
 use rand::distr::StandardUniform;
 use rand::prelude::{Distribution, IndexedRandom, IteratorRandom};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::cell::Ref;
 use std::collections::BTreeSet;
@@ -209,6 +209,19 @@ impl Distribution<Gender> for StandardUniform {
 
 pub type PersonId = NonNilUuid;
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum PersonState {
+    Active,
+    Passive,
+}
+
+// TODO: remove
+impl Default for PersonState {
+    fn default() -> Self {
+        Self::Active
+    }
+}
+
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::person::PersonSeed::<'v, 'a, 'b>)]
 pub struct Person {
@@ -229,6 +242,8 @@ pub struct Person {
     finance: PersonalFinancePackage,
     #[serde(default)]
     personal_notes: PersonalNotes,
+    #[serde(default)]
+    state: PersonState,
 }
 
 #[derive(Clone)]
@@ -273,6 +288,7 @@ impl Person {
             boss: None,
             finance: Default::default(),
             personal_notes: Default::default(),
+            state: PersonState::Passive,
         }
     }
 
@@ -292,6 +308,10 @@ impl Person {
 
     pub fn bank<'a>(&'a self) -> Option<Ref<'a, Bank>> {
         self.finance.bank()
+    }
+
+    pub fn state(&self) -> PersonState {
+        self.state
     }
 
     pub fn objective_type_id(&self) -> Option<TypeId> {
@@ -325,6 +345,7 @@ impl Person {
             boss: None,
             finance: Default::default(),
             personal_notes: Default::default(),
+            state: PersonState::Passive,
         }
     }
 
@@ -351,7 +372,10 @@ impl Person {
         let mut logger = PersonLogger::new(&self.id, &self.name, logger);
 
         match &mut self.objective {
-            None => self.objective = decider_vault.decide(rng, &info, &mut logger),
+            None => {
+                self.objective = decider_vault.decide(rng, &info, &mut logger);
+                self.state = PersonState::Active
+            }
             Some(objective) => {
                 info.notes.purchased_items_max_prices_mut().proceed();
                 match objective.pursue_dyn(
@@ -361,11 +385,16 @@ impl Person {
                     environment_context,
                     &mut logger,
                 ) {
-                    Ok(ObjectiveStatus::InProgress) => {}
-                    Ok(ObjectiveStatus::Done(_)) => self.objective = None,
+                    Ok(ObjectiveStatus::InProgress) => self.state = PersonState::Active,
+                    Ok(ObjectiveStatus::Passive) => self.state = PersonState::Passive,
+                    Ok(ObjectiveStatus::Done(_)) => {
+                        self.objective = None;
+                        self.state = PersonState::Active
+                    }
                     Err(err) => {
                         logger.err(format!("{} failed: {}", objective.type_id(), err));
-                        self.objective = None
+                        self.objective = None;
+                        self.state = PersonState::Active
                     }
                 }
             }

@@ -1,9 +1,9 @@
+use crate::AppPaths;
 use crate::editor::{Editor, EditorPreset, EditorState};
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::utils::{save, save_logger};
 use crate::vessel_table::VesselTable;
-use crate::AppPaths;
 use burbomath::camera::Camera;
 use burbomath::math::Point;
 use dudes_in_space_api::environment::Environment;

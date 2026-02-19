@@ -6,7 +6,7 @@ use dudes_in_space_api::environment::{
 use dudes_in_space_api::finance::WithdrawalError;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ProcessTokenExpiredError};
 use dudes_in_space_api::person;
-use dudes_in_space_api::person::{tie, Objective, ObjectiveStatus, PersonLogger, ThisPerson};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::trade::WeakBuyCustomVesselOrder;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;

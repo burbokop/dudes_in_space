@@ -168,6 +168,7 @@ impl Objective for CraftItemsByHashObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => match process_token {
                     None => {
                         if *interrupted {

@@ -4,7 +4,7 @@ use crate::render::scene_graph::{
     ColumnLayout, ExtColumnLayout, ExtColumnLayoutOptions, ExtRowLayout, ExtRowLayoutOptions,
     GraphicsNode, Text,
 };
-use crate::render::{Alignment, Pix, RenderError, Renderer, OLD_DEFAULT_MARGIN};
+use crate::render::{Alignment, OLD_DEFAULT_MARGIN, Pix, RenderError, Renderer};
 use burbomath::math::{Point, Rect, Size};
 use dudes_in_space_api::person::Person;
 use dudes_in_space_api::utils::color::Color;
@@ -12,6 +12,7 @@ use dudes_in_space_api::utils::utils::Float;
 use std::convert::Into;
 use std::ops::Deref;
 use std::sync::LazyLock;
+use std::time::Instant;
 
 struct DrawLittleMan {
     points: &'static [Point<Float>],
@@ -129,11 +130,12 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
 
 struct DrawHeader<'a> {
     person: &'a Person,
+    color: Color,
 }
 
 impl<'a> DrawHeader<'a> {
-    fn new(person: &'a Person) -> Self {
-        Self { person }
+    fn new(person: &'a Person, color: Color) -> Self {
+        Self { person, color }
     }
 }
 
@@ -145,7 +147,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawHeader<'a> {
     fn draw(&self, renderer: &mut Renderer<T>, bounding_box: Rect<Float>) {
         ColumnLayout::new(vec![
             Box::new(Text {
-                color: Color::from_uuid(self.person.id()),
+                color: self.color.clone(),
                 alignment: Alignment::left(),
                 text: if let Some(boss) = self.person.boss() {
                     format!("{} (B: {})", self.person.name(), boss)
@@ -155,7 +157,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawHeader<'a> {
                 font_height: None,
             }),
             Box::new(Text {
-                color: Color::from_uuid(self.person.id()),
+                color: self.color.clone(),
                 alignment: Alignment::left(),
                 text: format!("{}", self.person.id()),
                 font_height: None,
@@ -199,11 +201,15 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawFooter<'a> {
     }
 }
 
-pub struct PersonRenderModel {}
+pub struct PersonRenderModel {
+    start_instant: Instant,
+}
 
 impl PersonRenderModel {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            start_instant: Instant::now(),
+        }
     }
 
     pub fn render<T: sdl2::render::RenderTarget>(
@@ -214,12 +220,16 @@ impl PersonRenderModel {
         logger: &MemLogger,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
-        let person_color = Color::from_uuid(person.id());
+        let person_color = match person.state() {
+            dudes_in_space_api::person::PersonState::Active => Color::from_uuid(person.id())
+                .with_saturation(self.start_instant.elapsed().as_secs_f64().rem_euclid(1.)),
+            dudes_in_space_api::person::PersonState::Passive => Color::from_uuid(person.id()),
+        };
         if bounding_box.w() > bounding_box.h() {
             let row = ExtRowLayout::new(vec![
                 (
                     ExtRowLayoutOptions::preserve_aspect_ratio(),
-                    Box::new(DrawLittleMan::new(person_color)),
+                    Box::new(DrawLittleMan::new(person_color.clone())),
                 ),
                 (
                     Default::default(),
@@ -235,7 +245,7 @@ impl PersonRenderModel {
                 vec![
                     (
                         ExtColumnLayoutOptions::fill_height(),
-                        Box::new(DrawHeader::new(person)),
+                        Box::new(DrawHeader::new(person, person_color.clone())),
                     ),
                     (
                         ExtColumnLayoutOptions::fill_height(), /*ExtColumnLayoutOptions::relative_height(0.5)*/
@@ -253,7 +263,10 @@ impl PersonRenderModel {
             let column = ExtColumnLayout::new(
                 Pix(0.).into(),
                 vec![
-                    (Default::default(), Box::new(DrawHeader::new(person))),
+                    (
+                        Default::default(),
+                        Box::new(DrawHeader::new(person, person_color.clone())),
+                    ),
                     (
                         ExtColumnLayoutOptions::fill_height(),
                         // ExtColumnLayoutOptions::relative_height(0.2),

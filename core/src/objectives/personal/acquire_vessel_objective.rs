@@ -112,6 +112,7 @@ impl Objective for AcquireVesselObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => Ok(ObjectiveStatus::Done(())),
                 Err(err) => Err(AcquireVesselObjectiveError::CanNotCraftCanNotBuy {
                     craft_error: craft_error.clone(),
@@ -131,6 +132,7 @@ impl Objective for AcquireVesselObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => Ok(ObjectiveStatus::Done(())),
                 Err(err) => {
                     *self = Self::BuyVessel {

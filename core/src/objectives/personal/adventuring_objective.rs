@@ -12,11 +12,11 @@ use dudes_in_space_api::person::{
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
-    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
-use serde_intermediate::{to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -171,6 +171,7 @@ impl Objective for AdventuringObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => todo!(),
                 Err(err) => Err(Self::Error::FailedToAcquireVessel(err)),
             },
@@ -182,6 +183,7 @@ impl Objective for AdventuringObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => todo!(),
                 Err(err) => todo!(),
             },

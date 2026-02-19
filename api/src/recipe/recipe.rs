@@ -1,7 +1,7 @@
 use crate::finance::{BankRegistry, Money};
 use crate::item::{DuplicateItemError, Item, ItemCount, ItemId, ItemRefStack, ItemStorage};
 use serde::{Deserialize, Serialize};
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{BTreeMap, btree_map};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::hash::{DefaultHasher, Hash, Hasher};

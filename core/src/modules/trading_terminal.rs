@@ -25,13 +25,13 @@ use dudes_in_space_api::trade::{
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselId, VesselModuleInterface};
 use dyn_serde::{
-    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
-    VecSeed,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, VecSeed,
+    from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use rand::rng;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_intermediate::{from_intermediate, to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, from_intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::Debug;

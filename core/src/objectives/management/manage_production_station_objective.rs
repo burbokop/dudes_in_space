@@ -23,8 +23,8 @@ use dudes_in_space_api::finance::{
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
 use dudes_in_space_api::module::{AdminTradingConsole, ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
-    tie, DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger,
-    ThisPerson,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
+    tie,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::trade::OfferId;
@@ -32,11 +32,11 @@ use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, R
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
-    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_intermediate::{to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -437,6 +437,7 @@ impl Objective for ManageProductionStationObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("Checking all prerequisites to managing production station...");
 
@@ -501,10 +502,11 @@ impl Objective for ManageProductionStationObjective {
                 logger,
             ) {
                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
                 Ok(ObjectiveStatus::Done(_)) => {
                     logger.info("collect all available recipes to managing production station...");
                     self.state = State::Idle;
-                    Ok(ObjectiveStatus::InProgress)
+                    Ok(ObjectiveStatus::Passive)
                 }
                 Err(err) => Err(Self::Error::CraftingFabricatorError(err)),
             },
@@ -531,6 +533,8 @@ impl Objective for ManageProductionStationObjective {
                                 logger,
                             ) {
                                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                                Ok(ObjectiveStatus::Passive) => todo!(),
+
                                 Ok(ObjectiveStatus::Done(_)) => {
                                     let this_vessel = tie(this_module, this_vessel);
 
@@ -667,6 +671,8 @@ impl Objective for ManageProductionStationObjective {
                             Ok(ObjectiveStatus::InProgress)
                         }
                     }
+                    Ok(ObjectiveStatus::Passive) => todo!(),
+
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule) => {
                         logger.info("ManageProductionStationObjective::RequireModules");
@@ -686,7 +692,7 @@ impl Objective for ManageProductionStationObjective {
                     }
                     Err(CraftItemsByHashObjectiveError::LackIngredients) => {
                         self.state = State::Idle;
-                        Ok(ObjectiveStatus::InProgress)
+                        Ok(ObjectiveStatus::Passive)
                     }
                 }
             }
@@ -712,6 +718,7 @@ impl Objective for ManageProductionStationObjective {
                                 logger,
                             ) {
                                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                                Ok(ObjectiveStatus::Passive) => todo!(),
                                 Ok(ObjectiveStatus::Done(_)) => {
                                     let this_vessel = tie(this_module, this_vessel);
 
@@ -774,6 +781,8 @@ impl Objective for ManageProductionStationObjective {
                             Ok(ObjectiveStatus::InProgress)
                         }
                     }
+                    Ok(ObjectiveStatus::Passive) => todo!(),
+
                     Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(OutputItemsByHashObjectiveError::CanNotFindCraftingModule) => todo!(),
                 }

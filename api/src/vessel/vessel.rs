@@ -54,11 +54,7 @@ impl VesselIdPath {
 
     pub fn is_parent(&self, id: &VesselId) -> bool {
         let l = self.0.len();
-        if l > 1 {
-            (&self.0[l - 2]) == id
-        } else {
-            false
-        }
+        if l > 1 { (&self.0[l - 2]) == id } else { false }
     }
 }
 

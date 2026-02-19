@@ -1,5 +1,5 @@
-use crate::finance::bank_registry::BankRegistry;
 use crate::finance::TargetBankDidNotCreateAnyMoneyError;
+use crate::finance::bank_registry::BankRegistry;
 use crate::utils::utils::Float;
 use burbomath::math::{NegError, NonNeg, Positive, Zero};
 use serde::{Deserialize, Serialize};
@@ -127,11 +127,7 @@ impl Money {
 
     pub fn max(self, bank_registry: &BankRegistry, other: Money) -> Money {
         let ord = self.cmp(bank_registry, &other);
-        if ord == Ordering::Less {
-            other
-        } else {
-            self
-        }
+        if ord == Ordering::Less { other } else { self }
     }
 
     pub fn min_same_currency(self, other: Money) -> Result<Self, DifferentCurrenciesError> {
@@ -361,11 +357,7 @@ impl PossiblyNegativeMoney {
 
     pub fn max(self, bank_registry: &BankRegistry, other: Self) -> Self {
         let ord = self.cmp(bank_registry, &other);
-        if ord == Ordering::Less {
-            other
-        } else {
-            self
-        }
+        if ord == Ordering::Less { other } else { self }
     }
 
     pub fn min_same_currency(self, other: Self) -> Result<Self, DifferentCurrenciesError> {
@@ -643,8 +635,8 @@ impl Error for DifferentCurrenciesError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::finance::tests::create_bank;
     use crate::finance::WalletRegistry;
+    use crate::finance::tests::create_bank;
 
     #[test]
     fn convert_to_currency_test() {
@@ -694,14 +686,18 @@ mod tests {
             .convert_to_currency(&bank_registry, "GBP".to_string())
             .unwrap();
 
-        assert!(test_money_gbp
-            .cmp_same_currency(&intermediate_test_money_gbp)
-            .unwrap()
-            .is_eq());
-        assert!(test_money_gbp
-            .cmp_same_currency(&final_test_money_gbp)
-            .unwrap()
-            .is_eq());
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&intermediate_test_money_gbp)
+                .unwrap()
+                .is_eq()
+        );
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&final_test_money_gbp)
+                .unwrap()
+                .is_eq()
+        );
     }
 
     #[test]
@@ -752,13 +748,17 @@ mod tests {
             .convert_to_currency(&bank_registry, "GBP".to_string())
             .unwrap();
 
-        assert!(test_money_gbp
-            .cmp_same_currency(&intermediate_test_money_gbp)
-            .unwrap()
-            .is_eq());
-        assert!(test_money_gbp
-            .cmp_same_currency(&final_test_money_gbp)
-            .unwrap()
-            .is_eq());
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&intermediate_test_money_gbp)
+                .unwrap()
+                .is_eq()
+        );
+        assert!(
+            test_money_gbp
+                .cmp_same_currency(&final_test_money_gbp)
+                .unwrap()
+                .is_eq()
+        );
     }
 }

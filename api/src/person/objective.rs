@@ -4,20 +4,23 @@ use crate::environment::{
 };
 use crate::finance::{Bank, BankRegistry, CurrencyGenerator};
 use crate::module::ModuleConsole;
-use crate::person::logger::PersonLogger;
 use crate::person::ThisPerson;
+use crate::person::logger::PersonLogger;
 use crate::utils::request::ReqContext;
 use crate::vessel::VesselInternalConsole;
 use dyn_serde::DynSerialize;
 use dyn_serde_macro::dyn_serde_trait;
 use rand::prelude::SliceRandom;
-use rand::{rng, Rng};
+use rand::{Rng, rng};
 use std::error::Error;
 use std::fmt::{Debug, Display};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ObjectiveStatus<R> {
+    /// Doing something
     InProgress,
+    /// Waiting for some condition to be met
+    Passive,
     // TODO: add Interrupted status
     Done(R),
 }
@@ -120,6 +123,7 @@ impl<T: Objective + Debug + Display + DynSerialize> DynObjective for T {
             logger,
         ) {
             Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+            Ok(ObjectiveStatus::Passive) => Ok(ObjectiveStatus::Passive),
             Ok(ObjectiveStatus::Done(_)) => Ok(ObjectiveStatus::Done(())),
             Err(err) => Err(Box::new(err)),
         }

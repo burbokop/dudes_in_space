@@ -5,7 +5,7 @@ use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Color {
     pub a: Float,
     pub r: Float,
@@ -152,6 +152,53 @@ impl Color {
         }
     }
 
+    /// Returns (a, h, s, v) all in range from 0 to 1
+    fn into_hsv(self) -> (Float, Float, Float, Float) {
+        let max = [self.r, self.g, self.b]
+            .into_iter()
+            .max_by(|a, b| a.partial_cmp(&b).unwrap())
+            .unwrap();
+        let min = [self.r, self.g, self.b]
+            .into_iter()
+            .min_by(|a, b| a.partial_cmp(&b).unwrap())
+            .unwrap();
+
+        let v = max;
+        let c = max - min;
+        let l = (min + max) / 2.;
+
+        let h = if c == 0. {
+            0.
+        } else if v == self.r {
+            ((self.g - self.b) / c).rem_euclid(6.)
+        } else if v == self.g {
+            ((self.b - self.r) / c) + 2.
+        } else if v == self.b {
+            ((self.r - self.g) / c) + 4.
+        } else {
+            unreachable!()
+        } / 6.;
+
+        let s = if v == 0. { 0. } else { c / v };
+
+        (self.a, h, s, v)
+    }
+
+    pub fn with_hue(self, h: Float) -> Self {
+        let (a, _, s, v) = self.into_hsv();
+        Self::from_hsv(a, h, s, v)
+    }
+
+    pub fn with_saturation(self, s: Float) -> Self {
+        let (a, h, _, v) = self.into_hsv();
+        Self::from_hsv(a, h, s, v)
+    }
+
+    pub fn with_value(self, v: Float) -> Self {
+        let (a, h, s, _) = self.into_hsv();
+        Self::from_hsv(a, h, s, v)
+    }
+
     pub fn from_uuid(uuid: NonNilUuid) -> Self {
         let mut rng: Pcg64 = Seeder::from(uuid.get().as_bytes()).into_rng();
         Self {
@@ -159,6 +206,70 @@ impl Color {
             r: rng.random(),
             g: rng.random(),
             b: rng.random(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_abs_diff_eq;
+
+    use super::*;
+
+    impl approx::AbsDiffEq for Color {
+        type Epsilon = Float;
+
+        fn default_epsilon() -> Self::Epsilon {
+            0.000000000000001
+        }
+
+        fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+            self.a.abs_diff_eq(&other.a, epsilon)
+                && self.r.abs_diff_eq(&other.r, epsilon)
+                && self.g.abs_diff_eq(&other.g, epsilon)
+                && self.b.abs_diff_eq(&other.b, epsilon)
+        }
+    }
+
+    #[test]
+    fn hsv() {
+        {
+            let c = Color {
+                a: 0.1,
+                r: 0.2,
+                g: 0.3,
+                b: 0.4,
+            };
+
+            let (a, h, s, v) = c.clone().into_hsv();
+            let res = Color::from_hsv(a, h, s, v);
+            assert_abs_diff_eq!(c, res);
+        }
+
+        {
+            let c = Color {
+                a: 0.8887,
+                r: 0.1110,
+                g: 0.2020,
+                b: 0.9090,
+            };
+
+            let (a, h, s, v) = c.clone().into_hsv();
+            let res = Color::from_hsv(a, h, s, v);
+            assert_abs_diff_eq!(c, res);
+        }
+
+        {
+            let c = Color {
+                a: 0.8887,
+                r: 0.8765,
+                g: 0.9396,
+                b: 0.0001,
+            };
+
+            let (a, h, s, v) = c.clone().into_hsv();
+            let res = Color::from_hsv(a, h, s, v);
+            assert_abs_diff_eq!(c, res);
         }
     }
 }

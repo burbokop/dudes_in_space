@@ -212,6 +212,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingDockyard)?
                 {
                     ObjectiveStatus::InProgress => {}
+                    ObjectiveStatus::Passive => todo!(),
                     ObjectiveStatus::Done(result) => {
                         if let (Some(cost_price), Some(total_cost_price)) =
                             (result.cost_price, total_cost_price.as_mut())
@@ -254,6 +255,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::CraftingVesselModules)?
                 {
                     ObjectiveStatus::InProgress => {}
+                    ObjectiveStatus::Passive => todo!(),
                     ObjectiveStatus::Done(result) => {
                         if let (Some(cost_price), Some(total_cost_price)) =
                             (result.cost_price, total_cost_price.as_mut())
@@ -298,6 +300,7 @@ impl Objective for CraftVesselFromScratchObjective {
                     .map_err(CraftVesselFromScratchObjectiveError::BuildingVessel)?
                 {
                     ObjectiveStatus::InProgress => Ok(ObjectiveStatus::InProgress),
+                    ObjectiveStatus::Passive => todo!(),
                     ObjectiveStatus::Done(_) => {
                         logger.info("Done crafting a vessel from scratch.");
 

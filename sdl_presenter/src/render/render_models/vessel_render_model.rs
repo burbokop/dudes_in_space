@@ -4,8 +4,8 @@ use crate::person_table::PersonTable;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::{
-    Alignment, HorisontalAlignment, ModuleTextureContainerRef, RenderError, VerticalAlignment,
-    OLD_DEFAULT_MARGIN,
+    Alignment, HorisontalAlignment, ModuleTextureContainerRef, OLD_DEFAULT_MARGIN, RenderError,
+    VerticalAlignment,
 };
 use burbomath::math::{Rect, Vector};
 use dudes_in_space_api::utils::color::Color;

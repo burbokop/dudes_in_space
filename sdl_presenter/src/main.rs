@@ -5,11 +5,16 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![feature(const_convert)]
+#![feature(duration_millis_float)]
 
 use crate::editor::{Editor, EditorState};
 use crate::event_handler::{EventHandler, Screen};
 use crate::person_table::PersonTable;
-use crate::render::{Alignment,  EnvironmentRenderModel, FontProvider, HorisontalAlignment, ModuleTextureContainerBuilder, Renderer, TradeTableRenderModel, VerticalAlignment, OLD_DEFAULT_MARGIN};
+use crate::render::{
+    Alignment, EnvironmentRenderModel, FontProvider, HorisontalAlignment,
+    ModuleTextureContainerBuilder, OLD_DEFAULT_MARGIN, Renderer, TradeTableRenderModel,
+    VerticalAlignment,
+};
 use crate::utils::{load, load_camera, load_logger, save_camera};
 use crate::vessel_table::VesselTable;
 use burbomath::math::{Matrix, Rect};
