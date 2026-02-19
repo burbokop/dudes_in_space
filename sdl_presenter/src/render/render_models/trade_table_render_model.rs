@@ -29,60 +29,63 @@ impl<'a, T: sdl2::render::RenderTarget + 'a> DrawRecord<'a, T> {
     {
         Box::new(DrawRecord {
             visible: !record.buy_offers().is_empty() || !record.sell_offers().is_empty(),
-            content: ExtColumnLayout::boxed(Pix(0.).into() ,vec![
-                (
-                    ExtColumnLayoutOptions::relative_height(0.2),
-                    Box::new(Text {
-                        text: format!("{}:", item),
-                        color: Color::white(),
-                        alignment: Alignment::left_top(),
-                        font_height: Some(Pix(32.)),
-                    }) as Box<dyn GraphicsNode<_>>,
-                ),
-                (
-                    Default::default(),
-                    RowLayout::boxed(vec![
-                        ColumnLayout::boxed(
-                            record
-                                .buy_offers()
-                                .iter()
-                                .map(|offer| {
-                                    Box::new(Text {
-                                        text: format!(
-                                            "{} -> {}",
-                                            vessel_table.get(&offer.vessel_id).unwrap().name,
-                                            offer.offer
-                                        ),
-                                        color: offer_color(offer),
-                                        alignment: Alignment::left_top(),
-                                        font_height: Some(Pix(24.)),
+            content: ExtColumnLayout::boxed(
+                Pix(0.).into(),
+                vec![
+                    (
+                        ExtColumnLayoutOptions::relative_height(0.2),
+                        Box::new(Text {
+                            text: format!("{}:", item),
+                            color: Color::white(),
+                            alignment: Alignment::left_top(),
+                            font_height: Some(Pix(32.)),
+                        }) as Box<dyn GraphicsNode<_>>,
+                    ),
+                    (
+                        Default::default(),
+                        RowLayout::boxed(vec![
+                            ColumnLayout::boxed(
+                                record
+                                    .buy_offers()
+                                    .iter()
+                                    .map(|offer| {
+                                        Box::new(Text {
+                                            text: format!(
+                                                "{} -> {}",
+                                                vessel_table.get(&offer.vessel_id).unwrap().name,
+                                                offer.offer
+                                            ),
+                                            color: offer_color(offer),
+                                            alignment: Alignment::left_top(),
+                                            font_height: Some(Pix(24.)),
+                                        })
+                                            as Box<dyn GraphicsNode<_>>
                                     })
-                                        as Box<dyn GraphicsNode<_>>
-                                })
-                                .collect(),
-                        ),
-                        ColumnLayout::boxed(
-                            record
-                                .sell_offers()
-                                .iter()
-                                .map(|offer| {
-                                    Box::new(Text {
-                                        text: format!(
-                                            "{} -> {}",
-                                            vessel_table.get(&offer.vessel_id).unwrap().name,
-                                            offer.offer
-                                        ),
-                                        color: offer_color(offer),
-                                        alignment: Alignment::left_top(),
-                                        font_height: Some(Pix(24.)),
+                                    .collect(),
+                            ),
+                            ColumnLayout::boxed(
+                                record
+                                    .sell_offers()
+                                    .iter()
+                                    .map(|offer| {
+                                        Box::new(Text {
+                                            text: format!(
+                                                "{} -> {}",
+                                                vessel_table.get(&offer.vessel_id).unwrap().name,
+                                                offer.offer
+                                            ),
+                                            color: offer_color(offer),
+                                            alignment: Alignment::left_top(),
+                                            font_height: Some(Pix(24.)),
+                                        })
+                                            as Box<dyn GraphicsNode<_>>
                                     })
-                                        as Box<dyn GraphicsNode<_>>
-                                })
-                                .collect(),
-                        ),
-                    ]),
-                ),
-            ]),
+                                    .collect(),
+                            ),
+                        ]),
+                    ),
+                ],
+            ),
         })
     }
 }
@@ -144,7 +147,8 @@ impl TradeTableRenderModel {
         Flickable::new(
             FlickableDirection::Vertical,
             (0., offset).into(),
-            ExtColumnLayout::boxed(Pix(0.).into(),
+            ExtColumnLayout::boxed(
+                Pix(0.).into(),
                 trade_table
                     .iter()
                     .map(|(item, record)| {

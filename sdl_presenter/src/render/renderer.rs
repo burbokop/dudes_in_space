@@ -1,6 +1,6 @@
 use crate::render::spritesheet::Spritesheet;
 use crate::render::{
-    FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
+    color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect, FontProvider,
 };
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::math::{Matrix, Point, Rect, Size};

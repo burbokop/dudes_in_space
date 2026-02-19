@@ -112,6 +112,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
 
 [[package]]
+name = "burbomath"
+version = "0.0.1"
+source = "git+https://github.com/burbokop/burbomath.git#9067a1824d2820b698348663557d38120ba16890"
+dependencies = [
+ "rand",
+ "serde",
+]
+
+[[package]]
 name = "c_vec"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -381,6 +390,7 @@ name = "dudes_in_space_api"
 version = "0.0.1"
 dependencies = [
  "approx",
+ "burbomath",
  "dyn_serde",
  "dyn_serde_macro",
  "rand",

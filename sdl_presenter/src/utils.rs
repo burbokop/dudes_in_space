@@ -6,8 +6,8 @@ use dudes_in_space_core::components::Components;
 use dudes_in_space_core::env_presets;
 use dyn_serde::DynDeserializeSeedVault;
 use rand::rng;
-use serde::Serialize;
 use serde::de::DeserializeSeed;
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 fn env_from_json(

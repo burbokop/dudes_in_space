@@ -1,5 +1,5 @@
 use crate::render::scene_graph::GraphicsNode;
-use crate::render::{Distance, Margins, Renderer, Pix, OLD_DEFAULT_MARGIN};
+use crate::render::{Distance, Margins, Pix, Renderer, OLD_DEFAULT_MARGIN};
 use dudes_in_space_api::utils::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 
@@ -317,10 +317,8 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for ExtColumnLayout<'a, 
 fn implicit_size_with_margins(implicit_size: Size<Float>, margins: &Margins) -> Size<Float> {
     let (w, h) = implicit_size.into();
     (
-        w + margins.left.to_pix(Pix(w)).value()
-            + margins.right.to_pix(Pix(w)).value(),
-        h + margins.top.to_pix(Pix(h)).value()
-            + margins.bottom.to_pix(Pix(h)).value(),
+        w + margins.left.to_pix(Pix(w)).value() + margins.right.to_pix(Pix(w)).value(),
+        h + margins.top.to_pix(Pix(h)).value() + margins.bottom.to_pix(Pix(h)).value(),
     )
         .into()
 }

@@ -13,6 +13,7 @@ dyn_serde_macro = { path = "../dyn_serde_macro"}
 uuid = { version =  "1.17.0", features = ["serde", "v4"] }
 rand_seeder = "0.4.0"
 rand_pcg = "0.9.0"
+burbomath = { git = "https://github.com/burbokop/burbomath.git" }
 
 [dev-dependencies]
 approx = "0.5.1"
