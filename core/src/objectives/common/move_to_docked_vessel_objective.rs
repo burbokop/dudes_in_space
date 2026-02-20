@@ -2,7 +2,7 @@ use crate::objectives::common::move_to_module_objective::MoveToModuleObjective;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::module::ModuleConsole;
 use dudes_in_space_api::person;
-use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
+use dudes_in_space_api::person::{tie, Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
 use serde::{Deserialize, Serialize};
 use std::error::Error;

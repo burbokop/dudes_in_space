@@ -1,5 +1,5 @@
 use crate::render::scene_graph::GraphicsNode;
-use crate::render::{Distance, Margins, OLD_DEFAULT_MARGIN, Pix, Renderer};
+use crate::render::{Distance, Margins, Pix, Renderer, OLD_DEFAULT_MARGIN};
 use burbomath::math::{Rect, Size};
 use dudes_in_space_api::utils::utils::Float;
 
