@@ -414,9 +414,21 @@ impl Module for Fabricator {
                         recipe_index,
                         process_token,
                     } => {
+                        println!("crafting recipe: {:?}", RECIPES[*recipe_index]);
+                        println!(
+                            "before crafting: i: {:?}, o: {:?}",
+                            self.input_storage, self.output_storage
+                        );
+
                         RECIPES[*recipe_index]
                             .craft(&mut self.input_storage, &mut self.output_storage)
                             .unwrap();
+
+                        println!(
+                            "after crafting: i: {:?}, o: {:?}",
+                            self.input_storage, self.output_storage
+                        );
+
                         self.state = FabricatorState::Idle;
                     }
                 },

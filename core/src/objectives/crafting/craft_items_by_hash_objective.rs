@@ -3,7 +3,7 @@ use dudes_in_space_api::environment::{Cycle, EnvironmentContext};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemStorageContent, StorageRole};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId, ProcessToken};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
-use dudes_in_space_api::recipe::{ItemRecipe, ItemRecipeHash};
+use dudes_in_space_api::recipe::{ItemRecipe, ItemRecipeHash, OutputItemRecipe};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::BTreeMap;
@@ -36,7 +36,9 @@ enum State {
     Crafting {
         move_objective: MoveToModuleObjective,
         process_token: Option<ProcessToken>,
+        expected_output: OutputItemRecipe,
         interrupted: bool,
+        reached_output_limit: bool,
     },
     Done,
 }
@@ -78,8 +80,8 @@ impl CraftItemsByHashObjective {
         }
     }
 
-    fn is_recipe_set_suitable(recipes: &[ItemRecipe], hash: ItemRecipeHash) -> bool {
-        recipes.iter().find(|r| r.hash() == hash).is_some()
+    fn find_recipe(recipes: &[ItemRecipe], hash: ItemRecipeHash) -> Option<&ItemRecipe> {
+        recipes.iter().find(|r| r.hash() == hash)
     }
 
     pub(crate) fn args(&self) -> &CraftItemsByHashObjectiveArgs {
@@ -120,7 +122,9 @@ impl Objective for CraftItemsByHashObjective {
         match &mut self.state {
             State::SearchingForCraftingModule => {
                 if let Some(console) = this_module.crafting_console() {
-                    if Self::is_recipe_set_suitable(console.item_recipes(), self.args.recipe_hash) {
+                    if let Some(recipe) =
+                        Self::find_recipe(console.item_recipes(), self.args.recipe_hash)
+                    {
                         logger.info("Moving to crafting module...");
 
                         self.crafting_module = Some(this_module.id());
@@ -128,6 +132,8 @@ impl Objective for CraftItemsByHashObjective {
                             move_objective: MoveToModuleObjective::new(this_module.id()),
                             interrupted: self.args.start_interrupted,
                             process_token: None,
+                            reached_output_limit: false,
+                            expected_output: recipe.output.clone(),
                         };
 
                         return Ok(ObjectiveStatus::InProgress);
@@ -137,10 +143,9 @@ impl Objective for CraftItemsByHashObjective {
                 for crafting_module in
                     this_vessel.modules_with_capability(ModuleCapability::ItemCrafting)
                 {
-                    if Self::is_recipe_set_suitable(
-                        crafting_module.item_recipes(),
-                        self.args.recipe_hash,
-                    ) && crafting_module.free_person_slots_count() > 0
+                    if let Some(recipe) =
+                        Self::find_recipe(crafting_module.item_recipes(), self.args.recipe_hash)
+                        && crafting_module.free_person_slots_count() > 0
                     {
                         logger.info("Moving to crafting module...");
 
@@ -149,6 +154,8 @@ impl Objective for CraftItemsByHashObjective {
                             move_objective: MoveToModuleObjective::new(crafting_module.id()),
                             interrupted: self.args.start_interrupted,
                             process_token: None,
+                            reached_output_limit: false,
+                            expected_output: recipe.output.clone(),
                         };
 
                         return Ok(ObjectiveStatus::InProgress);
@@ -160,6 +167,8 @@ impl Objective for CraftItemsByHashObjective {
                 move_objective,
                 process_token,
                 interrupted,
+                expected_output,
+                reached_output_limit,
             } => match move_objective.pursue(
                 this_person,
                 this_module,
@@ -183,13 +192,15 @@ impl Objective for CraftItemsByHashObjective {
                             .sum();
 
                         if limit_reached(&all_output_storages_content, &self.args.output_limit) {
+                            *reached_output_limit = true;
                             return Ok(if self.args.done_if_reached_limit {
                                 self.crafting_module = None;
                                 ObjectiveStatus::Done(self.state = State::Done)
                             } else {
-                                ObjectiveStatus::InProgress
+                                ObjectiveStatus::Passive
                             });
                         }
+                        *reached_output_limit = false;
 
                         let crafting_console = this_module.crafting_console_mut().unwrap();
                         let recipe_index = crafting_console
@@ -201,14 +212,14 @@ impl Objective for CraftItemsByHashObjective {
                         } else {
                             return match self.args.behaviour_if_lack_ingredients {
                                 BehaviourIfLackIngredients::WaitIndefinitely => {
-                                    Ok(ObjectiveStatus::InProgress)
+                                    Ok(ObjectiveStatus::Passive)
                                 }
                                 BehaviourIfLackIngredients::WaitFor { cycles } => {
                                     self.cycles_without_ingredients += 1;
                                     if self.cycles_without_ingredients > cycles {
                                         Err(CraftItemsByHashObjectiveError::LackIngredients)
                                     } else {
-                                        Ok(ObjectiveStatus::InProgress)
+                                        Ok(ObjectiveStatus::Passive)
                                     }
                                 }
                                 BehaviourIfLackIngredients::Error => {
@@ -275,21 +286,40 @@ impl Display for CraftItemsByHashObjective {
         let c = self.cycles_without_ingredients;
         match &self.state {
             State::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),
-            State::Crafting { interrupted, .. } => {
+            State::Crafting {
+                interrupted,
+                process_token,
+                expected_output,
+                reached_output_limit,
+                ..
+            } => {
                 if *interrupted {
                     write!(f, "Crafting (interrupted)")
                 } else if c > 0 {
                     match self.args.behaviour_if_lack_ingredients {
                         BehaviourIfLackIngredients::WaitIndefinitely => {
-                            write!(f, "Crafting {} / indefinitely", c)
+                            write!(
+                                f,
+                                "Crafting {}. lack ingredients. cycles to interrupt: {} / indefinitely",
+                                expected_output, c
+                            )
                         }
                         BehaviourIfLackIngredients::WaitFor { cycles } => {
-                            write!(f, "Crafting {} / {}", c, cycles)
+                            write!(
+                                f,
+                                "Crafting {}. lack ingredients. cycles to interrupt: {} / {}",
+                                expected_output, c, cycles
+                            )
                         }
                         BehaviourIfLackIngredients::Error => unreachable!(),
                     }
+                } else if *reached_output_limit {
+                    write!(f, "Crafting (Waiting for output storage to be free)")
                 } else {
-                    write!(f, "Crafting")
+                    match process_token {
+                        Some(process_token) => write!(f, "Crafting {{ pt: {:?} }}", process_token),
+                        None => write!(f, "Crafting (No token)"),
+                    }
                 }
             }
             State::Done => write!(f, "Done"),

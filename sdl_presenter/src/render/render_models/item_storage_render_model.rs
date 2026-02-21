@@ -1,6 +1,6 @@
 use crate::render::scene_graph::{GraphicsNode, GridLayout};
 use crate::render::{Alignment, RenderError, Renderer};
-use burbomath::math::Rect;
+use burbomath::Rect;
 use dudes_in_space_api::item::ItemStorage;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::Float;

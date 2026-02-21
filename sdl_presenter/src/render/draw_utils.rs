@@ -1,6 +1,6 @@
 use crate::render::font_provider::FontProvider;
 use crate::render::{color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect};
-use burbomath::math::{Point, Rect};
+use burbomath::{Point, Rect};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::Float;
 

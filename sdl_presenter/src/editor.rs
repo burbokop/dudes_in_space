@@ -1,4 +1,4 @@
-use burbomath::math::Point;
+use burbomath::Point;
 use burbomath::physics::M3;
 use dudes_in_space_api::environment::Environment;
 use dudes_in_space_api::item::{ItemStack, ItemStorage, ItemVault};

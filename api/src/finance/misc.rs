@@ -1,7 +1,7 @@
 use crate::finance::TargetBankDidNotCreateAnyMoneyError;
 use crate::finance::bank_registry::BankRegistry;
 use crate::utils::utils::Float;
-use burbomath::math::{NegError, NonNeg, Positive, Zero};
+use burbomath::{NegError, NonNeg, Positive, Zero};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::error::Error;

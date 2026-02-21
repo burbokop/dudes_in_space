@@ -1,4 +1,4 @@
-use burbomath::math::Zero;
+use burbomath::Zero;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::module::{
@@ -273,10 +273,10 @@ impl Error for CraftModulesByTypeIdObjectiveError {}
 
 impl Display for CraftModulesByTypeIdObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self.state {
+        match &self.state {
             State::SearchingForCraftingModule => write!(f, "SearchingForCraftingModule"),
             State::MovingToCraftingModule { .. } => write!(f, "MovingToCraftingModule"),
-            State::Crafting { .. } => write!(f, "Crafting"),
+            State::Crafting { process, .. } => write!(f, "Crafting {{ pt: {:?} }}", process),
             State::Done { .. } => write!(f, "Done"),
         }
     }

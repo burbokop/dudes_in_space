@@ -17,7 +17,7 @@ use crate::render::{
 };
 use crate::utils::{load, load_camera, load_logger, save_camera};
 use crate::vessel_table::VesselTable;
-use burbomath::math::{Matrix, Rect};
+use burbomath::{Matrix, Rect};
 use dudes_in_space_api::trade::ItemTradeTable;
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::{AsFloat as _, Float};

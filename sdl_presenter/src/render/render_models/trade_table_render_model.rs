@@ -5,7 +5,7 @@ use crate::render::scene_graph::{
 };
 use crate::render::{Alignment, Margins, Pix, Relative, RenderError, Renderer};
 use crate::vessel_table::VesselTable;
-use burbomath::math::{Rect, Size};
+use burbomath::{Rect, Size};
 use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::trade::{ItemRecord, ItemTradeTable, OfferRef};
 use dudes_in_space_api::utils::color::Color;

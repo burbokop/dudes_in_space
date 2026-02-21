@@ -1,5 +1,4 @@
-use burbomath::math::Size;
-use burbomath::{math::NonNeg, range::Range};
+use burbomath::{NonNeg, Size, range::Range};
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use std::{
     error::Error,
@@ -37,7 +36,8 @@ impl AsFloat for Size<u32> {
     type Output = Size<Float>;
 
     fn as_float(self) -> Self::Output {
-        todo!()
+        let (w, h) = self.into();
+        (w as Float, h as Float).into()
     }
 }
 

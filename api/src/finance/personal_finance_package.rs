@@ -1,5 +1,5 @@
 use crate::finance::{Bank, BankRegistry, Currency, MoneyAmount, Wallet, WalletRegistry};
-use burbomath::math::{NonNeg, Zero as _};
+use burbomath::{NonNeg, Zero as _};
 use serde::de::{DeserializeSeed, Error};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cell::{Ref, RefCell, RefMut};

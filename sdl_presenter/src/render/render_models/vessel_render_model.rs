@@ -7,7 +7,7 @@ use crate::render::{
     Alignment, HorisontalAlignment, ModuleTextureContainerRef, OLD_DEFAULT_MARGIN, RenderError,
     VerticalAlignment,
 };
-use burbomath::math::{Rect, Vector};
+use burbomath::{Rect, Vector};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{Vessel, VesselConsole};

@@ -12,7 +12,7 @@ pub type ItemWeight = Kg<u32>;
 pub type ItemVolume = M3<u32>;
 pub type ItemDensity = KgPerM3<u32>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Item {
     pub id: ItemId,
     pub volume: ItemVolume,

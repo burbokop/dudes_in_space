@@ -11,7 +11,7 @@ use crate::vessel::{
     DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole,
     VesselInternalConsole, VesselModuleInterface,
 };
-use burbomath::math::Point;
+use burbomath::Point;
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};

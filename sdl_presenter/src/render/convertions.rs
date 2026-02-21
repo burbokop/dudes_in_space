@@ -1,4 +1,4 @@
-use burbomath::math::{Point, Rect};
+use burbomath::{Point, Rect};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::Float;
 

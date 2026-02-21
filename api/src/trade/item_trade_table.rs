@@ -1,4 +1,4 @@
-use burbomath::math::NonNeg;
+use burbomath::NonNeg;
 use burbomath::range::{Range, RangeInclusive};
 
 use crate::finance::{BankRegistry, Money, MoneyAmount, WalletRegistry};

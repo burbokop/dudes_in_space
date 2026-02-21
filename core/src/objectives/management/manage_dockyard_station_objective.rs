@@ -3,8 +3,8 @@ use crate::objectives::crafting::{
     CraftModulesObjectiveError, CraftVesselFromScratchObjective, RequireModulesObjective,
 };
 use crate::objectives::trade::{PlaceBuyCustomVesselOfferObjective, PlaceSellOffersObjective};
-use burbomath::math::{map_into_range, NonNeg};
 use burbomath::range::RangeInclusive;
+use burbomath::{NonNeg, map_into_range};
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult, RequestStorage,
 };
@@ -12,18 +12,18 @@ use dudes_in_space_api::finance::{Currency, Money};
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemVolume};
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
 use dudes_in_space_api::person::{
-    tie, DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger,
-    ThisPerson, ThisVessel,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
+    ThisVessel, tie,
 };
 use dudes_in_space_api::trade::OrderId;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
-    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
-use serde_intermediate::{to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -351,9 +351,11 @@ impl Objective for ManageDockyardStationObjective {
                     Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                     Ok(ObjectiveStatus::Passive) => todo!(),
                     Ok(ObjectiveStatus::Done(_)) => {
-                        assert!(this_module
-                            .capabilities()
-                            .contains(&ModuleCapability::VesselSellingTerminal));
+                        assert!(
+                            this_module
+                                .capabilities()
+                                .contains(&ModuleCapability::VesselSellingTerminal)
+                        );
 
                         let console = this_module.trading_admin_console_mut().unwrap();
 

@@ -2,7 +2,7 @@ use crate::render::spritesheet::Spritesheet;
 use crate::render::{
     FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
 };
-use burbomath::math::{Matrix, Point, Rect, Size};
+use burbomath::{Matrix, Point, Rect, Size};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::Float;
 use sdl2::gfx::primitives::DrawRenderer;

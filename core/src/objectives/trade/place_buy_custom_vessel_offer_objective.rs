@@ -1,9 +1,9 @@
-use burbomath::math::NonNeg;
+use burbomath::NonNeg;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{Money, MoneyAmount};
 use dudes_in_space_api::item::ItemId;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleId};
-use dudes_in_space_api::person::{tie, Objective, ObjectiveStatus, PersonLogger, ThisPerson};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe};
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{MoveToModuleError, VesselInternalConsole};

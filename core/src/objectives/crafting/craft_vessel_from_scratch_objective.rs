@@ -2,7 +2,7 @@ use crate::objectives::crafting::{
     BuildVesselObjective, BuildVesselObjectiveError, CraftModulesObjective,
     CraftModulesObjectiveArgs, CraftModulesObjectiveError,
 };
-use burbomath::math::Zero;
+use burbomath::Zero;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole, ModuleStorage};

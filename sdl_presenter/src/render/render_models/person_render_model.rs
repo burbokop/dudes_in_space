@@ -5,8 +5,8 @@ use crate::render::scene_graph::{
     GraphicsNode, Text,
 };
 use crate::render::{Alignment, OLD_DEFAULT_MARGIN, Pix, RenderError, Renderer};
-use burbomath::math::{Point, Rect, Size};
-use dudes_in_space_api::person::Person;
+use burbomath::{Point, Rect, Size};
+use dudes_in_space_api::person::{Person, PersonState};
 use dudes_in_space_api::utils::color::Color;
 use dudes_in_space_api::utils::utils::Float;
 use std::convert::Into;
@@ -86,13 +86,15 @@ impl<T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLittleMan {
 struct DrawLog<'a> {
     log: &'a [LogPiece],
     lines_count_limit: usize,
+    color: Color,
 }
 
 impl<'a> DrawLog<'a> {
-    fn new(log: &'a [LogPiece], lines_count_limit: usize) -> Self {
+    fn new(log: &'a [LogPiece], lines_count_limit: usize, color: Color) -> Self {
         Self {
             log,
             lines_count_limit,
+            color,
         }
     }
 }
@@ -115,7 +117,7 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawLog<'a> {
                 .map(|x| format!("{}", x))
                 .collect::<Vec<_>>()
                 .join("\n"),
-            color: Color::black(),
+            color: self.color.clone(),
             alignment: Alignment::left(),
             font_height: None,
         }
@@ -220,11 +222,23 @@ impl PersonRenderModel {
         logger: &MemLogger,
         bounding_box: Rect<Float>,
     ) -> Result<(), RenderError> {
-        let person_color = match person.state() {
-            dudes_in_space_api::person::PersonState::Active => Color::from_uuid(person.id())
-                .with_saturation(self.start_instant.elapsed().as_secs_f64().rem_euclid(1.)),
-            dudes_in_space_api::person::PersonState::Passive => Color::from_uuid(person.id()),
+        let make_flickering = |c: Color| match person.state() {
+            PersonState::Active => {
+                c.with_saturation(self.start_instant.elapsed().as_secs_f64().rem_euclid(1.))
+            }
+            PersonState::Passive => c,
         };
+
+        if person.state() == PersonState::Active {
+            renderer.draw_filled_rect(
+                bounding_box,
+                Color::black()
+                    .with_a(self.start_instant.elapsed().as_secs_f64().rem_euclid(1.) / 4.),
+            );
+        }
+
+        let person_color = make_flickering(Color::from_uuid(person.id()));
+
         if bounding_box.w() > bounding_box.h() {
             let row = ExtRowLayout::new(vec![
                 (
@@ -236,6 +250,7 @@ impl PersonRenderModel {
                     Box::new(DrawLog::new(
                         logger.get(&person.id()),
                         editor.log_lines_count_limit(),
+                        Color::black(),
                     )),
                 ),
             ]);
@@ -278,6 +293,7 @@ impl PersonRenderModel {
                         Box::new(DrawLog::new(
                             logger.get(&person.id()),
                             editor.log_lines_count_limit(),
+                            Color::black(),
                         )),
                     ),
                     (Default::default(), Box::new(DrawFooter::new(person))),

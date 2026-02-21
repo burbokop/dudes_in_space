@@ -13,7 +13,7 @@ use crate::trade::{
     WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
 use crate::vessel::{DockingClamp, VesselId};
-use burbomath::math::Vector;
+use burbomath::Vector;
 use burbomath::range::RangeInclusive;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};

@@ -12,7 +12,7 @@ use crate::utils::SortProductionCandidate as _;
 use crate::utils::{
     ProductionCandidate, ProductionFromEnvironmentCandidate, ProductionFromIngredientsCandidate,
 };
-use burbomath::math::NonNeg;
+use burbomath::NonNeg;
 use burbomath::range::RangeInclusive;
 use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
@@ -23,8 +23,8 @@ use dudes_in_space_api::finance::{
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
 use dudes_in_space_api::module::{AdminTradingConsole, ModuleCapability, ModuleConsole};
 use dudes_in_space_api::person::{
-    tie, DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger,
-    ThisPerson,
+    DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
+    tie,
 };
 use dudes_in_space_api::recipe::{InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::trade::OfferId;
@@ -32,11 +32,11 @@ use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, R
 use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use dyn_serde::{
-    from_intermediate_seed, DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId,
+    DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_intermediate::{to_intermediate, Intermediate};
+use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -523,7 +523,8 @@ impl Objective for ManageProductionStationObjective {
                     environment_context,
                     logger,
                 ) {
-                    Ok(ObjectiveStatus::InProgress) => {
+                    Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
+                    Ok(status) => {
                         if craft_objective.is_interrupted() {
                             match move_to_trading_terminal_objective.pursue(
                                 this_person,
@@ -651,6 +652,7 @@ impl Objective for ManageProductionStationObjective {
                                     });
 
                                     drop(crafting_module);
+
                                     place_or_update_offers(
                                         environment_context.bank_registry(),
                                         environment_context.wallet_registry(),
@@ -668,12 +670,9 @@ impl Objective for ManageProductionStationObjective {
                                 Err(err) => todo!("{:?}", err),
                             }
                         } else {
-                            Ok(ObjectiveStatus::InProgress)
+                            Ok(status)
                         }
                     }
-                    Ok(ObjectiveStatus::Passive) => todo!(),
-
-                    Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(CraftItemsByHashObjectiveError::CanNotFindCraftingModule) => {
                         logger.info("ManageProductionStationObjective::RequireModules");
                         self.state = State::RequireModules {
@@ -708,7 +707,8 @@ impl Objective for ManageProductionStationObjective {
                     environment_context,
                     logger,
                 ) {
-                    Ok(ObjectiveStatus::InProgress) => {
+                    Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
+                    Ok(status) => {
                         if output_objective.is_interrupted() {
                             match move_to_trading_terminal_objective.pursue(
                                 this_person,
@@ -773,17 +773,14 @@ impl Objective for ManageProductionStationObjective {
                                     .unwrap();
 
                                     output_objective.resume();
-                                    Ok(ObjectiveStatus::InProgress)
+                                    Ok(status)
                                 }
                                 Err(err) => todo!("{:?}", err),
                             }
                         } else {
-                            Ok(ObjectiveStatus::InProgress)
+                            Ok(status)
                         }
                     }
-                    Ok(ObjectiveStatus::Passive) => todo!(),
-
-                    Ok(ObjectiveStatus::Done(result)) => todo!("result: {:?}", result),
                     Err(OutputItemsByHashObjectiveError::CanNotFindCraftingModule) => todo!(),
                 }
             }
@@ -923,6 +920,7 @@ enum OfferUpdateInstructionKind {
     Sell,
 }
 
+#[derive(Debug)]
 struct OfferUpdateInstruction {
     pub kind: OfferUpdateInstructionKind,
     pub id: Option<OfferId>,
@@ -944,11 +942,12 @@ fn place_or_update_offers(
 
     for instruction in &instructions {
         if instruction.kind == OfferUpdateInstructionKind::Sell {
-            operational_wallet.ensure_contains(
-                bank_registry,
-                wallet_registry,
-                instruction.price_per_unit.clone() * instruction.count_range.end,
-            )?;
+            // May be it is better to check if buyer station has enough money within the process of ordering
+            // operational_wallet.ensure_contains(
+            //     bank_registry,
+            //     wallet_registry,
+            //     instruction.price_per_unit.clone() * instruction.count_range.end,
+            // )?;
         }
     }
 

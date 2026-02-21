@@ -8,7 +8,7 @@ use crate::render::{
     Alignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTexture,
     ModuleTextureContainerRef, RenderError,
 };
-use burbomath::math::Rect;
+use burbomath::Rect;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
 use dudes_in_space_api::module::{Module, ModuleId, ModuleStorage};
 use dudes_in_space_api::person::Person;

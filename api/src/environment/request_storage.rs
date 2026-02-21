@@ -8,7 +8,7 @@ use crate::trade::{
 };
 use crate::utils::request::{ReqFuture, ReqPromise};
 use crate::vessel::{VesselId, VesselIdPath};
-use burbomath::math::NonNeg;
+use burbomath::NonNeg;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 

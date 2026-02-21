@@ -29,6 +29,7 @@ enum State {
         move_objective: MoveToModuleObjective,
         process_token: Option<ProcessToken>,
         interrupted: bool,
+        reached_output_limit: bool,
     },
     Done,
 }
@@ -119,6 +120,7 @@ impl Objective for OutputItemsByHashObjective {
                             move_objective: MoveToModuleObjective::new(this_module.id()),
                             interrupted: self.args.start_interrupted,
                             process_token: None,
+                            reached_output_limit: false,
                         };
 
                         return Ok(ObjectiveStatus::InProgress);
@@ -140,6 +142,7 @@ impl Objective for OutputItemsByHashObjective {
                             move_objective: MoveToModuleObjective::new(crafting_module.id()),
                             interrupted: self.args.start_interrupted,
                             process_token: None,
+                            reached_output_limit: false,
                         };
 
                         return Ok(ObjectiveStatus::InProgress);
@@ -151,6 +154,7 @@ impl Objective for OutputItemsByHashObjective {
                 move_objective,
                 process_token,
                 interrupted,
+                reached_output_limit,
             } => match move_objective.pursue(
                 this_person,
                 this_module,
@@ -174,11 +178,12 @@ impl Objective for OutputItemsByHashObjective {
                             .sum();
 
                         if limit_reached(&all_output_storages_content, &self.args.output_limit) {
+                            *reached_output_limit = true;
                             return Ok(if self.args.done_if_reached_limit {
                                 self.crafting_module = None;
                                 ObjectiveStatus::Done(self.state = State::Done)
                             } else {
-                                ObjectiveStatus::InProgress
+                                ObjectiveStatus::Passive
                             });
                         }
 
@@ -189,6 +194,7 @@ impl Objective for OutputItemsByHashObjective {
 
                         assert!(process_token.is_none());
                         *process_token = Some(crafting_console.start(recipe_index, false).unwrap());
+                        *reached_output_limit = false;
 
                         Ok(ObjectiveStatus::InProgress)
                     }
@@ -243,11 +249,21 @@ impl Display for OutputItemsByHashObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.state {
             State::SearchingForCraftingModule { .. } => write!(f, "SearchingForCraftingModule"),
-            State::Crafting { interrupted, .. } => {
+            State::Crafting {
+                interrupted,
+                process_token,
+                reached_output_limit,
+                ..
+            } => {
                 if *interrupted {
-                    write!(f, "Crafting (interrupted)")
+                    write!(f, "Crafting (Interrupted)")
+                } else if *reached_output_limit {
+                    write!(f, "Crafting (Waiting for output storage to be free)")
                 } else {
-                    write!(f, "Crafting")
+                    match process_token {
+                        Some(process_token) => write!(f, "Crafting {{ pt: {:?} }}", process_token),
+                        None => write!(f, "Crafting (No token)"),
+                    }
                 }
             }
             State::Done => write!(f, "Done"),

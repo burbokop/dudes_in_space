@@ -4,7 +4,7 @@ use crate::objectives::crafting::{
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::Money;
 use dudes_in_space_api::module::{ModuleCapability, ModuleConsole};
-use dudes_in_space_api::person::{tie, Objective, ObjectiveStatus, PersonLogger, ThisPerson};
+use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson, tie};
 use dudes_in_space_api::vessel::VesselInternalConsole;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -114,7 +114,9 @@ impl Display for RequireModulesObjective {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SearchingForRequireModules { .. } => write!(f, "SearchingForRequireModules"),
-            Self::Crafting { .. } => write!(f, "Crafting"),
+            Self::Crafting { crafting_objective } => {
+                write!(f, "Crafting -> {}", crafting_objective)
+            }
             Self::Done { .. } => write!(f, "Done"),
         }
     }

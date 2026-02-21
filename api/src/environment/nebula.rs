@@ -1,5 +1,5 @@
 use crate::utils::utils::Float;
-use burbomath::math::Point;
+use burbomath::Point;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

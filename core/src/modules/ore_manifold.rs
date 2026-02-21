@@ -470,11 +470,25 @@ impl Module for OreManifold {
     }
 
     fn extract_person(&mut self, id: PersonId) -> Option<Person> {
-        todo!()
+        if self
+            .operator
+            .as_ref()
+            .map(|p| p.id() == id)
+            .unwrap_or(false)
+        {
+            self.operator.take()
+        } else {
+            None
+        }
     }
 
     fn insert_person(&mut self, person: Person) -> bool {
-        todo!()
+        if self.operator.is_none() {
+            self.operator = Some(person);
+            true
+        } else {
+            false
+        }
     }
 
     fn free_person_slots_count(&self) -> usize {

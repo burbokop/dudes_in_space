@@ -1,6 +1,6 @@
 use crate::render::scene_graph::GraphicsNode;
-use crate::render::{Renderer, OLD_DEFAULT_MARGIN};
-use burbomath::math::Rect;
+use crate::render::{OLD_DEFAULT_MARGIN, Renderer};
+use burbomath::Rect;
 use dudes_in_space_api::utils::utils::Float;
 
 pub struct GridLayout<'a, T: sdl2::render::RenderTarget> {

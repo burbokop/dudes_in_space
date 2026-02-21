@@ -1,6 +1,6 @@
-use crate::render::scene_graph::GraphicsNode;
 use crate::render::Renderer;
-use burbomath::math::{Rect, Vector};
+use crate::render::scene_graph::GraphicsNode;
+use burbomath::{Rect, Vector};
 use dudes_in_space_api::utils::utils::Float;
 
 pub(crate) enum FlickableDirection {
