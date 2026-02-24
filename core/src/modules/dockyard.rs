@@ -22,7 +22,7 @@ use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
 use dyn_serde_macro::DeserializeSeedXXX;
-use rand::{Rng, rng};
+use rand::{RngExt as _, rng};
 use serde::{Deserialize, Serialize};
 use serde_intermediate::{Intermediate, to_intermediate};
 use std::collections::BTreeSet;

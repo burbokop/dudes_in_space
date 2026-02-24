@@ -15,6 +15,10 @@ pub fn rect_to_sdl2_rect(c: Rect<Float>) -> sdl2::rect::Rect {
     (*c.x() as i32, *c.y() as i32, *c.w() as u32, *c.h() as u32).into()
 }
 
+pub fn rect_to_sdl2_frect(c: Rect<Float>) -> sdl2::rect::FRect {
+    (*c.x() as f32, *c.y() as f32, *c.w() as f32, *c.h() as f32).into()
+}
+
 pub fn point_to_sdl2_point(c: Point<Float>) -> sdl2::rect::Point {
     (*c.x() as i32, *c.y() as i32).into()
 }

@@ -7,7 +7,6 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc, Weak};
-use std::time::{Duration, Instant};
 
 pub type WalletId = NonNilUuid;
 
@@ -233,11 +232,11 @@ impl Wallet {
         }
 
         #[cfg(debug_assertions)]
-        let begin = Instant::now();
+        let begin = std::time::Instant::now();
 
         'l: loop {
             #[cfg(debug_assertions)]
-            if (Instant::now() - begin) > Duration::from_secs(1) {
+            if (std::time::Instant::now() - begin) > std::time::Duration::from_secs(1) {
                 panic!("Infinite loop")
             }
 

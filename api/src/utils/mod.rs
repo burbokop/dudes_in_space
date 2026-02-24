@@ -1,3 +1,4 @@
+pub mod bound;
 pub mod color;
 pub mod non_nil_uuid;
 pub mod request;

@@ -1,18 +1,20 @@
+use std::rc::Rc;
+
 use crate::editor::Editor;
 use crate::logger::MemLogger;
 use crate::person_table::PersonTable;
 use crate::render::renderer::Renderer;
-use crate::render::{ModuleTextureContainerRef, RenderError, VesselRenderModel};
+use crate::render::{ModuleTextureContainer, RenderError, VesselRenderModel};
 use dudes_in_space_api::environment::Environment;
 
-pub struct EnvironmentRenderModel<'texture> {
-    vessel_render_model: VesselRenderModel<'texture>,
+pub struct EnvironmentRenderModel {
+    vessel_render_model: VesselRenderModel,
 }
 
-impl<'texture> EnvironmentRenderModel<'texture> {
-    pub fn new(backgrounds: ModuleTextureContainerRef<'texture>) -> Self {
+impl EnvironmentRenderModel {
+    pub fn new(backgrounds: ModuleTextureContainer) -> Self {
         Self {
-            vessel_render_model: VesselRenderModel::new(backgrounds),
+            vessel_render_model: VesselRenderModel::new(Rc::new(backgrounds)),
         }
     }
 

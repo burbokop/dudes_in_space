@@ -54,9 +54,9 @@ pub(crate) fn load_camera(save_path: PathBuf) -> Camera<Float> {
     }
 }
 
-pub(crate) fn save_camera(camera: Camera<Float>, save_path: PathBuf) {
+pub(crate) fn save_camera(camera: &Camera<Float>, save_path: &Path) {
     std::fs::create_dir_all(save_path.parent().unwrap()).unwrap();
-    std::fs::write(save_path, serde_json::to_vec(&camera).unwrap()).unwrap();
+    std::fs::write(save_path, serde_json::to_vec(camera).unwrap()).unwrap();
 }
 
 pub(crate) fn load_logger(save_path: PathBuf) -> MemLogger {

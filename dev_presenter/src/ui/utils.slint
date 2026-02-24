@@ -1,0 +1,8 @@
+
+export component Empty {}
+
+export global Utils {
+    pure public function color-to-string(c: color) -> string {
+        return "(" + c.alpha + ", " + c.red + ", " + c.green + ", " + c.blue + ")";
+    }
+}

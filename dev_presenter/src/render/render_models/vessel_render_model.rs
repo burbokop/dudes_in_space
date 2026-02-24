@@ -4,7 +4,7 @@ use crate::person_table::PersonTable;
 use crate::render::render_models::module_render_model::ModuleRenderModel;
 use crate::render::renderer::Renderer;
 use crate::render::{
-    Alignment, HorisontalAlignment, ModuleTextureContainerRef, OLD_DEFAULT_MARGIN, RenderError,
+    Alignment, HorisontalAlignment, ModuleTextureContainer, OLD_DEFAULT_MARGIN, RenderError,
     VerticalAlignment,
 };
 use burbomath::{Rect, Vector};
@@ -13,13 +13,14 @@ use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{Vessel, VesselConsole};
 use std::cell::{RefCell, RefMut};
 use std::ops::Deref;
+use std::rc::Rc;
 
-pub struct VesselRenderModel<'texture> {
-    module_render_model: ModuleRenderModel<'texture>,
+pub struct VesselRenderModel {
+    module_render_model: ModuleRenderModel,
 }
 
-impl<'texture> VesselRenderModel<'texture> {
-    pub fn new(backgrounds: ModuleTextureContainerRef<'texture>) -> Self {
+impl VesselRenderModel {
+    pub fn new(backgrounds: Rc<ModuleTextureContainer>) -> Self {
         Self {
             module_render_model: ModuleRenderModel::new(backgrounds),
         }
@@ -171,20 +172,20 @@ impl<'texture> VesselRenderModel<'texture> {
     }
 }
 
-pub(crate) struct LazyVesselRenderModel<'texture> {
-    backgrounds: ModuleTextureContainerRef<'texture>,
-    model: RefCell<Option<Box<VesselRenderModel<'texture>>>>,
+pub(crate) struct LazyVesselRenderModel {
+    backgrounds: Rc<ModuleTextureContainer>,
+    model: RefCell<Option<Box<VesselRenderModel>>>,
 }
 
-impl<'texture> LazyVesselRenderModel<'texture> {
-    pub(crate) fn new(backgrounds: ModuleTextureContainerRef<'texture>) -> Self {
+impl LazyVesselRenderModel {
+    pub(crate) fn new(backgrounds: Rc<ModuleTextureContainer>) -> Self {
         Self {
             backgrounds,
             model: RefCell::new(None),
         }
     }
 
-    pub(crate) fn get<'a>(&'a self) -> RefMut<'a, VesselRenderModel<'texture>> {
+    pub(crate) fn get<'a>(&'a self) -> RefMut<'a, VesselRenderModel> {
         RefMut::map(self.model.borrow_mut(), |x| {
             x.get_or_insert_with(|| Box::new(VesselRenderModel::new(self.backgrounds.clone())))
                 .as_mut()

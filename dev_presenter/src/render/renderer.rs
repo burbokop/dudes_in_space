@@ -1,6 +1,7 @@
 use crate::render::spritesheet::Spritesheet;
 use crate::render::{
-    FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_rect,
+    FontProvider, color_to_sdl2_rgba_color, point_to_sdl2_point, rect_to_sdl2_frect,
+    rect_to_sdl2_rect,
 };
 use burbomath::{Matrix, Point, Rect, Size};
 use dudes_in_space_api::utils::color::Color;
@@ -96,19 +97,28 @@ impl Alignment {
     }
 }
 
-pub struct Renderer<'texture_creator, T: sdl2::render::RenderTarget> {
-    canvas: sdl2::render::Canvas<T>,
-    texture_creator: &'texture_creator sdl2::render::TextureCreator<T::Context>,
-    font_provider: FontProvider,
-    tr: Matrix<Float>,
-    view_port_in_world_space: Rect<Float>,
+pub trait CanvasSurfaceProvider<T: sdl2::render::RenderTarget> {
+    fn surface_mut<'a>(
+        &self,
+        canvas: &'a mut sdl2::render::Canvas<T>,
+    ) -> Option<&'a mut sdl2::surface::SurfaceRef>;
 }
 
-impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator, T> {
+pub struct Renderer<'fp, T: sdl2::render::RenderTarget> {
+    canvas: sdl2::render::Canvas<T>,
+    texture_creator: sdl2::render::TextureCreator<T::Context>,
+    font_provider: &'fp FontProvider,
+    tr: Matrix<Float>,
+    view_port_in_world_space: Rect<Float>,
+    canvas_surface_provider: Box<dyn CanvasSurfaceProvider<T>>,
+}
+
+impl<'fp, T: sdl2::render::RenderTarget> Renderer<'fp, T> {
     pub fn new(
         canvas: sdl2::render::Canvas<T>,
-        texture_creator: &'texture_creator sdl2::render::TextureCreator<T::Context>,
-        font_provider: FontProvider,
+        texture_creator: sdl2::render::TextureCreator<T::Context>,
+        font_provider: &'fp FontProvider,
+        canvas_surface_provider: Box<dyn CanvasSurfaceProvider<T>>,
     ) -> Self {
         Self {
             canvas,
@@ -116,6 +126,7 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
             font_provider,
             tr: Matrix::identity(),
             view_port_in_world_space: (0., 0., 0., 0.).into(),
+            canvas_surface_provider,
         }
     }
 
@@ -154,6 +165,26 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
             .unwrap();
     }
 
+    pub fn draw_surface(&mut self, surface: &sdl2::surface::Surface, rect: Rect<Float>) {
+        let cs = self
+            .canvas_surface_provider
+            .surface_mut(&mut self.canvas)
+            .unwrap();
+
+        surface
+            .blit_scaled(None, cs, rect_to_sdl2_rect(&self.tr * &rect))
+            .unwrap();
+
+        // let texture = self
+        //     .texture_creator
+        //     .create_texture_from_surface(surface)
+        //     .unwrap();
+
+        // self.canvas
+        //     .copy(&texture, None, rect_to_sdl2_rect(&self.tr * &rect))
+        //     .unwrap();
+    }
+
     pub(crate) fn draw_spritesheet<'texture>(
         &mut self,
         spritesheet: &Spritesheet<'texture>,
@@ -166,13 +197,32 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
             sdl2::rect::Rect::new(rect.x as i32, rect.y as i32, rect.w, rect.h)
         }
 
-        self.canvas
-            .copy(
-                &spritesheet.texture,
+        let cs = self
+            .canvas_surface_provider
+            .surface_mut(&mut self.canvas)
+            .unwrap();
+
+        spritesheet
+            .surface
+            .blit_scaled(
                 Some(aseprite_rect_to_sdl2_rect(frame.frame)),
+                cs,
                 rect_to_sdl2_rect(&self.tr * &rect),
             )
             .unwrap();
+
+        // let tex = self
+        //     .texture_creator
+        //     .create_texture_from_surface(&spritesheet.surface)
+        //     .unwrap();
+
+        // self.canvas
+        //     .copy(
+        //         &tex,
+        //         Some(aseprite_rect_to_sdl2_rect(frame.frame)),
+        //         rect_to_sdl2_rect(&self.tr * &rect),
+        //     )
+        //     .unwrap();
     }
 
     pub fn draw_rect(&mut self, rect: Rect<Float>, color: Color) {
@@ -191,15 +241,10 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
             return;
         }
 
-        let rect = rect_to_sdl2_rect(&self.tr * &rect);
+        self.canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+        self.canvas.set_draw_color(color_to_sdl2_rgba_color(color));
         self.canvas
-            .box_(
-                rect.x as i16,
-                rect.y as i16,
-                (rect.x + rect.w) as i16,
-                (rect.y + rect.h) as i16,
-                color_to_sdl2_rgba_color(color),
-            )
+            .fill_frect(rect_to_sdl2_frect(&self.tr * &rect))
             .unwrap();
     }
 
@@ -362,6 +407,11 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
             }
 
             let point_size = point_size.unwrap() / 3;
+
+            if point_size == 0 {
+                return;
+            }
+
             let font = self.font_provider.font(point_size);
 
             let color = color_to_sdl2_rgba_color(color);
@@ -426,3 +476,11 @@ impl<'texture_creator, T: sdl2::render::RenderTarget> Renderer<'texture_creator,
         }
     }
 }
+
+// impl<'fp, 's> Renderer<'fp, sdl2::surface::Surface<'s>> {
+//     pub fn draw_surface(&mut self, surface: &sdl2::surface::Surface, rect: Rect<Float>) {
+//         surface
+//             .blit_scaled(surface.rect(), self.canvas.surface_mut(), rect)
+//             .unwrap();
+//     }
+// }

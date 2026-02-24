@@ -1,6 +1,6 @@
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
-use rand::Rng;
+use rand::RngExt as _;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
 use serde::{Deserialize, Serialize};

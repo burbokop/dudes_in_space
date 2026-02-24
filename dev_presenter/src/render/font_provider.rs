@@ -1,4 +1,3 @@
-use font_loader::system_fonts;
 use sdl2::ttf::Sdl2TtfContext;
 
 pub struct FontProvider {
@@ -21,19 +20,28 @@ fn choose_font(fonts: Vec<String>) -> String {
 
 impl FontProvider {
     pub fn new() -> Self {
-        let mut property = system_fonts::FontPropertyBuilder::new().monospace().build();
-        let sys_fonts = system_fonts::query_specific(&mut property);
-        let font_bytes = system_fonts::get(
-            &system_fonts::FontPropertyBuilder::new()
-                .family(&choose_font(sys_fonts))
-                .build(),
-        )
-        .unwrap();
+        let mut collection = fontique::Collection::new(fontique::CollectionOptions::default());
 
-        Self {
-            bytes: font_bytes.0,
-            ctx: sdl2::ttf::init().unwrap(),
+        let ids = collection
+            .generic_families(fontique::GenericFamily::Monospace)
+            .collect::<Vec<_>>();
+
+        for id in ids {
+            if let Some(info) = collection.family(id) {
+                if let Some(font) = info.default_font() {
+                    if let Some(blob) = font.load(None) {
+                        let bytes: &[u8] = blob.as_ref();
+
+                        return Self {
+                            bytes: bytes.into(),
+                            ctx: sdl2::ttf::init().unwrap(),
+                        };
+                    }
+                }
+            }
         }
+
+        panic!("No suitable font found")
     }
 
     pub fn font<'a>(&'a self, point_size: u16) -> sdl2::ttf::Font<'a, 'a> {

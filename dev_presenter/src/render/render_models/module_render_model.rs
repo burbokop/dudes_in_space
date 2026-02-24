@@ -6,7 +6,7 @@ use crate::render::renderer::Renderer;
 use crate::render::scene_graph::{ColumnLayout, Frame, GraphicsNode, GridLayout, RowLayout};
 use crate::render::{
     Alignment, ItemStorageRenderModel, LazyVesselRenderModel, ModuleTexture,
-    ModuleTextureContainerRef, RenderError,
+    ModuleTextureContainer, RenderError,
 };
 use burbomath::Rect;
 use dudes_in_space_api::item::{ItemSafe, ItemStorage};
@@ -19,6 +19,7 @@ use dudes_in_space_api::utils::utils::Float;
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 fn draw_top_info<T: sdl2::render::RenderTarget>(
@@ -607,15 +608,15 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawItemSafes<'a> {
     }
 }
 
-struct DrawModuleStorage<'texture, 'a, 'b> {
+struct DrawModuleStorage<'a, 'b> {
     storage: &'a ModuleStorage,
-    module_render_model: &'b ModuleRenderModel<'texture>,
+    module_render_model: &'b ModuleRenderModel,
 }
 
-impl<'texture, 'a, 'b> DrawModuleStorage<'texture, 'a, 'b> {
+impl<'a, 'b> DrawModuleStorage<'a, 'b> {
     pub fn new(
         storage: &'a ModuleStorage,
-        module_render_model: &'b ModuleRenderModel<'texture>,
+        module_render_model: &'b ModuleRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             storage,
@@ -624,9 +625,7 @@ impl<'texture, 'a, 'b> DrawModuleStorage<'texture, 'a, 'b> {
     }
 }
 
-impl<'texture, 'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawModuleStorage<'texture, 'a, 'b>
-{
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorage<'a, 'b> {
     fn visible(&self) -> bool {
         true
     }
@@ -654,15 +653,15 @@ impl<'texture, 'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T>
     }
 }
 
-struct DrawModuleStorages<'texture, 'a, 'b> {
+struct DrawModuleStorages<'a, 'b> {
     storages: &'a [ModuleStorage],
-    module_render_model: &'b ModuleRenderModel<'texture>,
+    module_render_model: &'b ModuleRenderModel,
 }
 
-impl<'texture, 'a, 'b> DrawModuleStorages<'texture, 'a, 'b> {
+impl<'a, 'b> DrawModuleStorages<'a, 'b> {
     pub fn new(
         storages: &'a [ModuleStorage],
-        module_render_model: &'b ModuleRenderModel<'texture>,
+        module_render_model: &'b ModuleRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             storages,
@@ -671,9 +670,7 @@ impl<'texture, 'a, 'b> DrawModuleStorages<'texture, 'a, 'b> {
     }
 }
 
-impl<'texture, 'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawModuleStorages<'texture, 'a, 'b>
-{
+impl<'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawModuleStorages<'a, 'b> {
     fn visible(&self) -> bool {
         !self.storages.is_empty()
     }
@@ -692,17 +689,17 @@ impl<'texture, 'a, 'b, T: sdl2::render::RenderTarget> GraphicsNode<T>
     }
 }
 
-struct DrawStorages<'texture, 'a, 'b, 'c> {
+struct DrawStorages<'a, 'b, 'c> {
     module: &'a dyn Module,
     item_storage_render_model: &'b ItemStorageRenderModel,
-    module_render_model: &'c ModuleRenderModel<'texture>,
+    module_render_model: &'c ModuleRenderModel,
 }
 
-impl<'texture, 'a, 'b, 'c> DrawStorages<'texture, 'a, 'b, 'c> {
+impl<'a, 'b, 'c> DrawStorages<'a, 'b, 'c> {
     pub fn new(
         module: &'a dyn Module,
         item_storage_render_model: &'b ItemStorageRenderModel,
-        module_render_model: &'c ModuleRenderModel<'texture>,
+        module_render_model: &'c ModuleRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             module,
@@ -712,9 +709,7 @@ impl<'texture, 'a, 'b, 'c> DrawStorages<'texture, 'a, 'b, 'c> {
     }
 }
 
-impl<'texture, 'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawStorages<'texture, 'a, 'b, 'c>
-{
+impl<'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawStorages<'a, 'b, 'c> {
     fn visible(&self) -> bool {
         !self.module.storages().is_empty()
             || !self.module.safes().is_empty()
@@ -735,21 +730,21 @@ impl<'texture, 'a, 'b, 'c, T: sdl2::render::RenderTarget> GraphicsNode<T>
     }
 }
 
-struct DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e> {
+struct DrawDockingClamp<'a, 'b, 'c, 'd, 'e> {
     clamp: &'a DockingClamp,
     editor: &'b Editor,
     logger: &'c MemLogger,
     person_table: &'d PersonTable,
-    vessel_render_model: &'e LazyVesselRenderModel<'texture>,
+    vessel_render_model: &'e LazyVesselRenderModel,
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e> {
+impl<'a, 'b, 'c, 'd, 'e> DrawDockingClamp<'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         clamp: &'a DockingClamp,
         editor: &'b Editor,
         logger: &'c MemLogger,
         person_table: &'d PersonTable,
-        vessel_render_model: &'e LazyVesselRenderModel<'texture>,
+        vessel_render_model: &'e LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             clamp,
@@ -761,8 +756,8 @@ impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e
     }
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawDockingClamp<'texture, 'a, 'b, 'c, 'd, 'e>
+impl<'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingClamp<'a, 'b, 'c, 'd, 'e>
 {
     fn visible(&self) -> bool {
         true
@@ -789,21 +784,21 @@ impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T
     }
 }
 
-struct DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, 'e> {
+struct DrawDockingClamps<'a, 'b, 'c, 'd, 'e> {
     clamps: &'a [DockingClamp],
     editor: &'b Editor,
     logger: &'c MemLogger,
     person_table: &'d PersonTable,
-    vessel_render_model: &'e LazyVesselRenderModel<'texture>,
+    vessel_render_model: &'e LazyVesselRenderModel,
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, 'e> {
+impl<'a, 'b, 'c, 'd, 'e> DrawDockingClamps<'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         clamps: &'a [DockingClamp],
         editor: &'b Editor,
         logger: &'c MemLogger,
         person_table: &'d PersonTable,
-        vessel_render_model: &'e LazyVesselRenderModel<'texture>,
+        vessel_render_model: &'e LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             clamps,
@@ -815,8 +810,8 @@ impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, '
     }
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawDockingClamps<'texture, 'a, 'b, 'c, 'd, 'e>
+impl<'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingClamps<'a, 'b, 'c, 'd, 'e>
 {
     fn visible(&self) -> bool {
         !self.clamps.is_empty()
@@ -904,21 +899,21 @@ impl<'a, T: sdl2::render::RenderTarget> GraphicsNode<T> for DrawDockingConnector
     }
 }
 
-struct DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e> {
+struct DrawDockingStuff<'a, 'b, 'c, 'd, 'e> {
     module: &'a dyn Module,
     editor: &'b Editor,
     logger: &'c MemLogger,
     person_table: &'d PersonTable,
-    vessel_render_model: &'e LazyVesselRenderModel<'texture>,
+    vessel_render_model: &'e LazyVesselRenderModel,
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e> {
+impl<'a, 'b, 'c, 'd, 'e> DrawDockingStuff<'a, 'b, 'c, 'd, 'e> {
     pub fn new(
         module: &'a dyn Module,
         editor: &'b Editor,
         logger: &'c MemLogger,
         person_table: &'d PersonTable,
-        vessel_render_model: &'e LazyVesselRenderModel<'texture>,
+        vessel_render_model: &'e LazyVesselRenderModel,
     ) -> Box<Self> {
         Box::new(Self {
             module,
@@ -930,8 +925,8 @@ impl<'texture, 'a, 'b, 'c, 'd, 'e> DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e
     }
 }
 
-impl<'texture, 'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
-    for DrawDockingStuff<'texture, 'a, 'b, 'c, 'd, 'e>
+impl<'a, 'b, 'c, 'd, 'e, T: sdl2::render::RenderTarget> GraphicsNode<T>
+    for DrawDockingStuff<'a, 'b, 'c, 'd, 'e>
 {
     fn visible(&self) -> bool {
         !self.module.docking_clamps().is_empty() || !self.module.docking_connectors().is_empty()
@@ -1209,16 +1204,16 @@ impl Default for Animation {
     }
 }
 
-pub struct ModuleRenderModel<'texture> {
+pub struct ModuleRenderModel {
     person_render_model: PersonRenderModel,
-    vessel_render_model: LazyVesselRenderModel<'texture>,
+    vessel_render_model: LazyVesselRenderModel,
     item_storage_render_model: ItemStorageRenderModel,
-    backgrounds: ModuleTextureContainerRef<'texture>,
+    backgrounds: Rc<ModuleTextureContainer>,
     animations: RefCell<BTreeMap<ModuleId, Animation>>,
 }
 
-impl<'texture> ModuleRenderModel<'texture> {
-    pub fn new(backgrounds: ModuleTextureContainerRef<'texture>) -> Self {
+impl ModuleRenderModel {
+    pub fn new(backgrounds: Rc<ModuleTextureContainer>) -> Self {
         Self {
             person_render_model: PersonRenderModel::new(),
             vessel_render_model: LazyVesselRenderModel::new(backgrounds.clone()),
@@ -1243,7 +1238,7 @@ impl<'texture> ModuleRenderModel<'texture> {
 
         match self.backgrounds.get(module.type_id()) {
             None => {}
-            Some(ModuleTexture::Texture(texture)) => renderer.draw_texture(texture, bounding_box),
+            Some(ModuleTexture::Texture(texture)) => renderer.draw_surface(texture, bounding_box),
             Some(ModuleTexture::Spritesheet(spritesheet)) => {
                 let mut animations = self.animations.borrow_mut();
                 let animation = animations.entry(module.id()).or_default();
