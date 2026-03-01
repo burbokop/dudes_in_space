@@ -1,7 +1,8 @@
 use dudes_in_space_api::environment::FindBestOffersForItemsResult;
 use dudes_in_space_api::finance::{BankRegistry, Money, PossiblyNegativeMoney};
-use dudes_in_space_api::item::ItemId;
+use dudes_in_space_api::item::{ItemCount, ItemId};
 use dudes_in_space_api::recipe::{ItemRecipe, OutputItemRecipe};
+use dudes_in_space_api::utils::utils::Float;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -33,6 +34,33 @@ pub(crate) struct ProductionFromIngredientsCandidate {
     pub(crate) recipe: ItemRecipe,
     #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     pub(crate) estimate: Option<ProductionCandidateEstimate>,
+}
+
+impl ProductionFromIngredientsCandidate {
+    pub(crate) fn min_money_required_in_operational_wallet(
+        &self,
+        lure_multiplier: Float,
+    ) -> Option<Money> {
+        Money::sum_same_currency(self.recipe.input.iter().filter_map(|(item, count)| {
+            assert_ne!(*count, 0);
+            self.average_ingredients_buy_price
+                .get(item)
+                .map(|m| m.clone().mul_ceil(lure_multiplier) * *count)
+        }))
+    }
+
+    pub(crate) fn optimal_money_required_in_operational_wallet(
+        &self,
+        input_needed: &BTreeMap<ItemId, ItemCount>,
+        lure_multiplier: Float,
+    ) -> Option<Money> {
+        Money::sum_same_currency(input_needed.iter().filter_map(|(item, count)| {
+            assert_ne!(*count, 0);
+            self.average_ingredients_buy_price
+                .get(item)
+                .map(|m| m.clone().mul_ceil(lure_multiplier) * *count)
+        }))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

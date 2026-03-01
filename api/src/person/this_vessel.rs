@@ -84,6 +84,10 @@ pub struct ForEachDockingClampsEntry<'d, 'm> {
 }
 
 impl<'a, 'b> ThisVessel<'a, 'b> {
+    pub fn name(&self) -> &str {
+        self.this_vessel.name()
+    }
+
     pub fn capabilities(&self) -> BTreeSet<ModuleCapability> {
         self.this_vessel
             .capabilities()

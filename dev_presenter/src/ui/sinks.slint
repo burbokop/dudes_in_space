@@ -12,6 +12,8 @@ export global MoneyUiModelSinkUtils {
             return "\{m.amount} \{m.currency}";
         }
     }
+
+    pure callback money-list-to-string(m: [MoneyUiModelSink]) -> string;
 }
 
 export struct OfferUiModelSink {
@@ -20,6 +22,7 @@ export struct OfferUiModelSink {
     max_count: int,
     price_per_unit: MoneyUiModelSink,
     active: bool,
+    operational_wallet_content: [MoneyUiModelSink],
 }
 
 export struct ItemRecordUiModelSink {

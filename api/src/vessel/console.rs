@@ -22,6 +22,8 @@ pub trait VesselConsole {
 }
 
 pub trait VesselInternalConsole: VesselConsole {
+    fn name(&self) -> &str;
+
     fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, dyn Module>>;
     fn modules_with_capability_mut<'a>(
         &'a self,

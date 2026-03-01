@@ -28,6 +28,16 @@ impl Wallet {
         &self.id
     }
 
+    pub fn content(&self) -> Vec<Money> {
+        self.content
+            .iter()
+            .map(|(currency, amount)| Money {
+                currency: currency.clone(),
+                amount: amount.clone().into(),
+            })
+            .collect()
+    }
+
     pub fn most_worth_currency(&self, bank_registry: &BankRegistry) -> Option<Money> {
         self.content
             .iter()

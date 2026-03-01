@@ -710,4 +710,8 @@ impl VesselInternalConsole for Vessel {
                 Err(_) => None,
             })
     }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
 }

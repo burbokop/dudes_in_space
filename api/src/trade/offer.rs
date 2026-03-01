@@ -49,6 +49,7 @@ pub struct OfferRef<Offer> {
     /// Offer is active if there is enough money in the operational wallet for this offer.
     #[serde(default)]
     pub active: bool,
+    pub operational_wallet_content: Vec<Money>,
 }
 
 impl Display for BuyOffer {

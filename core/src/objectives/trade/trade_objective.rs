@@ -353,7 +353,7 @@ impl Objective for TradeObjective {
                 Ok(PlaceOrdersResult::PlaceSellOrderError(
                     PlaceSellOrderError::NotEnoughMoneyInOperationalWallet,
                 )) => unreachable!(
-                    "Because offers with that has not enough money in operational wallet are excluded from search"
+                    "Because offers that has not enough money in operational wallet are excluded from search"
                 ),
                 Err(ReqTakeError::Pending) => Ok(ObjectiveStatus::InProgress),
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),

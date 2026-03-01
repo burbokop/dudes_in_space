@@ -191,7 +191,7 @@ impl ItemRecord {
             max_sell_price
                 .sub(bank_registry, min_buy_price)
                 .try_into()
-                .unwrap(),
+                .ok()?,
             min_price_buy_offer.clone(),
             max_price_sell_offer.clone(),
         ))
@@ -234,6 +234,7 @@ impl ItemTradeTable {
                                 module_id: module.id(),
                                 offer: offer.clone(),
                                 active: true,
+                                operational_wallet_content: vec![],
                             })
                             .collect::<Vec<_>>()
                     })
@@ -303,6 +304,7 @@ fn collect_sell_offers_from_module(
                             bank_registry,
                             offer.price_per_unit.clone() * offer.count_range.end,
                         ),
+                        operational_wallet_content: operational_wallet.content(),
                     })
                     .collect();
             }

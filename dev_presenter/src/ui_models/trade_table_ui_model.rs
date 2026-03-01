@@ -30,6 +30,14 @@ impl<'i, 'v, 'p> TradeTableUiModel<'i, 'v, 'p> {
             }
         }
 
+        fn money_slice_to_sink(m: &[Money]) -> ModelRc<MoneyUiModelSink> {
+            ModelRc::new(
+                m.iter()
+                    .map(|x| money_to_sink(x.clone()))
+                    .collect::<slint::VecModel<_>>(),
+            )
+        }
+
         let x = ModelRc::new(
             self.trade_table
                 .iter()
@@ -50,6 +58,9 @@ impl<'i, 'v, 'p> TradeTableUiModel<'i, 'v, 'p> {
                                     .to_shared_string(),
                                 price_per_unit: money_to_sink(offer.offer.price_per_unit.clone()),
                                 active: offer.active,
+                                operational_wallet_content: money_slice_to_sink(
+                                    &offer.operational_wallet_content,
+                                ),
                             })
                             .collect::<slint::VecModel<_>>(),
                     ),
@@ -68,6 +79,9 @@ impl<'i, 'v, 'p> TradeTableUiModel<'i, 'v, 'p> {
                                     .to_shared_string(),
                                 price_per_unit: money_to_sink(offer.offer.price_per_unit.clone()),
                                 active: offer.active,
+                                operational_wallet_content: money_slice_to_sink(
+                                    &offer.operational_wallet_content,
+                                ),
                             })
                             .collect::<slint::VecModel<_>>(),
                     ),

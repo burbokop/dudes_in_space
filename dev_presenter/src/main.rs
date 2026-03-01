@@ -13,7 +13,10 @@ use crate::utils::save_camera;
 use burbomath::LerpIntegrator;
 use clap::Parser;
 use dudes_in_space_api::utils::utils::Float;
-use slint::{CloseRequestResponse, ComponentHandle, PlatformError, SharedString, Timer, TimerMode};
+use slint::{
+    CloseRequestResponse, ComponentHandle, Model, PlatformError, SharedString, Timer, TimerMode,
+    ToSharedString,
+};
 use std::ops::ControlFlow;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -29,6 +32,7 @@ mod utils;
 mod vessel_table;
 
 slint::slint! {
+    export { MoneyUiModelSinkUtils } from "src/ui/sinks.slint";
     export { MainWindow } from "src/ui/main.slint";
 }
 
@@ -94,6 +98,23 @@ pub fn main() -> Result<(), PlatformError> {
     };
 
     let main_window = MainWindow::new().unwrap();
+
+    main_window
+        .global::<MoneyUiModelSinkUtils>()
+        .on_money_list_to_string(|x| {
+            let str = x
+                .iter()
+                .map(|x| {
+                    if x.currency.len() == 1 {
+                        return format!("{}{}", x.amount, x.currency);
+                    } else {
+                        return format!("{} {}", x.amount, x.currency);
+                    }
+                })
+                .collect::<Vec<String>>();
+
+            format!("{:?}", str).to_shared_string()
+        });
 
     // {
     //     let weak_app: std::rc::Weak<_, _> = Rc::downgrade(&app);
@@ -178,7 +199,7 @@ pub fn main() -> Result<(), PlatformError> {
             KeyCode::LCtrl
         } else if text == "todo" {
             KeyCode::RCtrl
-        } else if text == "todo" {
+        } else if text.as_bytes() == [32] {
             KeyCode::Space
         } else if text.as_bytes() == f1 {
             KeyCode::F1

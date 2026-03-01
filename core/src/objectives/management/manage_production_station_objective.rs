@@ -561,6 +561,21 @@ impl Objective for ManageProductionStationObjective {
                                     // Note: copy the formula from ManageDockyardObjective
                                     static LURE_MULTIPLIER: Float = 1. + 1. / 8.;
 
+                                    if let Some(money_required) = production_candidate
+                                        .optimal_money_required_in_operational_wallet(
+                                            &input_needed,
+                                            LURE_MULTIPLIER,
+                                        )
+                                    {
+                                        this_person
+                                            .ensure_has_money_in_wallet(
+                                                environment_context.bank_registry(),
+                                                environment_context.wallet_registry(),
+                                                money_required,
+                                            )
+                                            .unwrap();
+                                    }
+
                                     let mut offer_update_instructions: Vec<OfferUpdateInstruction> = input_needed
                                         .iter()
                                         .map(|(item, count)| {
