@@ -113,6 +113,8 @@ impl Environment {
             wallet_registry,
             currency_generator,
         );
+
+        wallet_registry.flush_pledge_wallets();
         self.iteration += 1;
     }
 
@@ -479,6 +481,7 @@ impl Environment {
                         let trading_console = module.trading_console_mut().unwrap();
                         trading_console
                             .place_buy_order(
+                                wallet_registry,
                                 &mut customer_wallet_ref,
                                 offer.vessel_id,
                                 &offer.offer,

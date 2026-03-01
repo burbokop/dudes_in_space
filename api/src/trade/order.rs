@@ -1,4 +1,4 @@
-use crate::finance::{Money, Wallet, WalletId};
+use crate::finance::{Money, Wallet, WalletId, WalletRegistry};
 use crate::item::{Item, ItemCount, ItemId, ItemRefStack};
 use crate::module::{
     ModuleCapability, ProcessToken, ProcessTokenContext, ProcessTokenExpiredError, ProcessTokenMut,
@@ -19,12 +19,13 @@ pub type OrderId = NonNilUuid;
 struct BuyOrderImpl {
     vessel_to_buy_from: VesselId,
     items: Vec<ItemRefStack>,
-    price: Money,
+    pledge_wallet: Rc<RefCell<Wallet>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakBuyOrder {
     id: OrderId,
+    /// None if is not yet loaded from OrderHolder. Should be loaded lazily when needed
     #[serde(skip)]
     data: Option<Weak<BuyOrderImpl>>,
 }
@@ -33,9 +34,11 @@ impl WeakBuyOrder {
     pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
         todo!()
     }
+
     pub fn items(&self) -> Option<Vec<Item>> {
         todo!()
     }
+
     pub fn price(&self) -> Option<Money> {
         todo!()
     }
@@ -53,21 +56,41 @@ pub struct BuyOrder {
 // In this case pledge wallets that are destroyed on app exit won't be considered as "lost" because `Environment::proceed` shouldn't be called after serialization.
 impl BuyOrder {
     pub fn new(
+        wallet_registry: &WalletRegistry,
         pledge_wallet: Wallet,
         customer_wallet_id: WalletId,
         vessel_to_buy_from: VesselId,
         item: ItemId,
         count: ItemCount,
     ) -> (Self, WeakBuyOrder) {
-        todo!()
+        let id = OrderId::new_v4();
+
+        let pledge_wallet = wallet_registry
+            .register_pledge_wallet(pledge_wallet, customer_wallet_id)
+            .unwrap();
+
+        let data = Rc::new(BuyOrderImpl {
+            vessel_to_buy_from,
+            items: vec![ItemRefStack { id: item, count }],
+            pledge_wallet,
+        });
+
+        let weak = WeakBuyOrder {
+            id,
+            data: Some(Rc::downgrade(&data)),
+        };
+
+        (Self { id, data }, weak)
     }
 
     pub fn vessel_to_buy_from(&self) -> VesselId {
         todo!()
     }
+
     pub fn items(&self) -> Vec<Item> {
         todo!()
     }
+
     pub fn price(&self) -> Money {
         todo!()
     }
@@ -77,12 +100,13 @@ impl BuyOrder {
 struct SellOrderImpl {
     vessel_to_sell_to: VesselId,
     items: Vec<ItemRefStack>,
-    price: Money,
+    pledge_wallet: Rc<RefCell<Wallet>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeakSellOrder {
     id: OrderId,
+    /// None if is not yet loaded from OrderHolder. Should be loaded lazily when needed
     #[serde(skip)]
     data: Option<Weak<SellOrderImpl>>,
 }
@@ -91,9 +115,11 @@ impl WeakSellOrder {
     pub fn vessel_to_sell_to(&self) -> Option<VesselId> {
         todo!()
     }
+
     pub fn items(&self) -> Option<Vec<Item>> {
         todo!()
     }
+
     pub fn price(&self) -> Option<Money> {
         todo!()
     }
@@ -111,21 +137,41 @@ pub struct SellOrder {
 
 impl SellOrder {
     pub fn new(
+        wallet_registry: &WalletRegistry,
         pledge_wallet: Wallet,
         owner_wallet_id: WalletId,
         vessel_to_sell_to: VesselId,
         item: ItemId,
         count: ItemCount,
     ) -> (Self, WeakSellOrder) {
-        todo!()
+        let id = OrderId::new_v4();
+
+        let pledge_wallet = wallet_registry
+            .register_pledge_wallet(pledge_wallet, owner_wallet_id)
+            .unwrap();
+
+        let data = Rc::new(SellOrderImpl {
+            vessel_to_sell_to,
+            items: vec![ItemRefStack { id: item, count }],
+            pledge_wallet,
+        });
+
+        let weak = WeakSellOrder {
+            id,
+            data: Some(Rc::downgrade(&data)),
+        };
+
+        (Self { id, data }, weak)
     }
 
     pub fn vessel_to_sell_to(&self) -> VesselId {
         todo!()
     }
+
     pub fn items(&self) -> Vec<Item> {
         todo!()
     }
+
     pub fn price(&self) -> Money {
         todo!()
     }
@@ -166,9 +212,11 @@ impl WeakBuyVesselOrder {
     pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
         todo!()
     }
+
     pub fn primary_caps(&self) -> Option<Vec<ModuleCapability>> {
         todo!()
     }
+
     pub fn price(&self) -> Option<Money> {
         todo!()
     }
@@ -186,9 +234,11 @@ impl WeakBuyCustomVesselOrder {
     pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
         todo!()
     }
+
     pub fn primary_caps(&self) -> Option<Vec<ModuleCapability>> {
         todo!()
     }
+
     pub fn price(&self) -> Option<Money> {
         todo!()
     }

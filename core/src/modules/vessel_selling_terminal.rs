@@ -489,6 +489,7 @@ impl TradingConsole for VesselSellingTerminal {
 
     fn place_buy_order(
         &mut self,
+        wallet_registry: &WalletRegistry,
         customer_wallet: &mut Wallet,
         vessel_to_buy_from: VesselId,
         offer: &BuyOffer,

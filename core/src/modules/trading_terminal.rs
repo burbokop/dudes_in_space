@@ -412,6 +412,7 @@ impl TradingConsole for TradingTerminal {
 
     fn place_buy_order(
         &mut self,
+        wallet_registry: &WalletRegistry,
         customer_wallet: &mut Wallet,
         vessel_to_buy_from: VesselId,
         offer: &BuyOffer,
@@ -435,6 +436,7 @@ impl TradingConsole for TradingTerminal {
             .unwrap();
 
         let (order, weak_order) = BuyOrder::new(
+            wallet_registry,
             pledge_wallet,
             customer_wallet.id().clone(),
             vessel_to_buy_from,
@@ -477,6 +479,7 @@ impl TradingConsole for TradingTerminal {
             .unwrap();
 
         let (order, weak_order) = SellOrder::new(
+            wallet_registry,
             pledge_wallet,
             self.operational_wallet.unwrap().clone(),
             vessel_to_sell_to,

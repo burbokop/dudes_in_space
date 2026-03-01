@@ -327,7 +327,14 @@ impl Objective for TradeObjective {
                 Err(ReqTakeError::AlreadyTaken) => unreachable!(),
             },
             Self::WaitForOrdersToBePlaced { future } => match future.take() {
-                Ok(PlaceOrdersResult::Ok { .. }) => todo!(),
+                Ok(PlaceOrdersResult::Ok {
+                    buy_orders,
+                    sell_orders,
+                }) => todo!(
+                    "buy_orders: {:#?}, sell_orders: {:#?}",
+                    buy_orders,
+                    sell_orders
+                ),
                 Ok(PlaceOrdersResult::PlaceBuyOrderError(PlaceBuyOrderError::OfferNotFound)) => {
                     todo!()
                 }

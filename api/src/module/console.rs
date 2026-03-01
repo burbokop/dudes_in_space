@@ -222,6 +222,7 @@ pub trait TradingConsole {
     fn sell_offers(&self) -> &[SellOffer];
     fn place_buy_order(
         &mut self,
+        wallet_registry: &WalletRegistry,
         customer_wallet: &mut Wallet,
         vessel_to_buy_from: VesselId,
         offer: &BuyOffer,

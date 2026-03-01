@@ -71,6 +71,10 @@ impl Wallet {
         Ok(())
     }
 
+    pub fn transfer_all_to(&mut self, rhs: &mut Wallet) {
+        todo!()
+    }
+
     /// Do not make it public. (Does not preserve the whole amount of money in the system) Should be used only in wallet and bank modules
     pub(crate) fn put(&mut self, m: Money) {
         if let Some(g) = self.content.get_mut(&m.currency) {
@@ -394,9 +398,25 @@ impl WeakWallet {
     // }
 }
 
+/// private
+#[derive(Debug)]
+struct PledgeWallet {
+    wallet: Rc<RefCell<Wallet>>,
+    /// Wallet to transfer money to in case when the pladge wallet is lost (vessel destroyed, etc.)
+    return_wallet: WalletId,
+}
+
+impl PledgeWallet {
+    #[inline]
+    fn is_unique(&self) -> bool {
+        Rc::weak_count(&self.wallet) == 0 && Rc::strong_count(&self.wallet) == 1
+    }
+}
+
 #[derive(Debug)]
 pub struct WalletRegistry {
     data: RefCell<BTreeMap<WalletId, WeakWallet>>,
+    pledge_wallets: RefCell<BTreeMap<WalletId, PledgeWallet>>,
 }
 
 impl Default for WalletRegistry {
@@ -409,6 +429,7 @@ impl WalletRegistry {
     pub fn new() -> Self {
         Self {
             data: RefCell::new(BTreeMap::new()),
+            pledge_wallets: RefCell::new(BTreeMap::new()),
         }
     }
 
@@ -428,6 +449,51 @@ impl WalletRegistry {
             )
             .map_err(|_| PersonAlreadyExistsError)?;
         Ok(b)
+    }
+
+    pub(crate) fn register_pledge_wallet(
+        &self,
+        pledge_wallet: Wallet,
+        return_wallet: WalletId,
+    ) -> Result<Rc<RefCell<Wallet>>, PersonAlreadyExistsError> {
+        let id = pledge_wallet.id().clone();
+        let b = Rc::new(RefCell::new(pledge_wallet));
+        self.pledge_wallets
+            .borrow_mut()
+            .try_insert(
+                id,
+                PledgeWallet {
+                    wallet: b.clone(),
+                    return_wallet,
+                },
+            )
+            .map_err(|_| PersonAlreadyExistsError)?;
+        Ok(b)
+    }
+
+    /// Check if there are lost pledge wallets and transfer money from them to corresponding return wallets
+    pub(crate) fn flush_pledge_wallets(&self) {
+        let mut pledge_wallets = self.pledge_wallets.borrow_mut();
+        let mut data = self.data.borrow_mut();
+
+        pledge_wallets.retain(|_, pledge_wallet| {
+            if pledge_wallet.is_unique() {
+                let return_wallet = pledge_wallet.return_wallet;
+                let mut pledge_wallet = pledge_wallet.wallet.borrow_mut();
+
+                let return_wallet = data
+                    .get_mut(&return_wallet)
+                    .expect("TODO: if return wallet is gone, money should go somewhere else");
+                let return_wallet = return_wallet.upgrade().unwrap();
+                let mut return_wallet = return_wallet.borrow_mut();
+
+                pledge_wallet.transfer_all_to(&mut return_wallet);
+
+                false
+            } else {
+                true
+            }
+        });
     }
 
     pub fn get(&self, wallet_id: &WalletId) -> Option<WeakWallet> {
