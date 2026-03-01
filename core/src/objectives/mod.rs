@@ -1,24 +1,55 @@
+mod common;
 mod crafting;
 mod gathering;
-mod trading;
+mod initiatives;
+mod management;
+mod personal;
+mod trade;
+
+use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
+use dudes_in_space_api::utils::request::ReqContext;
+use dyn_serde::DynDeserializeSeedVault;
+use std::rc::Rc;
 
 use crate::objectives::gathering::{
-    GatherResearchDataObjectiveDecider, MineAsteroidsObjectiveDecider, ScavengeObjectiveDecider,
+    GatherResearchDataObjectiveDecider, GatherResearchDataObjectiveDynSeed,
+    MineAsteroidsObjectiveDecider, MineAsteroidsObjectiveDynSeed, ScavengeObjectiveDecider,
+    ScavengeObjectiveDynSeed,
 };
-use crate::objectives::trading::TradeObjectiveDecider;
-use dudes_in_space_api::person::{DynObjective, ObjectiveDeciderVault};
-use dyn_serde::DynDeserializeSeedVault;
+use crate::objectives::management::{
+    ManageDockyardStationObjectiveDecider, ManageDockyardStationObjectiveDynSeed,
+    ManageProductionStationObjectiveDecider, ManageProductionStationObjectiveDynSeed,
+};
+use crate::objectives::personal::{AdventuringObjectiveDecider, AdventuringObjectiveDynSeed};
+use crate::objectives::trade::{
+    TradeFromScratchObjectiveDecider, TradeFromScratchObjectiveDynSeed,
+};
 
 pub fn register_objectives(
     vault: DynDeserializeSeedVault<dyn DynObjective>,
+    req_context: Rc<ReqContext>,
 ) -> DynDeserializeSeedVault<dyn DynObjective> {
     vault
+        .with(TradeFromScratchObjectiveDynSeed::new(req_context.clone()))
+        .with(GatherResearchDataObjectiveDynSeed)
+        .with(MineAsteroidsObjectiveDynSeed)
+        .with(ScavengeObjectiveDynSeed)
+        .with(ManageProductionStationObjectiveDynSeed::new(
+            req_context.clone(),
+        ))
+        .with(ManageDockyardStationObjectiveDynSeed::new(
+            req_context.clone(),
+        ))
+        .with(AdventuringObjectiveDynSeed::new(req_context))
 }
 
 pub fn register_objective_deciders(vault: ObjectiveDeciderVault) -> ObjectiveDeciderVault {
     vault
-        .with(TradeObjectiveDecider)
+        .with(TradeFromScratchObjectiveDecider)
         .with(GatherResearchDataObjectiveDecider)
         .with(MineAsteroidsObjectiveDecider)
         .with(ScavengeObjectiveDecider)
+        .with(ManageProductionStationObjectiveDecider)
+        .with(ManageDockyardStationObjectiveDecider)
+        .with(AdventuringObjectiveDecider)
 }

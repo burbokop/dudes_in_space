@@ -18,6 +18,10 @@ impl ModuleStorage {
         }
     }
 
+    pub fn content(&self) -> &[Box<dyn Module>] {
+        &self.content
+    }
+
     /// TODO: add capacity
     pub fn has_space(&self) -> bool {
         true
@@ -56,17 +60,35 @@ impl ModuleStorage {
         Some(result)
     }
 
-    pub fn contains_modules_with_cap(&self, cap: ModuleCapability) -> bool {
+    pub fn contains_modules_with_capability(&self, cap: ModuleCapability) -> bool {
         self.content
             .iter()
             .any(|module| module.capabilities().contains(&cap))
     }
 
-    fn modules_with_cap(&self, cap: ModuleCapability) -> Vec<&Box<dyn Module>> {
+    pub fn contains_modules_with_primary_capability(&self, cap: ModuleCapability) -> bool {
+        self.content
+            .iter()
+            .any(|module| module.primary_capabilities().contains(&cap))
+    }
+
+    fn modules_with_capability(&self, cap: ModuleCapability) -> Vec<&Box<dyn Module>> {
         self.content
             .iter()
             .filter_map(|module| {
                 if module.capabilities().contains(&cap) {
+                    return Some(module);
+                }
+                None
+            })
+            .collect()
+    }
+
+    fn modules_with_primary_capability(&self, cap: ModuleCapability) -> Vec<&Box<dyn Module>> {
+        self.content
+            .iter()
+            .filter_map(|module| {
+                if module.primary_capabilities().contains(&cap) {
                     return Some(module);
                 }
                 None

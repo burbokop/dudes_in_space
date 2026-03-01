@@ -1,0 +1,54 @@
+
+export struct MoneyUiModelSink {
+    currency: string,
+    amount: int,
+}
+
+export global MoneyUiModelSinkUtils {
+    pure public function money-to-string(m: MoneyUiModelSink) -> string {
+        if (m.currency.character-count == 1) {
+            return "\{m.amount}\{m.currency}";
+        } else {
+            return "\{m.amount} \{m.currency}";
+        }
+    }
+
+    pure callback money-list-to-string(m: [MoneyUiModelSink]) -> string;
+}
+
+export struct OfferUiModelSink {
+    vessel_name: string,
+    min_count: int,
+    max_count: int,
+    price_per_unit: MoneyUiModelSink,
+    active: bool,
+    operational_wallet_content: [MoneyUiModelSink],
+}
+
+export struct ItemRecordUiModelSink {
+    item_id: string,
+    buy_offers: [OfferUiModelSink],
+    sell_offers: [OfferUiModelSink],
+}
+
+export struct TradeTableUiModelSink {
+    records: [ItemRecordUiModelSink],
+}
+
+export struct EnvironmentUiModelSink {
+    canvas: image,
+}
+
+export struct RootUiModelSink {
+    trade_table: TradeTableUiModelSink,
+    environment: EnvironmentUiModelSink,
+}
+
+export struct EnvironmentUiRequest {
+    requested-view-port-width: int,
+    requested-view-port-height: int,
+}
+
+export struct RootUiRequest {
+    environment: EnvironmentUiRequest,
+}

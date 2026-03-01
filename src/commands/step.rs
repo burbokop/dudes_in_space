@@ -1,0 +1,23 @@
+use crate::logger::StdOutLogger;
+use clap::Parser;
+use dudes_in_space_api::environment::Environment;
+use dudes_in_space_core::components::Components;
+
+#[derive(Parser)]
+pub(crate) struct StepCommand {}
+
+impl StepCommand {
+    pub(crate) fn exec(self, components: &Components, environment: &mut Environment) {
+        environment.proceed(
+            &components.process_token_context,
+            &components.req_context,
+            &components.objectives_decider_vault,
+            components.item_vault.clone(),
+            &components.subordination_table,
+            &components.bank_registry,
+            &components.wallet_registry,
+            &components.currency_generator,
+            &mut StdOutLogger,
+        );
+    }
+}

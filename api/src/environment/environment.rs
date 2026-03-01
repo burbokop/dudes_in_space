@@ -1,13 +1,25 @@
-use crate::environment::Nebula;
-use crate::module::{Module, ProcessTokenContext};
-use crate::person::{Logger, ObjectiveDeciderVault};
-use crate::vessel::{Vessel, VesselId, VesselSeed};
+use crate::environment::{
+    EnvironmentContext, FindBestBuyVesselOfferResult, FindBestOfferPairResult,
+    FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
+    PlaceOrdersResult, RequestStorage,
+};
+use crate::finance::{
+    BankRegistry, CurrencyGenerator, Money, NotEnoughMoneyInWallet, WalletRegistry,
+};
+use crate::item::{ItemId, ItemVault};
+use crate::module::{Module, ModuleCapability, ProcessTokenContext};
+use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
+use crate::trade::{BuyOffer, ItemTradeTable, OfferRef, SellOffer, VesselTradeTable};
+use crate::utils::request::ReqContext;
+use crate::vessel::{
+    Vessel, VesselConsole, VesselId, VesselIdPath, VesselInternalConsole, VesselSeed,
+};
 use dyn_serde::{DynDeserializeSeedVault, VecSeed};
 use dyn_serde_macro::DeserializeSeedXXX;
-use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-use std::fmt;
-use std::fmt::Formatter;
+use serde::Serialize;
+use std::collections::BTreeMap;
+use std::ops::ControlFlow;
+use std::rc::Rc;
 
 #[derive(Debug, Serialize, DeserializeSeedXXX)]
 #[deserialize_seed_xxx(seed = crate::environment::EnvironmentSeed::<'v>)]
@@ -15,6 +27,9 @@ pub struct Environment {
     #[deserialize_seed_xxx(seed = self.seed.vessel_seed)]
     vessels: Vec<Vessel>,
     nebulae: Vec<Nebula>,
+    request_storage: RequestStorage,
+    #[serde(default)]
+    iteration: u64,
 }
 
 pub struct EnvironmentSeed<'v> {
@@ -29,12 +44,31 @@ impl<'v> EnvironmentSeed<'v> {
     }
 }
 
+pub type Cycle = u64;
+
 impl Environment {
     pub fn new(vessels: Vec<Vessel>, nebulae: Vec<Nebula>) -> Self {
-        Self { vessels, nebulae }
+        Self {
+            vessels,
+            nebulae,
+            request_storage: Default::default(),
+            iteration: 0,
+        }
     }
 
-    pub(crate) fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
+    pub fn iteration(&self) -> u64 {
+        self.iteration
+    }
+
+    pub fn vessels(&self) -> &[Vessel] {
+        &self.vessels
+    }
+
+    pub fn add_vessel(&mut self, vessel: Vessel) {
+        self.vessels.push(vessel);
+    }
+
+    pub fn vessel_by_id(&self, id: VesselId) -> Option<&Vessel> {
         self.vessels.iter().find(|v| v.id() == id)
     }
 
@@ -42,14 +76,500 @@ impl Environment {
         self.vessels.iter_mut().find(|v| v.id() == id)
     }
 
+    pub fn extract_vessel_by_id(&mut self, id: VesselId) -> Option<Vessel> {
+        self.vessels
+            .extract_if(0..self.vessels.len(), |vessel| vessel.id() == id)
+            .next()
+    }
+
     pub fn proceed(
         &mut self,
         process_token_context: &ProcessTokenContext,
+        req_context: &ReqContext,
         decider_vault: &ObjectiveDeciderVault,
+        item_vault: Rc<ItemVault>,
+        subordination_table: &SubordinationTable,
+        bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
+        currency_generator: &CurrencyGenerator,
         logger: &mut dyn Logger,
     ) {
+        let mut environment_context = EnvironmentContext::new(
+            process_token_context,
+            &mut self.request_storage,
+            subordination_table,
+            bank_registry,
+            wallet_registry,
+            currency_generator,
+            item_vault.clone(),
+        );
         for v in &mut self.vessels {
-            v.proceed(process_token_context, decider_vault, logger)
+            v.proceed(&mut environment_context, decider_vault, logger)
         }
+        self.process_requests(
+            req_context,
+            &item_vault,
+            bank_registry,
+            wallet_registry,
+            currency_generator,
+        );
+
+        wallet_registry.flush_pledge_wallets();
+        self.iteration += 1;
+    }
+
+    pub fn collect_status(&self, collector: &mut dyn StatusCollector) {
+        collector.enter_environment(self);
+        for v in &self.vessels {
+            v.collect_status(collector);
+        }
+        collector.exit_environment();
+    }
+
+    fn process_requests(
+        &mut self,
+        req_context: &ReqContext,
+        item_vault: &ItemVault,
+        bank_registry: &BankRegistry,
+        wallet_registry: &WalletRegistry,
+        currency_generator: &CurrencyGenerator,
+    ) {
+        self.request_storage
+            .find_find_best_offer_pair_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                let trade_table =
+                    ItemTradeTable::build(bank_registry, wallet_registry, &self.vessels);
+
+                if let Some((
+                    (max_estimated_profit, max_profit_buy_offer, max_profit_sell_offer),
+                    max_profit_record,
+                )) = trade_table
+                    .iter()
+                    .filter_map(|(item_id, record)| {
+                        Some((
+                            record.eval_max_profit(
+                                bank_registry,
+                                req.input.free_storage_space,
+                                item_vault,
+                                true,
+                            )?,
+                            record,
+                        ))
+                    })
+                    .max_by(|((a, _, _), _), ((b, _, _), _)| a.cmp(bank_registry, b))
+                {
+                    req.promise
+                        .make_ready(
+                            req_context,
+                            FindBestOfferPairResult {
+                                max_estimated_profit,
+                                max_profit_buy_offer,
+                                max_profit_sell_offer,
+                            },
+                        )
+                        .unwrap();
+                    false
+                } else {
+                    true
+                }
+            });
+
+        self.request_storage
+            .find_best_buy_vessel_offer_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                let trade_table = VesselTradeTable::build(&self.vessels);
+
+                if let Some(offer) = trade_table
+                    .offers()
+                    .filter(|offer| {
+                        req.input
+                            .required_capabilities
+                            .iter()
+                            .all(|x| offer.offer.capabilities.contains(x))
+                            && req
+                                .input
+                                .required_primary_capabilities
+                                .iter()
+                                .all(|x| offer.offer.primary_capabilities.contains(x))
+                    })
+                    .min_by(|a, b| {
+                        a.offer
+                            .price_per_unit
+                            .cmp(bank_registry, &b.offer.price_per_unit)
+                    })
+                {
+                    req.promise
+                        .make_ready(
+                            req_context,
+                            FindBestBuyVesselOfferResult::BuyVesselOffer(offer.clone()),
+                        )
+                        .unwrap();
+                    return false;
+                }
+
+                if let Some((offer, estimate)) =
+                    trade_table
+                        .custom_offers()
+                        .filter(|(offer, _)| {
+                            req.input
+                                .required_capabilities
+                                .iter()
+                                .all(|x| offer.offer.available_capabilities.contains_key(x))
+                                && req.input.required_primary_capabilities.iter().all(|x| {
+                                    offer.offer.available_primary_capabilities.contains_key(x)
+                                })
+                        })
+                        .map(|(offer, module)| {
+                            assert!(
+                                !req.input.required_capabilities.is_empty()
+                                    || !req.input.required_primary_capabilities.is_empty()
+                            );
+                            (
+                                offer,
+                                module
+                                    .trading_console()
+                                    .unwrap()
+                                    .estimate_buy_custom_vessel_order(
+                                        req.input.required_capabilities.clone(),
+                                        req.input.required_primary_capabilities.clone(),
+                                        1,
+                                    )
+                                    .unwrap(),
+                            )
+                        })
+                        .min_by(|(_, a), (_, b)| a.estimate.cmp(bank_registry, &b.estimate))
+                {
+                    req.promise
+                        .make_ready(
+                            req_context,
+                            FindBestBuyVesselOfferResult::BuyCustomVesselOffer {
+                                offer: offer.clone(),
+                                estimate: estimate.clone(),
+                            },
+                        )
+                        .unwrap();
+                    return false;
+                }
+
+                req.promise
+                    .make_ready(req_context, FindBestBuyVesselOfferResult::None)
+                    .unwrap();
+                return false;
+            });
+
+        self.request_storage
+            .find_best_offers_for_items_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                let mut max_profit_buy_offers: BTreeMap<ItemId, OfferRef<BuyOffer>> =
+                    Default::default();
+                let mut max_profit_sell_offers: BTreeMap<ItemId, OfferRef<SellOffer>> =
+                    Default::default();
+                let mut average_buy_offers: BTreeMap<ItemId, Money> = Default::default();
+                let mut average_sell_offers: BTreeMap<ItemId, Money> = Default::default();
+
+                for item in &req.input.items {
+                    if let Some(record) =
+                        ItemTradeTable::build(bank_registry, wallet_registry, &self.vessels)
+                            .get(item)
+                    {
+                        if let Some(o) = record.cheapest_buy_offer(bank_registry) {
+                            max_profit_buy_offers.insert(item.clone(), o.clone());
+                        }
+
+                        if let Some(o) = record.the_most_expensive_sell_offer(bank_registry) {
+                            max_profit_sell_offers.insert(item.clone(), o.clone());
+                        }
+
+                        if let Some(o) = record.average_buy_offer(bank_registry) {
+                            average_buy_offers.insert(item.clone(), o);
+                        }
+
+                        if let Some(o) = record.average_sell_offer(bank_registry) {
+                            average_sell_offers.insert(item.clone(), o);
+                        }
+                    }
+                }
+
+                req.promise
+                    .make_ready(
+                        req_context,
+                        FindBestOffersForItemsResult {
+                            max_profit_buy_offers,
+                            max_profit_sell_offers,
+                            average_buy_offers,
+                            average_sell_offers,
+                        },
+                    )
+                    .unwrap();
+                false
+            });
+
+        self.request_storage
+            .find_owned_vessels_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                let mut vessels: Vec<VesselIdPath> = Default::default();
+
+                for vessel in &self.vessels {
+                    let _: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                        if vessel.owner() == req.input.owner
+                            && (!req.input.required_empty_pilot_seat
+                                || vessel.has_empty_pilot_seat())
+                            && req
+                                .input
+                                .required_capabilities
+                                .iter()
+                                .all(|x| vessel.capabilities().contains(x))
+                        {
+                            vessels.push(path.to_owned());
+                        }
+
+                        ControlFlow::Continue(())
+                    });
+                }
+
+                // if !vessels.is_empty() {
+                req.promise
+                    .make_ready(req_context, FindOwnedVesselsResult { vessels })
+                    .unwrap();
+                return false;
+                // }
+                //
+                // true
+            });
+
+        self.request_storage
+            .place_buy_custom_vessel_order_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                for vessel in &self.vessels {
+                    let flow: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                        if vessel.id() == req.input.offer.vessel_id {
+                            if let Some(mut module) =
+                                vessel.module_by_id_mut(req.input.offer.module_id)
+                            {
+                                let order = module
+                                    .trading_console_mut()
+                                    .unwrap()
+                                    .place_buy_custom_vessel_order(
+                                        &mut wallet_registry
+                                            .get(&req.input.buyer_wallet)
+                                            .unwrap()
+                                            .upgrade()
+                                            .unwrap()
+                                            .borrow_mut(),
+                                        req.input.needed_capabilities.clone(),
+                                        req.input.needed_primary_capabilities.clone(),
+                                        1,
+                                    );
+
+                                req.promise
+                                    .make_ready(
+                                        req_context,
+                                        match order {
+                                            Ok(order) => PlaceBuyCustomVesselOrderResult::Ok(order ),
+                                            Err(NotEnoughMoneyInWallet) => PlaceBuyCustomVesselOrderResult::NotEnoughMoneyInWallet,
+                                        }
+                                        ,
+                                    )
+                                    .unwrap();
+                                return ControlFlow::Break(());
+                            }
+                        }
+
+                        ControlFlow::Continue(())
+                    });
+
+                    if flow.is_break() {
+                        return false;
+                    }
+                }
+
+                req.promise
+                    .make_ready(req_context, PlaceBuyCustomVesselOrderResult::OfferNotFound)
+                    .unwrap();
+                return false;
+            });
+
+        self.request_storage
+            .place_orders_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                // Check if placing of all orders is possible (To ensure atomicity)
+
+                let customer_wallet = wallet_registry.get(&req.input.customer_wallet).unwrap();
+                let customer_wallet = customer_wallet.upgrade().unwrap();
+                let customer_wallet_ref = customer_wallet.borrow();
+
+                for (offer, count) in &req.input.buy_offers {
+                    let vessel = self
+                        .vessels
+                        .iter()
+                        .find(|v| v.id() == offer.vessel_id)
+                        .unwrap();
+                    let module = vessel.module_by_id(offer.module_id).unwrap();
+                    let trading_console = module.trading_console().unwrap();
+
+                    match trading_console.dry_place_buy_order(
+                        &customer_wallet_ref,
+                        &offer.offer,
+                        *count,
+                    ) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            req.promise
+                                .make_ready(req_context, PlaceOrdersResult::PlaceBuyOrderError(err))
+                                .unwrap();
+
+                            return false;
+                        }
+                    }
+                }
+
+                for (offer, count) in &req.input.sell_offers {
+                    let vessel = self
+                        .vessels
+                        .iter()
+                        .find(|v| v.id() == offer.vessel_id)
+                        .unwrap();
+                    let module = vessel.module_by_id(offer.module_id).unwrap();
+                    let trading_console = module.trading_console().unwrap();
+                    match trading_console.dry_place_sell_order(
+                        wallet_registry,
+                        &offer.offer,
+                        *count,
+                    ) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            req.promise
+                                .make_ready(
+                                    req_context,
+                                    PlaceOrdersResult::PlaceSellOrderError(err),
+                                )
+                                .unwrap();
+
+                            return false;
+                        }
+                    }
+                }
+
+                drop(customer_wallet_ref);
+                let mut customer_wallet_ref = customer_wallet.borrow_mut();
+
+                // Place all orders
+
+                let buy_orders: Vec<_> = req
+                    .input
+                    .buy_offers
+                    .iter()
+                    .map(|(offer, count)| {
+                        let vessel = self
+                            .vessels
+                            .iter()
+                            .find(|v| v.id() == offer.vessel_id)
+                            .unwrap();
+                        let mut module = vessel.module_by_id_mut(offer.module_id).unwrap();
+                        let trading_console = module.trading_console_mut().unwrap();
+                        trading_console
+                            .place_buy_order(
+                                wallet_registry,
+                                &mut customer_wallet_ref,
+                                offer.vessel_id,
+                                &offer.offer,
+                                *count,
+                            )
+                            .unwrap()
+                    })
+                    .collect();
+
+                let sell_orders: Vec<_> = req
+                    .input
+                    .sell_offers
+                    .iter()
+                    .map(|(offer, count)| {
+                        let vessel = self
+                            .vessels
+                            .iter()
+                            .find(|v| v.id() == offer.vessel_id)
+                            .unwrap();
+                        let mut module = vessel.module_by_id_mut(offer.module_id).unwrap();
+                        let trading_console = module.trading_console_mut().unwrap();
+                        trading_console
+                            .place_sell_order(
+                                wallet_registry,
+                                offer.vessel_id,
+                                &offer.offer,
+                                *count,
+                            )
+                            .unwrap()
+                    })
+                    .collect();
+
+                req.promise
+                    .make_ready(
+                        req_context,
+                        PlaceOrdersResult::Ok {
+                            buy_orders,
+                            sell_orders,
+                        },
+                    )
+                    .unwrap();
+
+                false
+            });
+
+        self.request_storage
+            .request_credit_limit_increase_requests
+            .retain_mut(|req| {
+                assert!(req.promise.check_pending(req_context));
+
+                for vessel in &self.vessels {
+                    let flow: ControlFlow<()> = vessel.traverse(|path, vessel| {
+                        let mut modules: Vec<_> = vessel
+                            .modules_with_capability_mut(ModuleCapability::PersonnelRoom)
+                            .collect();
+
+                        let persons: Vec<_> = modules
+                            .iter_mut()
+                            .map(|module| module.persons_mut().iter_mut())
+                            .flatten()
+                            .collect();
+
+                        for person in persons {
+                            if person.id() == req.input.recipient {
+                                person
+                                    .handle_request(|h, p| {
+                                        h.handle_request_credit_limit_increase(
+                                            p,
+                                            currency_generator,
+                                            bank_registry,
+                                            req_context,
+                                            req,
+                                        )
+                                    })
+                                    .unwrap();
+                                return ControlFlow::Break(());
+                            }
+                        }
+
+                        ControlFlow::Continue(())
+                    });
+
+                    if flow.is_break() {
+                        break;
+                    }
+                }
+
+                req.promise.check_pending(req_context)
+            });
     }
 }
