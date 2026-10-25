@@ -1,3 +1,4 @@
+use crate::environment::EnvironmentContext;
 use crate::finance::{Money, NotEnoughMoneyInWallet, Wallet, WalletId, WalletRegistry};
 use crate::item::{ItemCount, ItemId, ItemSafe, ItemStorage, StorageRole};
 use crate::module::module::ModuleId;
@@ -371,7 +372,11 @@ pub enum FlyError {}
 pub trait FlightControlConsole {
     fn is_docked(&self) -> bool;
     fn can_undock(&self) -> bool;
-    fn docking_status(&self, vessel: &VesselId) -> DockingStatus;
+    fn docking_status(
+        &self,
+        environment_context: &EnvironmentContext,
+        vessel: &VesselId,
+    ) -> DockingStatus;
     #[must_use]
     fn dock(&self, vessel: &VesselId) -> Result<(), DockError>;
     #[must_use]

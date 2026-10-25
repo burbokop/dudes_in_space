@@ -9,7 +9,7 @@ use dudes_in_space_api::module::{
     ProcessTokenMutSeed, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+    DynObjective, Logger, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
@@ -17,7 +17,8 @@ use dudes_in_space_api::recipe::{
 };
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
 use dudes_in_space_api::vessel::{
-    DockingClamp, DockingClampSeed, DockingConnector, Vessel, VesselModuleInterface,
+    DockingClamp, DockingClampSeed, DockingConnector, ParentVesselInfo, Vessel,
+    VesselModuleInterface,
 };
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
@@ -314,9 +315,8 @@ impl Module for Dockyard {
 
     fn proceed(
         &mut self,
-        this_vessel: &dyn VesselModuleInterface,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselModuleInterface,
         logger: &mut dyn Logger,
     ) {
         let rng = &mut rng();
@@ -332,10 +332,9 @@ impl Module for Dockyard {
         if let Some(operator) = &mut self.operator {
             operator.proceed(
                 rng,
-                &mut console,
-                this_vessel.console(),
                 environment_context,
-                decider_vault,
+                this_vessel.console(),
+                &mut console,
                 logger,
             )
         }
@@ -373,8 +372,11 @@ impl Module for Dockyard {
             }
         }
 
-        self.docking_clamp
-            .proceed(environment_context, decider_vault, logger);
+        self.docking_clamp.proceed(
+            environment_context,
+            &ParentVesselInfo { id: self.id },
+            logger,
+        );
     }
 
     fn active(&self) -> bool {

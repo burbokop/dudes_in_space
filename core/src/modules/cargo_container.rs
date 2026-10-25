@@ -7,9 +7,7 @@ use dudes_in_space_api::item::{
 use dudes_in_space_api::module::{
     Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId, PackageId, TradingConsole,
 };
-use dudes_in_space_api::person::{
-    Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector,
-};
+use dudes_in_space_api::person::{Logger, Person, PersonId, StatusCollector};
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
@@ -80,9 +78,8 @@ impl Module for CargoContainer {
 
     fn proceed(
         &mut self,
-        this_vessel: &dyn VesselModuleInterface,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselModuleInterface,
         logger: &mut dyn Logger,
     ) {
     }

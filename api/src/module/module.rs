@@ -1,7 +1,7 @@
 use crate::environment::EnvironmentContext;
 use crate::item::{ItemSafe, ItemStorage, StorageRole};
 use crate::module::{ModuleCapability, ModuleStorage, TradingConsole};
-use crate::person::{Logger, ObjectiveDeciderVault, Person, PersonId, StatusCollector};
+use crate::person::{Logger, Person, PersonId, StatusCollector};
 use crate::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -22,9 +22,8 @@ pub trait Module: Debug + DynSerialize {
 
     fn proceed(
         &mut self,
-        this_vessel: &dyn VesselModuleInterface,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselModuleInterface,
         logger: &mut dyn Logger,
     );
 

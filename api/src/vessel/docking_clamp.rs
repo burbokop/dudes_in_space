@@ -1,9 +1,9 @@
 use crate::environment::EnvironmentContext;
 use crate::module::{Module, ModuleCapability};
-use crate::person::{Logger, ObjectiveDeciderVault};
+use crate::person::Logger;
 use crate::utils::tagged_option::TaggedOptionSeed;
 use crate::vessel::docking_connector::DockingConnectorId;
-use crate::vessel::{Vessel, VesselSeed};
+use crate::vessel::{ParentVesselInfo, Vessel, VesselSeed};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::Serialize;
@@ -119,13 +119,13 @@ impl DockingClamp {
     pub fn proceed(
         &mut self,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        parent_vessel_info: &ParentVesselInfo,
         logger: &mut dyn Logger,
     ) {
         if let Some(connection) = self.connection.as_mut() {
             connection
                 .vessel
-                .proceed(environment_context, decider_vault, logger);
+                .proceed(environment_context, Some(parent_vessel_info), logger);
         }
     }
 }

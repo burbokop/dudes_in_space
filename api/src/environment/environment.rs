@@ -98,6 +98,7 @@ impl Environment {
         let mut environment_context = EnvironmentContext::new(
             process_token_context,
             &mut self.request_storage,
+            decider_vault,
             subordination_table,
             bank_registry,
             wallet_registry,
@@ -105,9 +106,11 @@ impl Environment {
             order_holder,
             item_vault.clone(),
         );
+
         for v in &mut self.vessels {
-            v.proceed(&mut environment_context, decider_vault, logger)
+            v.proceed(&mut environment_context, None, logger)
         }
+
         self.process_requests(
             req_context,
             &item_vault,

@@ -8,7 +8,7 @@ use dudes_in_space_api::module::{
     TradingConsole,
 };
 use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+    DynObjective, Logger, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{AssemblyRecipe, InputItemRecipe, ItemRecipe, OutputItemRecipe};
 use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
@@ -95,9 +95,8 @@ impl Module for PersonnelArea {
 
     fn proceed(
         &mut self,
-        this_vessel: &dyn VesselModuleInterface,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselModuleInterface,
         logger: &mut dyn Logger,
     ) {
         let mut person_interface =
@@ -105,10 +104,9 @@ impl Module for PersonnelArea {
         for person in &mut self.personnel {
             person.proceed(
                 &mut rng(),
-                &mut person_interface,
-                this_vessel.console(),
                 environment_context,
-                decider_vault,
+                this_vessel.console(),
+                &mut person_interface,
                 logger,
             )
         }

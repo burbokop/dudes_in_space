@@ -59,7 +59,9 @@ impl Objective for BuyGoodsObjective {
             .vessel_to_buy_from(environment_context.order_holder())
             .unwrap();
 
-        if flight_control_console.docking_status(&target) != DockingStatus::Docked {
+        if flight_control_console.docking_status(environment_context, &target)
+            != DockingStatus::Docked
+        {
             self.fly_and_dock_to_vessel_objective = Some(FlyAndDockToVesselObjective::new(target));
             return Ok(ObjectiveStatus::InProgress);
         }

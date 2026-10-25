@@ -52,7 +52,7 @@ impl Objective for FlyAndDockToVesselObjective {
             && this_module
                 .flight_control_console_mut()
                 .unwrap()
-                .docking_status(&self.target)
+                .docking_status(environment_context, &self.target)
                 != DockingStatus::Docked
         {
             if !this_module
@@ -74,7 +74,7 @@ impl Objective for FlyAndDockToVesselObjective {
         match this_module
             .flight_control_console_mut()
             .unwrap()
-            .docking_status(&self.target)
+            .docking_status(environment_context, &self.target)
         {
             DockingStatus::Docked => Ok(ObjectiveStatus::Done(())),
             DockingStatus::CanDock => {

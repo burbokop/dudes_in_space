@@ -7,8 +7,7 @@ use crate::person::logger::{Logger, PersonLogger};
 use crate::person::objective::ObjectiveStatus;
 use crate::person::personal_notes::PersonalNotes;
 use crate::person::{
-    DynObjective, ObjectiveDeciderVault, ObjectiveRequestHandler, ObjectiveSeed, StatusCollector,
-    ThisPerson,
+    DynObjective, ObjectiveRequestHandler, ObjectiveSeed, StatusCollector, ThisPerson,
 };
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::tagged_option::TaggedOptionSeed;
@@ -352,10 +351,9 @@ impl Person {
     pub fn proceed<R: Rng>(
         &mut self,
         rng: &mut R,
-        this_module: &mut dyn ModuleConsole,
-        this_vessel: &dyn VesselInternalConsole,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselInternalConsole,
+        this_module: &mut dyn ModuleConsole,
         logger: &mut dyn Logger,
     ) {
         let mut info = ThisPerson {
@@ -369,11 +367,15 @@ impl Person {
             finance: &mut self.finance,
             notes: &mut self.personal_notes,
         };
+
         let mut logger = PersonLogger::new(&self.id, &self.name, logger);
 
         match &mut self.objective {
             None => {
-                self.objective = decider_vault.decide(rng, &info, &mut logger);
+                self.objective =
+                    environment_context
+                        .objective_decider_vault()
+                        .decide(rng, &info, &mut logger);
                 self.state = PersonState::Active
             }
             Some(objective) => {

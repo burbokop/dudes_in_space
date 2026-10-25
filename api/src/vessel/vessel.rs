@@ -2,8 +2,7 @@ use crate::environment::EnvironmentContext;
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed};
 use crate::person;
 use crate::person::{
-    Logger, ObjectiveDeciderVault, PersonId, StatusCollector, SubordinationTable, VesselPermission,
-    VesselPermissions,
+    Logger, PersonId, StatusCollector, SubordinationTable, VesselPermission, VesselPermissions,
 };
 use crate::utils::non_nil_uuid::NonNilUuid;
 use crate::utils::utils::Float;
@@ -105,6 +104,10 @@ pub struct Vessel {
     requests: RefCell<Vec<VesselRequest>>,
     #[serde(default)]
     permissions: VesselPermissions,
+}
+
+pub struct ParentVesselInfo {
+    pub id: VesselId,
 }
 
 #[derive(Clone)]
@@ -313,12 +316,18 @@ impl Vessel {
     pub(crate) fn proceed(
         &mut self,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        parent_vessel_info: Option<&ParentVesselInfo>,
         logger: &mut dyn Logger,
     ) {
         for v in &self.modules {
-            v.borrow_mut()
-                .proceed(self, environment_context, decider_vault, logger)
+            v.borrow_mut().proceed(
+                environment_context,
+                &VesselModuleInterfaceImpl {
+                    vessel: self,
+                    parent_vessel_info,
+                },
+                logger,
+            )
         }
         for request in self.requests.take() {
             match request {
@@ -420,15 +429,25 @@ impl Vessel {
     }
 }
 
-impl VesselModuleInterface for Vessel {
+struct VesselModuleInterfaceImpl<'a, 'b> {
+    vessel: &'a Vessel,
+    parent_vessel_info: Option<&'b ParentVesselInfo>,
+}
+
+impl<'a, 'b> VesselModuleInterface for VesselModuleInterfaceImpl<'a, 'b> {
     fn add_module(&self, module: Box<dyn Module>) {
-        self.requests
+        self.vessel
+            .requests
             .borrow_mut()
             .push(VesselRequest::AddModule { module })
     }
 
     fn console(&self) -> &dyn VesselInternalConsole {
-        self
+        self.vessel
+    }
+
+    fn parent_vessel_info(&self) -> Option<&ParentVesselInfo> {
+        self.parent_vessel_info
     }
 }
 

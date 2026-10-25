@@ -1,6 +1,6 @@
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId};
 use crate::person::{PersonId, SubordinationTable, VesselPermissions};
-use crate::vessel::{DockingConnectorId, VesselId};
+use crate::vessel::{DockingConnectorId, ParentVesselInfo, VesselId};
 use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -10,6 +10,7 @@ use std::fmt::{Display, Formatter};
 pub trait VesselModuleInterface {
     fn add_module(&self, module: Box<dyn Module>);
     fn console(&self) -> &dyn VesselInternalConsole;
+    fn parent_vessel_info(&self) -> Option<&ParentVesselInfo>;
 }
 
 /// interface through which a person can interact with a vessel

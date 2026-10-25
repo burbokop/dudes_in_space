@@ -2,35 +2,38 @@ use crate::environment::RequestStorage;
 use crate::finance::{BankRegistry, CurrencyGenerator, WalletRegistry};
 use crate::item::ItemVault;
 use crate::module::ProcessTokenContext;
-use crate::person::SubordinationTable;
+use crate::person::{ObjectiveDeciderVault, SubordinationTable};
 use crate::trade::OrderHolder;
 use std::rc::Rc;
 
-pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g> {
+pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
     process_token_context: &'a ProcessTokenContext,
     request_storage: &'b mut RequestStorage,
-    subordination_table: &'c SubordinationTable,
-    bank_registry: &'d BankRegistry,
-    wallet_registry: &'e WalletRegistry,
-    currency_generator: &'f CurrencyGenerator,
-    order_holder: &'g OrderHolder,
+    objective_decider_vault: &'c ObjectiveDeciderVault,
+    subordination_table: &'d SubordinationTable,
+    bank_registry: &'e BankRegistry,
+    wallet_registry: &'f WalletRegistry,
+    currency_generator: &'g CurrencyGenerator,
+    order_holder: &'h OrderHolder,
     item_vault: Rc<ItemVault>,
 }
 
-impl<'a, 'b, 'c, 'd, 'e, 'f, 'g> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g> {
+impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
     pub fn new(
         process_token_context: &'a ProcessTokenContext,
         request_storage: &'b mut RequestStorage,
-        subordination_table: &'c SubordinationTable,
-        bank_registry: &'d BankRegistry,
-        wallet_registry: &'e WalletRegistry,
-        currency_generator: &'f CurrencyGenerator,
-        order_holder: &'g OrderHolder,
+        objective_decider_vault: &'c ObjectiveDeciderVault,
+        subordination_table: &'d SubordinationTable,
+        bank_registry: &'e BankRegistry,
+        wallet_registry: &'f WalletRegistry,
+        currency_generator: &'g CurrencyGenerator,
+        order_holder: &'h OrderHolder,
         item_vault: Rc<ItemVault>,
     ) -> Self {
         Self {
             process_token_context,
             request_storage,
+            objective_decider_vault,
             subordination_table,
             bank_registry,
             wallet_registry,
@@ -50,6 +53,10 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g> 
 
     pub fn request_storage_mut(&mut self) -> &mut RequestStorage {
         &mut self.request_storage
+    }
+
+    pub fn objective_decider_vault(&self) -> &ObjectiveDeciderVault {
+        &self.objective_decider_vault
     }
 
     pub fn subordination_table(&self) -> &SubordinationTable {

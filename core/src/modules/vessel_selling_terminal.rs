@@ -11,7 +11,7 @@ use dudes_in_space_api::module::{
     PackageId, PlaceBuyOrderError, PlaceSellOrderError, ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+    DynObjective, Logger, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
@@ -336,9 +336,8 @@ impl Module for VesselSellingTerminal {
 
     fn proceed(
         &mut self,
-        this_vessel: &dyn VesselModuleInterface,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselModuleInterface,
         logger: &mut dyn Logger,
     ) {
         let mut console = Console {
@@ -352,10 +351,9 @@ impl Module for VesselSellingTerminal {
         if let Some(operator) = &mut self.operator {
             operator.proceed(
                 &mut rng(),
-                &mut console,
-                this_vessel.console(),
                 environment_context,
-                decider_vault,
+                this_vessel.console(),
+                &mut console,
                 logger,
             )
         }

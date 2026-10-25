@@ -1,21 +1,25 @@
 use crate::CORE_PACKAGE_ID;
+use burbomath::Vector;
 use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
-    AdminTradingConsole, CraftingConsole, DockingStatus, DockyardConsole, FlightControlConsole,
-    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId,
-    NavigationConsole, PackageId, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockError, DockingStatus, DockyardConsole,
+    FlightControlConsole, FlyError, Module, ModuleCapability, ModuleConsole, ModuleId,
+    ModuleStorage, ModuleTypeId, NavigationConsole, PackageId, TradingConsole, UndockError,
 };
 use dudes_in_space_api::person::{
-    DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
+    DynObjective, Logger, Person, PersonId, PersonSeed, StatusCollector,
 };
 use dudes_in_space_api::recipe::{
     AssemblyRecipe, InputItemRecipe, ItemRecipe, ModuleFactory, ModuleFactoryOutputDescription,
     OutputItemRecipe,
 };
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselId, VesselModuleInterface};
+use dudes_in_space_api::utils::utils::Float;
+use dudes_in_space_api::vessel::{
+    DockingClamp, DockingConnector, ParentVesselInfo, VesselId, VesselModuleInterface,
+};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -87,11 +91,12 @@ impl DynSerialize for Shuttle {
     }
 }
 
-struct Console<'a> {
+struct Console<'a, 'b> {
     id: &'a ModuleId,
+    parent_vessel_info: Option<&'b ParentVesselInfo>,
 }
 
-impl<'a> ModuleConsole for Console<'a> {
+impl<'a, 'b> ModuleConsole for Console<'a, 'b> {
     fn id(&self) -> ModuleId {
         self.id.clone()
     }
@@ -209,7 +214,7 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 }
 
-impl<'a> FlightControlConsole for Console<'a> {
+impl<'a, 'b> FlightControlConsole for Console<'a, 'b> {
     fn is_docked(&self) -> bool {
         todo!()
     }
@@ -218,31 +223,37 @@ impl<'a> FlightControlConsole for Console<'a> {
         todo!()
     }
 
-    fn docking_status(&self, vessel: &VesselId) -> DockingStatus {
-        todo!()
-    }
-
-    fn dock(&self, vessel: &VesselId) -> Result<(), dudes_in_space_api::module::DockError> {
-        todo!()
-    }
-
-    fn undock(&self) -> Result<(), dudes_in_space_api::module::UndockError> {
-        todo!()
-    }
-
-    fn fly(
+    fn docking_status(
         &self,
-        heading: burbomath::Vector<dudes_in_space_api::utils::utils::Float>,
-    ) -> Result<(), dudes_in_space_api::module::FlyError> {
+        environment_context: &EnvironmentContext,
+        vessel: &VesselId,
+    ) -> DockingStatus {
+        if let Some(parent_vessel_info) = self.parent_vessel_info
+            && &parent_vessel_info.id == vessel
+        {
+            DockingStatus::Docked
+        } else {
+            todo!(
+                "Find vessel using environment_context and check distance and ports availability. Possibly create some global table for docking requests."
+            )
+        }
+    }
+
+    fn dock(&self, vessel: &VesselId) -> Result<(), DockError> {
+        todo!()
+    }
+
+    fn undock(&self) -> Result<(), UndockError> {
+        todo!()
+    }
+
+    fn fly(&self, heading: Vector<Float>) -> Result<(), FlyError> {
         todo!()
     }
 }
 
-impl<'a> NavigationConsole for Console<'a> {
-    fn vector_to_vessel(
-        &self,
-        vessel: &dudes_in_space_api::vessel::VesselId,
-    ) -> burbomath::Vector<dudes_in_space_api::utils::utils::Float> {
+impl<'a, 'b> NavigationConsole for Console<'a, 'b> {
+    fn vector_to_vessel(&self, vessel: &VesselId) -> Vector<Float> {
         todo!()
     }
 }
@@ -266,20 +277,21 @@ impl Module for Shuttle {
 
     fn proceed(
         &mut self,
-        this_vessel: &dyn VesselModuleInterface,
         environment_context: &mut EnvironmentContext,
-        decider_vault: &ObjectiveDeciderVault,
+        this_vessel: &dyn VesselModuleInterface,
         logger: &mut dyn Logger,
     ) {
-        let mut console = Console { id: &self.id };
+        let mut console = Console {
+            id: &self.id,
+            parent_vessel_info: this_vessel.parent_vessel_info(),
+        };
 
         if let Some(pilot) = &mut self.pilot {
             pilot.proceed(
                 &mut rng(),
-                &mut console,
-                this_vessel.console(),
                 environment_context,
-                decider_vault,
+                this_vessel.console(),
+                &mut console,
                 logger,
             )
         }
