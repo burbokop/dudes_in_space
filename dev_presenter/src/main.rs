@@ -5,7 +5,6 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![feature(const_convert)]
-#![feature(duration_millis_float)]
 
 use crate::app::App;
 use crate::event_handler::{Event, KeyCode, MouseButton};
@@ -174,7 +173,7 @@ pub fn main() -> Result<(), PlatformError> {
 
             let event = Event::MouseWheel {
                 position: (pos_x as i32, pos_y as i32).into(),
-                delta: (delta_x as i32 / 120, delta_y as i32 / 120).into(),
+                delta: (delta_x.signum() as i32, delta_y.signum() as i32).into(),
             };
 
             match app.handle_event(event) {

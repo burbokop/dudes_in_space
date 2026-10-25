@@ -47,13 +47,13 @@ impl Distance {
     }
 }
 
-impl const From<Relative> for Distance {
+const impl  From<Relative> for Distance {
     fn from(value: Relative) -> Self {
         Self::Relative(value)
     }
 }
 
-impl const From<Pix> for Distance {
+const impl  From<Pix> for Distance {
     fn from(value: Pix) -> Self {
         Self::Pix(value)
     }

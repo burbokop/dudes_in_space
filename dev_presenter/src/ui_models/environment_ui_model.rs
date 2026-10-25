@@ -184,8 +184,16 @@ impl<'a> EnvironmentUiModel<'a> {
 
             renderer.end();
         }
+
+        let mut result = slint::Image::from_rgba8(self.buffer.clone());
+
+        // Hack bacause slint 1.15.1 crushes when image has size 0x0
+        if result.size().width == 0 || result.size().height == 0 {
+            result = slint::Image::from_rgba8(SharedPixelBuffer::new(1, 1));
+        }
+
         crate::EnvironmentUiModelSink {
-            canvas: slint::Image::from_rgba8(self.buffer.clone()),
+            canvas: result,
         }
     }
 }
