@@ -24,7 +24,7 @@ static TYPE_ID: &str = "TradeFromScratchObjective";
 static NEEDED_PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
 
 static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Cockpit,
+    ModuleCapability::FlightControl,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,

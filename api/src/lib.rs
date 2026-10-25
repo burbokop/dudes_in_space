@@ -2,7 +2,7 @@
 #![feature(try_trait_v2)]
 #![feature(box_into_inner)]
 #![feature(const_trait_impl)]
-// #![feature(const_from)]
+#![feature(option_get_or_try_insert_with)]
 #![feature(impl_trait_in_assoc_type)]
 #![deny(warnings)]
 #![allow(unused_variables)]

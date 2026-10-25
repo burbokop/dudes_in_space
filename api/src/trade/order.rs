@@ -31,8 +31,8 @@ pub struct WeakBuyOrder {
 }
 
 impl WeakBuyOrder {
-    pub fn vessel_to_buy_from(&self) -> Option<VesselId> {
-        todo!()
+    pub fn vessel_to_buy_from(&mut self, holder: &OrderHolder) -> Option<VesselId> {
+        Some(self.get_impl(holder).vessel_to_buy_from)
     }
 
     pub fn items(&self) -> Option<Vec<Item>> {
@@ -41,6 +41,13 @@ impl WeakBuyOrder {
 
     pub fn price(&self) -> Option<Money> {
         todo!()
+    }
+
+    fn get_impl(&mut self, holder: &OrderHolder) -> Rc<BuyOrderImpl> {
+        let id = self.id;
+        self.data.get_or_try_insert_with(||{
+            holder.buy_orders.borrow().get(&id).cloned()
+        }).and_then(|f|f.upgrade()).expect("Expected to be in the holder and be alive (TODO handle the situation when station with terminal providing this order is destroyed)")
     }
 }
 

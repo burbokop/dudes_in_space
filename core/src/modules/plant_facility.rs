@@ -6,9 +6,10 @@ use dudes_in_space_api::item::{
     ItemId, ItemSafe, ItemStorage, ItemStorageSeed, ItemVault, ItemVolume, StorageRole,
 };
 use dudes_in_space_api::module::{
-    AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
-    ModuleId, ModuleStorage, ModuleTypeId, PackageId, ProcessToken, ProcessTokenContext,
-    ProcessTokenMut, ProcessTokenMutSeed, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockyardConsole, FlightControlConsole, Module,
+    ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, NavigationConsole,
+    PackageId, ProcessToken, ProcessTokenContext, ProcessTokenMut, ProcessTokenMutSeed,
+    TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -293,6 +294,22 @@ impl ModuleConsole for Console<'_> {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn flight_control_console(&self) -> Option<&dyn FlightControlConsole> {
+        todo!()
+    }
+
+    fn flight_control_console_mut(&mut self) -> Option<&mut dyn FlightControlConsole> {
+        todo!()
+    }
+
+    fn navigation_console(&self) -> Option<&dyn NavigationConsole> {
+        todo!()
+    }
+
+    fn navigation_console_mut(&mut self) -> Option<&mut dyn NavigationConsole> {
         todo!()
     }
 }

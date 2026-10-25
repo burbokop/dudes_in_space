@@ -3,8 +3,9 @@ use dudes_in_space_api::environment::EnvironmentContext;
 use dudes_in_space_api::finance::{BankRegistry, WalletRegistry};
 use dudes_in_space_api::item::{ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
-    DefaultModuleConsole, Module, ModuleCapability, ModuleId, ModuleStorage, ModuleTypeId,
-    PackageId, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockingStatus, DockyardConsole, FlightControlConsole,
+    Module, ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId,
+    NavigationConsole, PackageId, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -14,7 +15,7 @@ use dudes_in_space_api::recipe::{
     OutputItemRecipe,
 };
 use dudes_in_space_api::utils::tagged_option::TaggedOptionSeed;
-use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselModuleInterface};
+use dudes_in_space_api::vessel::{DockingClamp, DockingConnector, VesselId, VesselModuleInterface};
 use dyn_serde::{
     DynDeserializeSeed, DynDeserializeSeedVault, DynSerialize, TypeId, from_intermediate_seed,
 };
@@ -30,7 +31,8 @@ pub(super) static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
 static DOCKING_CONNECTOR_COMPAT_TYPE: usize = 0;
 static CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Cockpit,
+    ModuleCapability::FlightControl,
+    ModuleCapability::Navigation,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
@@ -38,7 +40,7 @@ static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::DockingConnector,
 ];
 static PRIMARY_CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Cockpit,
+    ModuleCapability::FlightControl,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
@@ -85,6 +87,166 @@ impl DynSerialize for Shuttle {
     }
 }
 
+struct Console<'a> {
+    id: &'a ModuleId,
+}
+
+impl<'a> ModuleConsole for Console<'a> {
+    fn id(&self) -> ModuleId {
+        self.id.clone()
+    }
+
+    fn type_id(&self) -> ModuleTypeId {
+        todo!()
+    }
+
+    fn package_id(&self) -> PackageId {
+        todo!()
+    }
+
+    fn capabilities(&self) -> &[ModuleCapability] {
+        CAPABILITIES
+    }
+
+    fn primary_capabilities(&self) -> &[ModuleCapability] {
+        PRIMARY_CAPABILITIES
+    }
+
+    fn interact(&mut self) -> bool {
+        todo!()
+    }
+
+    fn in_progress(&self) -> bool {
+        todo!()
+    }
+
+    fn crafting_console(&self) -> Option<&dyn CraftingConsole> {
+        None
+    }
+
+    fn crafting_console_mut(&mut self) -> Option<&mut dyn CraftingConsole> {
+        todo!()
+    }
+
+    fn dockyard_console(&self) -> Option<&dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn dockyard_console_mut(&mut self) -> Option<&mut dyn DockyardConsole> {
+        todo!()
+    }
+
+    fn trading_console(&self) -> Option<&dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_console_mut(&mut self) -> Option<&mut dyn TradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole> {
+        todo!()
+    }
+
+    fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole> {
+        todo!()
+    }
+
+    fn storages(&self) -> Vec<&ItemStorage> {
+        vec![]
+    }
+
+    fn storages_mut(&mut self) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role(&self, role: StorageRole) -> Vec<&ItemStorage> {
+        todo!()
+    }
+
+    fn storages_by_role_mut(&mut self, role: StorageRole) -> Vec<&mut ItemStorage> {
+        todo!()
+    }
+
+    fn safes(&self) -> &[ItemSafe] {
+        todo!()
+    }
+
+    fn safes_mut(&mut self) -> &mut [ItemSafe] {
+        todo!()
+    }
+
+    fn module_storages(&self) -> &[ModuleStorage] {
+        todo!()
+    }
+
+    fn module_storages_mut(&mut self) -> &mut [ModuleStorage] {
+        todo!()
+    }
+
+    fn docking_clamps(&self) -> &[DockingClamp] {
+        todo!()
+    }
+
+    fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn flight_control_console(&self) -> Option<&dyn FlightControlConsole> {
+        Some(self)
+    }
+
+    fn flight_control_console_mut(&mut self) -> Option<&mut dyn FlightControlConsole> {
+        Some(self)
+    }
+
+    fn navigation_console(&self) -> Option<&dyn NavigationConsole> {
+        Some(self)
+    }
+
+    fn navigation_console_mut(&mut self) -> Option<&mut dyn NavigationConsole> {
+        Some(self)
+    }
+}
+
+impl<'a> FlightControlConsole for Console<'a> {
+    fn is_docked(&self) -> bool {
+        todo!()
+    }
+
+    fn can_undock(&self) -> bool {
+        todo!()
+    }
+
+    fn docking_status(&self, vessel: &VesselId) -> DockingStatus {
+        todo!()
+    }
+
+    fn dock(&self, vessel: &VesselId) -> Result<(), dudes_in_space_api::module::DockError> {
+        todo!()
+    }
+
+    fn undock(&self) -> Result<(), dudes_in_space_api::module::UndockError> {
+        todo!()
+    }
+
+    fn fly(
+        &self,
+        heading: burbomath::Vector<dudes_in_space_api::utils::utils::Float>,
+    ) -> Result<(), dudes_in_space_api::module::FlyError> {
+        todo!()
+    }
+}
+
+impl<'a> NavigationConsole for Console<'a> {
+    fn vector_to_vessel(
+        &self,
+        vessel: &dudes_in_space_api::vessel::VesselId,
+    ) -> burbomath::Vector<dudes_in_space_api::utils::utils::Float> {
+        todo!()
+    }
+}
+
 impl Module for Shuttle {
     fn storages(&self) -> Vec<&ItemStorage> {
         vec![]
@@ -109,7 +271,7 @@ impl Module for Shuttle {
         decider_vault: &ObjectiveDeciderVault,
         logger: &mut dyn Logger,
     ) {
-        let mut console = DefaultModuleConsole::new(self.id, CAPABILITIES, PRIMARY_CAPABILITIES);
+        let mut console = Console { id: &self.id };
 
         if let Some(pilot) = &mut self.pilot {
             pilot.proceed(

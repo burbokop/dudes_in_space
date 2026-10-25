@@ -29,7 +29,7 @@ use std::rc::Rc;
 
 static TYPE_ID: &str = "AdventuringObjective";
 static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Cockpit,
+    ModuleCapability::FlightControl,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
@@ -124,12 +124,13 @@ impl Objective for AdventuringObjective {
                     {
                         if this_module
                             .capabilities()
-                            .contains(&ModuleCapability::Cockpit)
+                            .contains(&ModuleCapability::FlightControl)
                         {
                             todo!()
                         }
 
-                        for module in this_vessel.modules_with_capability(ModuleCapability::Cockpit)
+                        for module in
+                            this_vessel.modules_with_capability(ModuleCapability::FlightControl)
                         {
                             if module.free_person_slots_count() > 0 {
                                 logger.info("Moving to cockpit module...");

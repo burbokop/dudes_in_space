@@ -12,6 +12,7 @@ use crate::trade::{
     BuyVesselOffer, BuyVesselOrder, OfferId, SellOffer, SellOrder, WeakBuyCustomVesselOrder,
     WeakBuyOrder, WeakBuyVesselOrder, WeakSellOrder,
 };
+use crate::utils::utils::Float;
 use crate::vessel::{DockingClamp, VesselId};
 use burbomath::Vector;
 use burbomath::range::RangeInclusive;
@@ -43,6 +44,12 @@ pub trait ModuleConsole {
 
     fn trading_admin_console(&self) -> Option<&dyn AdminTradingConsole>;
     fn trading_admin_console_mut(&mut self) -> Option<&mut dyn AdminTradingConsole>;
+
+    fn flight_control_console(&self) -> Option<&dyn FlightControlConsole>;
+    fn flight_control_console_mut(&mut self) -> Option<&mut dyn FlightControlConsole>;
+
+    fn navigation_console(&self) -> Option<&dyn NavigationConsole>;
+    fn navigation_console_mut(&mut self) -> Option<&mut dyn NavigationConsole>;
 
     fn storages(&self) -> Vec<&ItemStorage>;
     fn storages_mut(&mut self) -> Vec<&mut ItemStorage>;
@@ -178,6 +185,22 @@ impl<'c, 'pc> ModuleConsole for DefaultModuleConsole<'c, 'pc> {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn flight_control_console(&self) -> Option<&dyn FlightControlConsole> {
+        todo!()
+    }
+
+    fn flight_control_console_mut(&mut self) -> Option<&mut dyn FlightControlConsole> {
+        todo!()
+    }
+
+    fn navigation_console(&self) -> Option<&dyn NavigationConsole> {
+        todo!()
+    }
+
+    fn navigation_console_mut(&mut self) -> Option<&mut dyn NavigationConsole> {
         todo!()
     }
 }
@@ -326,6 +349,42 @@ pub trait AdminTradingConsole {
     fn sell_orders(&self) -> &[SellOrder];
     fn buy_vessel_orders(&self) -> &[BuyVesselOrder];
     fn buy_custom_vessel_orders(&self) -> &[BuyCustomVesselOrder];
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DockingStatus {
+    Docked,
+    CanDock,
+    NoAvailableDockingPorts,
+    TooFar,
+}
+
+#[derive(Debug)]
+pub enum DockError {}
+
+#[derive(Debug)]
+pub enum UndockError {}
+
+#[derive(Debug)]
+pub enum FlyError {}
+
+pub trait FlightControlConsole {
+    fn is_docked(&self) -> bool;
+    fn can_undock(&self) -> bool;
+    fn docking_status(&self, vessel: &VesselId) -> DockingStatus;
+    #[must_use]
+    fn dock(&self, vessel: &VesselId) -> Result<(), DockError>;
+    #[must_use]
+    fn undock(&self) -> Result<(), UndockError>;
+
+    /// Fly into the direction of `heading` where length of the vector indicates the maximum distance to fly
+    /// TODO replace with more sofisticated control during "Add kinematic movement" task
+    #[must_use]
+    fn fly(&self, heading: Vector<Float>) -> Result<(), FlyError>;
+}
+
+pub trait NavigationConsole {
+    fn vector_to_vessel(&self, vessel: &VesselId) -> Vector<Float>;
 }
 
 pub(crate) trait CaptainControlPanel {

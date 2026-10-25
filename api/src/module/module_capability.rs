@@ -15,8 +15,9 @@ pub enum ModuleCapability {
     DockingConnector,
     TradingTerminal,
     VesselSellingTerminal,
-
-    Cockpit,
+    #[serde(rename(serialize = "FlightControl", deserialize = "Cockpit"))]
+    FlightControl,
+    Navigation,
     FuelTank,
     Radar,
     Engine,

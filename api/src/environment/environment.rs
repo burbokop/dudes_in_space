@@ -9,7 +9,7 @@ use crate::finance::{
 use crate::item::{ItemId, ItemVault};
 use crate::module::{Module, ModuleCapability, ProcessTokenContext};
 use crate::person::{Logger, ObjectiveDeciderVault, StatusCollector, SubordinationTable};
-use crate::trade::{BuyOffer, ItemTradeTable, OfferRef, SellOffer, VesselTradeTable};
+use crate::trade::{BuyOffer, ItemTradeTable, OfferRef, OrderHolder, SellOffer, VesselTradeTable};
 use crate::utils::request::ReqContext;
 use crate::vessel::{
     Vessel, VesselConsole, VesselId, VesselIdPath, VesselInternalConsole, VesselSeed,
@@ -92,6 +92,7 @@ impl Environment {
         bank_registry: &BankRegistry,
         wallet_registry: &WalletRegistry,
         currency_generator: &CurrencyGenerator,
+        order_holder: &OrderHolder,
         logger: &mut dyn Logger,
     ) {
         let mut environment_context = EnvironmentContext::new(
@@ -101,6 +102,7 @@ impl Environment {
             bank_registry,
             wallet_registry,
             currency_generator,
+            order_holder,
             item_vault.clone(),
         );
         for v in &mut self.vessels {

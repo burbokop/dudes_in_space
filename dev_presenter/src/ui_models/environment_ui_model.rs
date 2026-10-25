@@ -192,8 +192,6 @@ impl<'a> EnvironmentUiModel<'a> {
             result = slint::Image::from_rgba8(SharedPixelBuffer::new(1, 1));
         }
 
-        crate::EnvironmentUiModelSink {
-            canvas: result,
-        }
+        crate::EnvironmentUiModelSink { canvas: result }
     }
 }

@@ -6,9 +6,9 @@ use dudes_in_space_api::finance::{
 };
 use dudes_in_space_api::item::{ItemCount, ItemId, ItemSafe, ItemStorage, ItemVault, StorageRole};
 use dudes_in_space_api::module::{
-    AdminTradingConsole, CraftingConsole, DockyardConsole, Module, ModuleCapability, ModuleConsole,
-    ModuleId, ModuleStorage, ModuleTypeId, PackageId, PlaceBuyOrderError, PlaceSellOrderError,
-    ProcessTokenContext, TradingConsole,
+    AdminTradingConsole, CraftingConsole, DockyardConsole, FlightControlConsole, Module,
+    ModuleCapability, ModuleConsole, ModuleId, ModuleStorage, ModuleTypeId, NavigationConsole,
+    PackageId, PlaceBuyOrderError, PlaceSellOrderError, ProcessTokenContext, TradingConsole,
 };
 use dudes_in_space_api::person::{
     DynObjective, Logger, ObjectiveDeciderVault, Person, PersonId, PersonSeed, StatusCollector,
@@ -207,6 +207,22 @@ impl<'a> ModuleConsole for Console<'a> {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
+        todo!()
+    }
+
+    fn flight_control_console(&self) -> Option<&dyn FlightControlConsole> {
+        todo!()
+    }
+
+    fn flight_control_console_mut(&mut self) -> Option<&mut dyn FlightControlConsole> {
+        todo!()
+    }
+
+    fn navigation_console(&self) -> Option<&dyn NavigationConsole> {
+        todo!()
+    }
+
+    fn navigation_console_mut(&mut self) -> Option<&mut dyn NavigationConsole> {
         todo!()
     }
 }

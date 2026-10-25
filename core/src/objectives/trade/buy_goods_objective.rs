@@ -1,6 +1,7 @@
 use dudes_in_space_api::environment::EnvironmentContext;
 
-use dudes_in_space_api::module::ModuleConsole;
+use crate::objectives::common::FlyAndDockToVesselObjective;
+use dudes_in_space_api::module::{DockingStatus, ModuleConsole};
 use dudes_in_space_api::person::{Objective, ObjectiveStatus, PersonLogger, ThisPerson};
 use dudes_in_space_api::trade::WeakBuyOrder;
 use dudes_in_space_api::vessel::VesselInternalConsole;
@@ -13,11 +14,15 @@ static TYPE_ID: &str = "BuyGoodsObjective";
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct BuyGoodsObjective {
     order: WeakBuyOrder,
+    fly_and_dock_to_vessel_objective: Option<FlyAndDockToVesselObjective>,
 }
 
 impl BuyGoodsObjective {
     pub(crate) fn new(order: WeakBuyOrder) -> Self {
-        Self { order }
+        Self {
+            order,
+            fly_and_dock_to_vessel_objective: None,
+        }
     }
 }
 
@@ -33,7 +38,35 @@ impl Objective for BuyGoodsObjective {
         environment_context: &mut EnvironmentContext,
         logger: &mut PersonLogger,
     ) -> Result<ObjectiveStatus<Self::Result>, Self::Error> {
-        todo!()
+        if let Some(fly_and_dock_to_vessel_objective) = &mut self.fly_and_dock_to_vessel_objective {
+            match fly_and_dock_to_vessel_objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => return Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => return Ok(ObjectiveStatus::Passive),
+                Ok(ObjectiveStatus::Done(_)) => self.fly_and_dock_to_vessel_objective = None,
+                Err(_) => todo!(),
+            }
+        }
+
+        let flight_control_console = this_module.flight_control_console_mut().unwrap();
+        let target = self
+            .order
+            .vessel_to_buy_from(environment_context.order_holder())
+            .unwrap();
+
+        if flight_control_console.docking_status(&target) != DockingStatus::Docked {
+            self.fly_and_dock_to_vessel_objective = Some(FlyAndDockToVesselObjective::new(target));
+            return Ok(ObjectiveStatus::InProgress);
+        }
+
+        todo!(
+            "Transfer wares from station this vessel is docked to this vessel and end the order. Probably it can be done through trading console (Also you should think how ware storages should be integrated in the process)"
+        );
     }
 }
 

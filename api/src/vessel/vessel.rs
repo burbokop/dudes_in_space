@@ -217,7 +217,7 @@ impl Vessel {
     }
 
     pub(crate) fn has_empty_pilot_seat(&self) -> bool {
-        self.modules_with_capability(ModuleCapability::Cockpit)
+        self.modules_with_capability(ModuleCapability::FlightControl)
             .any(|cockpit| cockpit.free_person_slots_count() > 0)
     }
 
@@ -538,28 +538,29 @@ impl VesselInternalConsole for Vessel {
             .module_by_id(module_id)
             .ok_or(MoveToModuleError::ModuleNotFound)?;
 
-        if let Some(permissions_needed) =
-            if module.capabilities().contains(&ModuleCapability::Cockpit) {
-                Some(VesselPermission::Pilot)
-            } else if module.capabilities().contains(&ModuleCapability::Dockyard)
-                || module
-                    .capabilities()
-                    .contains(&ModuleCapability::ModuleCrafting)
-                || module
-                    .capabilities()
-                    .contains(&ModuleCapability::ItemCrafting)
-                || module
-                    .capabilities()
-                    .contains(&ModuleCapability::TradingTerminal)
-                || module
-                    .capabilities()
-                    .contains(&ModuleCapability::VesselSellingTerminal)
-            {
-                Some(VesselPermission::Operate)
-            } else {
-                None
-            }
+        if let Some(permissions_needed) = if module
+            .capabilities()
+            .contains(&ModuleCapability::FlightControl)
         {
+            Some(VesselPermission::Pilot)
+        } else if module.capabilities().contains(&ModuleCapability::Dockyard)
+            || module
+                .capabilities()
+                .contains(&ModuleCapability::ModuleCrafting)
+            || module
+                .capabilities()
+                .contains(&ModuleCapability::ItemCrafting)
+            || module
+                .capabilities()
+                .contains(&ModuleCapability::TradingTerminal)
+            || module
+                .capabilities()
+                .contains(&ModuleCapability::VesselSellingTerminal)
+        {
+            Some(VesselPermission::Operate)
+        } else {
+            None
+        } {
             if !subordination_table.has_permission(person_id, self, permissions_needed) {
                 return Err(MoveToModuleError::PermissionDenied);
             }
@@ -623,7 +624,7 @@ impl VesselInternalConsole for Vessel {
 
         let permissions_needed = if target_module
             .capabilities()
-            .contains(&ModuleCapability::Cockpit)
+            .contains(&ModuleCapability::FlightControl)
         {
             VesselPermission::Pilot
         } else {

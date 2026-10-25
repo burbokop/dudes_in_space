@@ -149,6 +149,7 @@ impl EventHandler {
                     &components.bank_registry,
                     &components.wallet_registry,
                     &components.currency_generator,
+                    &components.order_holder,
                     logger,
                 );
 

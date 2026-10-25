@@ -13,6 +13,7 @@ use dudes_in_space_api::person::{
     DynObjective, Objective, ObjectiveDecider, ObjectiveStatus, Passion, PersonLogger, ThisPerson,
     tie,
 };
+use dudes_in_space_api::trade::WeakSellOrder;
 use dudes_in_space_api::utils::request::{ReqContext, ReqFuture, ReqFutureSeed, ReqTakeError};
 use dudes_in_space_api::vessel::{VesselId, VesselInternalConsole};
 use dyn_serde::{
@@ -31,7 +32,7 @@ static TYPE_ID: &str = "TradeObjective";
 static NEEDED_PRIMARY_CAPABILITIES: &[ModuleCapability] = &[ModuleCapability::ItemStorage];
 
 static NEEDED_CAPABILITIES: &[ModuleCapability] = &[
-    ModuleCapability::Cockpit,
+    ModuleCapability::FlightControl,
     ModuleCapability::Engine,
     ModuleCapability::Reactor,
     ModuleCapability::FuelTank,
@@ -81,6 +82,7 @@ pub(crate) enum TradeObjective {
     },
     MoveToVesselToBuy {
         buy_goods_objective: BuyGoodsObjective,
+        sell_order: WeakSellOrder,
     },
     MoveToVesselToSell {
         sell_goods_objective: SellGoodsObjective,
@@ -201,7 +203,7 @@ impl Objective for TradeObjective {
             Self::SearchForCockpit => {
                 if this_module
                     .capabilities()
-                    .contains(&ModuleCapability::Cockpit)
+                    .contains(&ModuleCapability::FlightControl)
                 {
                     logger.info("Already in a cockpit.");
                     *self = Self::SearchForOffers {
@@ -214,7 +216,7 @@ impl Objective for TradeObjective {
                     return Ok(ObjectiveStatus::InProgress);
                 }
 
-                for module in this_vessel.modules_with_capability(ModuleCapability::Cockpit) {
+                for module in this_vessel.modules_with_capability(ModuleCapability::FlightControl) {
                     if module.free_person_slots_count() > 0 {
                         logger.info("Moving to dockyard module...");
                         *self = Self::MoveToCockpit { dst: module.id() };
@@ -330,11 +332,17 @@ impl Objective for TradeObjective {
                 Ok(PlaceOrdersResult::Ok {
                     buy_orders,
                     sell_orders,
-                }) => todo!(
-                    "buy_orders: {:#?}, sell_orders: {:#?}",
-                    buy_orders,
-                    sell_orders
-                ),
+                }) => {
+                    assert!(buy_orders.len() == 1);
+                    assert!(sell_orders.len() == 1);
+                    *self = Self::MoveToVesselToBuy {
+                        buy_goods_objective: BuyGoodsObjective::new(
+                            buy_orders.into_iter().next().unwrap(),
+                        ),
+                        sell_order: sell_orders.into_iter().next().unwrap(),
+                    };
+                    Ok(ObjectiveStatus::InProgress)
+                }
                 Ok(PlaceOrdersResult::PlaceBuyOrderError(PlaceBuyOrderError::OfferNotFound)) => {
                     todo!()
                 }
@@ -367,7 +375,19 @@ impl Objective for TradeObjective {
             },
             Self::MoveToVesselToBuy {
                 buy_goods_objective,
-            } => todo!(),
+                sell_order,
+            } => match buy_goods_objective.pursue(
+                this_person,
+                this_module,
+                this_vessel,
+                environment_context,
+                logger,
+            ) {
+                Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
+                Ok(ObjectiveStatus::Passive) => todo!(),
+                Ok(ObjectiveStatus::Done(_)) => todo!("Switch to MoveToVesselToSell"),
+                Err(_) => todo!(),
+            },
             Self::MoveToVesselToSell { .. } => todo!(),
         }
     }
