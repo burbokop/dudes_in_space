@@ -1,7 +1,7 @@
 use crate::environment::{
     EnvironmentContext, FindBestBuyVesselOfferResult, FindBestOfferPairResult,
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
-    PlaceOrdersResult, RequestStorage,
+    PlaceOrdersResult, RequestStorage, VesselSpatialTable,
 };
 use crate::finance::{
     BankRegistry, CurrencyGenerator, Money, NotEnoughMoneyInWallet, WalletRegistry,
@@ -105,6 +105,7 @@ impl Environment {
             currency_generator,
             order_holder,
             item_vault.clone(),
+            VesselSpatialTable::build(&self.vessels),
         );
 
         for v in &mut self.vessels {

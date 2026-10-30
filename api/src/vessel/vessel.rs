@@ -30,6 +30,11 @@ impl<'a> VesselIdPathRef<'a> {
         self.0.last().unwrap()
     }
 
+    pub fn parent(&self) -> Option<VesselId> {
+        let l = self.0.len();
+        if l > 1 { Some(self.0[l - 2]) } else { None }
+    }
+
     pub fn to_owned(&self) -> VesselIdPath {
         VesselIdPath(self.0.to_vec())
     }

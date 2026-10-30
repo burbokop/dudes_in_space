@@ -108,6 +108,10 @@ impl DockingClamp {
         todo!()
     }
 
+    pub fn compat_type(&self) -> usize {
+        self.compat_type
+    }
+
     pub fn connection(&self) -> Option<&DockingClampConnection> {
         self.connection.as_ref()
     }

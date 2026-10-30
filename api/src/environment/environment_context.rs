@@ -1,4 +1,4 @@
-use crate::environment::RequestStorage;
+use crate::environment::{RequestStorage, VesselSpatialTable};
 use crate::finance::{BankRegistry, CurrencyGenerator, WalletRegistry};
 use crate::item::ItemVault;
 use crate::module::ProcessTokenContext;
@@ -16,6 +16,7 @@ pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
     currency_generator: &'g CurrencyGenerator,
     order_holder: &'h OrderHolder,
     item_vault: Rc<ItemVault>,
+    vessel_spatial_table: VesselSpatialTable,
 }
 
 impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
@@ -29,6 +30,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 
         currency_generator: &'g CurrencyGenerator,
         order_holder: &'h OrderHolder,
         item_vault: Rc<ItemVault>,
+        vessel_spatial_table: VesselSpatialTable,
     ) -> Self {
         Self {
             process_token_context,
@@ -40,6 +42,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 
             currency_generator,
             order_holder,
             item_vault,
+            vessel_spatial_table,
         }
     }
 
@@ -81,5 +84,9 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 
 
     pub fn item_vault(&self) -> &Rc<ItemVault> {
         &self.item_vault
+    }
+
+    pub fn vessel_spatial_table(&self) -> &VesselSpatialTable {
+        &self.vessel_spatial_table
     }
 }

@@ -34,6 +34,7 @@ use std::rc::Rc;
 pub(super) static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
 static DOCKING_CONNECTOR_COMPAT_TYPE: usize = 0;
+static DOCKING_DISTANCE: Float = 1.;
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::FlightControl,
     ModuleCapability::Navigation,
@@ -93,6 +94,7 @@ impl DynSerialize for Shuttle {
 
 struct Console<'a, 'b> {
     id: &'a ModuleId,
+    vessel_id: VesselId,
     parent_vessel_info: Option<&'b ParentVesselInfo>,
 }
 
@@ -216,11 +218,11 @@ impl<'a, 'b> ModuleConsole for Console<'a, 'b> {
 
 impl<'a, 'b> FlightControlConsole for Console<'a, 'b> {
     fn is_docked(&self) -> bool {
-        todo!()
+        self.parent_vessel_info.is_some()
     }
 
     fn can_undock(&self) -> bool {
-        todo!()
+        true
     }
 
     fn docking_status(
@@ -233,9 +235,18 @@ impl<'a, 'b> FlightControlConsole for Console<'a, 'b> {
         {
             DockingStatus::Docked
         } else {
-            todo!(
-                "Find vessel using environment_context and check distance and ports availability. Possibly create some global table for docking requests."
-            )
+            let table = environment_context.vessel_spatial_table();
+            let (Some(this), Some(target)) = (table.get(&self.vessel_id), table.get(vessel)) else {
+                // TODO: Vessels created during this iteration are not in the table yet. Probably return some `Unknown` status
+                return DockingStatus::TooFar;
+            };
+            if (target.pos - this.pos).len() > DOCKING_DISTANCE {
+                DockingStatus::TooFar
+            } else if target.free_clamps_count(DOCKING_CONNECTOR_COMPAT_TYPE) == 0 {
+                DockingStatus::NoAvailableDockingPorts
+            } else {
+                DockingStatus::CanDock
+            }
         }
     }
 
@@ -253,8 +264,13 @@ impl<'a, 'b> FlightControlConsole for Console<'a, 'b> {
 }
 
 impl<'a, 'b> NavigationConsole for Console<'a, 'b> {
-    fn vector_to_vessel(&self, vessel: &VesselId) -> Vector<Float> {
-        todo!()
+    fn vector_to_vessel(
+        &self,
+        environment_context: &EnvironmentContext,
+        vessel: &VesselId,
+    ) -> Option<Vector<Float>> {
+        let table = environment_context.vessel_spatial_table();
+        Some(table.get(vessel)?.pos - table.get(&self.vessel_id)?.pos)
     }
 }
 
@@ -283,6 +299,7 @@ impl Module for Shuttle {
     ) {
         let mut console = Console {
             id: &self.id,
+            vessel_id: this_vessel.console().id(),
             parent_vessel_info: this_vessel.parent_vessel_info(),
         };
 

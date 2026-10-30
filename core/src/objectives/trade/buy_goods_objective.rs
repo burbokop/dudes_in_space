@@ -14,6 +14,7 @@ static TYPE_ID: &str = "BuyGoodsObjective";
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct BuyGoodsObjective {
     order: WeakBuyOrder,
+    #[serde(with = "dudes_in_space_api::utils::tagged_option")]
     fly_and_dock_to_vessel_objective: Option<FlyAndDockToVesselObjective>,
 }
 

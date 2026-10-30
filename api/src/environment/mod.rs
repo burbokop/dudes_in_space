@@ -9,3 +9,6 @@ pub use environment_context::*;
 
 mod request_storage;
 pub use request_storage::*;
+
+mod vessel_spatial_table;
+pub use vessel_spatial_table::*;

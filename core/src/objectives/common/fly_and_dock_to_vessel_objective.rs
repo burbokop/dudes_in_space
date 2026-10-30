@@ -87,7 +87,11 @@ impl Objective for FlyAndDockToVesselObjective {
             }
             DockingStatus::NoAvailableDockingPorts | DockingStatus::TooFar => {
                 let navigation_console = this_module.navigation_console().unwrap();
-                let vector = navigation_console.vector_to_vessel(&self.target);
+                let Some(vector) =
+                    navigation_console.vector_to_vessel(environment_context, &self.target)
+                else {
+                    return Ok(ObjectiveStatus::Passive);
+                };
 
                 if vector.len() < DISTANCE_EPSILON {
                     return Ok(ObjectiveStatus::Passive);

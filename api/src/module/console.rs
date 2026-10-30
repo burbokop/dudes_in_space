@@ -389,7 +389,11 @@ pub trait FlightControlConsole {
 }
 
 pub trait NavigationConsole {
-    fn vector_to_vessel(&self, vessel: &VesselId) -> Vector<Float>;
+    fn vector_to_vessel(
+        &self,
+        environment_context: &EnvironmentContext,
+        vessel: &VesselId,
+    ) -> Option<Vector<Float>>;
 }
 
 pub(crate) trait CaptainControlPanel {

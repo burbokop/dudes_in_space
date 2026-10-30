@@ -22,6 +22,6 @@ impl DockingConnector {
     }
 
     pub fn compat_type(&self) -> usize {
-        todo!()
+        self.compat_type
     }
 }
