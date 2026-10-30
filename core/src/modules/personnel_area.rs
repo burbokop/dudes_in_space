@@ -173,7 +173,7 @@ impl Module for PersonnelArea {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        &mut []
     }
 
     fn persons(&self) -> &[Person] {

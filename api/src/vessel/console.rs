@@ -1,6 +1,8 @@
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId};
 use crate::person::{PersonId, SubordinationTable, VesselPermissions};
+use crate::utils::utils::Float;
 use crate::vessel::{DockingConnectorId, ParentVesselInfo, VesselId};
+use burbomath::Vector;
 use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -11,6 +13,12 @@ pub trait VesselModuleInterface {
     fn add_module(&self, module: Box<dyn Module>);
     fn console(&self) -> &dyn VesselInternalConsole;
     fn parent_vessel_info(&self) -> Option<&ParentVesselInfo>;
+    /// Undock this vessel from its parent. Applied at the end of the environment iteration
+    fn request_undock(&self);
+    /// Dock this vessel to a free compatible clamp of `target`. Applied at the end of the environment iteration
+    fn request_dock(&self, target: VesselId);
+    /// Move this vessel by `delta`. Ignored if the vessel is docked
+    fn request_fly(&self, delta: Vector<Float>);
 }
 
 /// interface through which a person can interact with a vessel

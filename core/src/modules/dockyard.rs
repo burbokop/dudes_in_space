@@ -495,7 +495,7 @@ impl Module for Dockyard {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        std::slice::from_mut(&mut self.docking_clamp)
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {

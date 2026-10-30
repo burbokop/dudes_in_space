@@ -105,7 +105,7 @@ impl DockingClamp {
     }
 
     pub fn undock(&mut self) -> Option<Vessel> {
-        todo!()
+        self.connection.take().map(|connection| connection.vessel)
     }
 
     pub fn compat_type(&self) -> usize {

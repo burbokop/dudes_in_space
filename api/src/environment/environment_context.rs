@@ -1,4 +1,4 @@
-use crate::environment::{RequestStorage, VesselSpatialTable};
+use crate::environment::{DockingRequest, RequestStorage, VesselSpatialTable};
 use crate::finance::{BankRegistry, CurrencyGenerator, WalletRegistry};
 use crate::item::ItemVault;
 use crate::module::ProcessTokenContext;
@@ -17,6 +17,7 @@ pub struct EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
     order_holder: &'h OrderHolder,
     item_vault: Rc<ItemVault>,
     vessel_spatial_table: VesselSpatialTable,
+    docking_requests: Vec<DockingRequest>,
 }
 
 impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> {
@@ -43,6 +44,7 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 
             order_holder,
             item_vault,
             vessel_spatial_table,
+            docking_requests: Default::default(),
         }
     }
 
@@ -88,5 +90,15 @@ impl<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h> EnvironmentContext<'a, 'b, 'c, 'd, 'e, 'f, 
 
     pub fn vessel_spatial_table(&self) -> &VesselSpatialTable {
         &self.vessel_spatial_table
+    }
+
+    /// Do not make it public. Sould be accessed only from Vessel struct
+    pub(crate) fn push_docking_request(&mut self, request: DockingRequest) {
+        self.docking_requests.push(request)
+    }
+
+    /// Do not make it public. Sould be accessed only from Environment struct
+    pub(crate) fn take_docking_requests(&mut self) -> Vec<DockingRequest> {
+        std::mem::take(&mut self.docking_requests)
     }
 }

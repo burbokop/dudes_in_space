@@ -35,6 +35,8 @@ pub(super) static TYPE_ID: &str = "Shuttle";
 static FACTORY_TYPE_ID: &str = "ShuttleFactory";
 static DOCKING_CONNECTOR_COMPAT_TYPE: usize = 0;
 static DOCKING_DISTANCE: Float = 1.;
+/// Max distance per iteration
+static MAX_SPEED: Float = 10.;
 static CAPABILITIES: &[ModuleCapability] = &[
     ModuleCapability::FlightControl,
     ModuleCapability::Navigation,
@@ -96,6 +98,7 @@ struct Console<'a, 'b> {
     id: &'a ModuleId,
     vessel_id: VesselId,
     parent_vessel_info: Option<&'b ParentVesselInfo>,
+    this_vessel: &'b dyn VesselModuleInterface,
 }
 
 impl<'a, 'b> ModuleConsole for Console<'a, 'b> {
@@ -251,15 +254,24 @@ impl<'a, 'b> FlightControlConsole for Console<'a, 'b> {
     }
 
     fn dock(&self, vessel: &VesselId) -> Result<(), DockError> {
-        todo!()
+        self.this_vessel.request_dock(*vessel);
+        Ok(())
     }
 
     fn undock(&self) -> Result<(), UndockError> {
-        todo!()
+        self.this_vessel.request_undock();
+        Ok(())
     }
 
     fn fly(&self, heading: Vector<Float>) -> Result<(), FlyError> {
-        todo!()
+        let len = heading.len();
+        let delta = if len > MAX_SPEED {
+            heading * (MAX_SPEED / len)
+        } else {
+            heading
+        };
+        self.this_vessel.request_fly(delta);
+        Ok(())
     }
 }
 
@@ -301,6 +313,7 @@ impl Module for Shuttle {
             id: &self.id,
             vessel_id: this_vessel.console().id(),
             parent_vessel_info: this_vessel.parent_vessel_info(),
+            this_vessel,
         };
 
         if let Some(pilot) = &mut self.pilot {
@@ -374,7 +387,7 @@ impl Module for Shuttle {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        &mut []
     }
 
     fn persons(&self) -> &[Person] {

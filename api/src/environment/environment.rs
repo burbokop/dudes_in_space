@@ -1,5 +1,5 @@
 use crate::environment::{
-    EnvironmentContext, FindBestBuyVesselOfferResult, FindBestOfferPairResult,
+    DockingRequest, EnvironmentContext, FindBestBuyVesselOfferResult, FindBestOfferPairResult,
     FindBestOffersForItemsResult, FindOwnedVesselsResult, Nebula, PlaceBuyCustomVesselOrderResult,
     PlaceOrdersResult, RequestStorage, VesselSpatialTable,
 };
@@ -112,6 +112,9 @@ impl Environment {
             v.proceed(&mut environment_context, None, logger)
         }
 
+        let docking_requests = environment_context.take_docking_requests();
+        self.process_docking_requests(docking_requests);
+
         self.process_requests(
             req_context,
             &item_vault,
@@ -130,6 +133,41 @@ impl Environment {
             v.collect_status(collector);
         }
         collector.exit_environment();
+    }
+
+    fn process_docking_requests(&mut self, requests: Vec<DockingRequest>) {
+        for request in requests {
+            match request {
+                DockingRequest::Undock { vessel } => {
+                    if let Some((mut undocked, pos)) = self
+                        .vessels
+                        .iter()
+                        .find_map(|root| Some((root.undock_vessel(vessel)?, root.pos())))
+                    {
+                        undocked.set_pos(pos);
+                        self.vessels.push(undocked);
+                    }
+                }
+                DockingRequest::Dock { vessel, target } => {
+                    if let Some(vessel) = self.extract_vessel_by_id(vessel)
+                        && let Err(vessel) = self.dock_vessel(target, vessel)
+                    {
+                        // No free compatible clamp (e.g. taken by another vessel during this iteration)
+                        self.vessels.push(vessel);
+                    }
+                }
+            }
+        }
+    }
+
+    fn dock_vessel(&self, target: VesselId, mut vessel: Vessel) -> Result<(), Vessel> {
+        for root in &self.vessels {
+            vessel = match root.dock_vessel(target, vessel) {
+                Ok(()) => return Ok(()),
+                Err(vessel) => vessel,
+            };
+        }
+        Err(vessel)
     }
 
     fn process_requests(

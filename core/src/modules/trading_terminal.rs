@@ -395,7 +395,7 @@ impl Module for TradingTerminal {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        &mut []
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {

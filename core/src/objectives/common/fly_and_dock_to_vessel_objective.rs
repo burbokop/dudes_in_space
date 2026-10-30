@@ -83,7 +83,8 @@ impl Objective for FlyAndDockToVesselObjective {
                     .unwrap()
                     .dock(&self.target)
                     .unwrap();
-                return Ok(ObjectiveStatus::Done(()));
+                // Docking is applied at the end of the iteration. Will be `Done` when status becomes `Docked`
+                return Ok(ObjectiveStatus::InProgress);
             }
             DockingStatus::NoAvailableDockingPorts | DockingStatus::TooFar => {
                 let navigation_console = this_module.navigation_console().unwrap();

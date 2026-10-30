@@ -646,7 +646,7 @@ impl Module for Assembler {
     }
 
     fn docking_clamps_mut(&mut self) -> &mut [DockingClamp] {
-        todo!()
+        &mut []
     }
 
     fn docking_connectors(&self) -> &[DockingConnector] {

@@ -1,4 +1,4 @@
-use crate::environment::EnvironmentContext;
+use crate::environment::{DockingRequest, EnvironmentContext};
 use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId, ModuleSeed};
 use crate::person;
 use crate::person::{
@@ -10,7 +10,7 @@ use crate::vessel::{
     DockingConnectorId, MoveToDockedVesselError, MoveToModuleError, VesselConsole,
     VesselInternalConsole, VesselModuleInterface,
 };
-use burbomath::Point;
+use burbomath::{Point, Vector};
 use dyn_serde::DynDeserializeSeedVault;
 use dyn_serde_macro::DeserializeSeedXXX;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};
@@ -93,6 +93,13 @@ enum VesselRequest {
     },
     AddModule {
         module: Box<dyn Module>,
+    },
+    Undock,
+    Dock {
+        target: VesselId,
+    },
+    Fly {
+        delta: Vector<Float>,
     },
 }
 
@@ -184,6 +191,72 @@ impl Vessel {
 
     pub fn pos(&self) -> Point<Float> {
         self.pos
+    }
+
+    pub(crate) fn set_pos(&mut self, pos: Point<Float>) {
+        self.pos = pos
+    }
+
+    /// Recursively find a clamp holding vessel with `id` and undock it
+    pub(crate) fn undock_vessel(&self, id: VesselId) -> Option<Vessel> {
+        for module in &self.modules {
+            let mut module = module.borrow_mut();
+            for clamp in module.docking_clamps_mut() {
+                let Some(connection) = clamp.connection() else {
+                    continue;
+                };
+                if connection.vessel.id == id {
+                    return clamp.undock();
+                }
+                if let Some(vessel) = connection.vessel.undock_vessel(id) {
+                    return Some(vessel);
+                }
+            }
+        }
+        None
+    }
+
+    /// Recursively find vessel with `target` id and dock `vessel` to its free compatible clamp
+    pub(crate) fn dock_vessel(&self, target: VesselId, mut vessel: Vessel) -> Result<(), Vessel> {
+        if self.id == target {
+            let connectors: Vec<_> = vessel
+                .modules()
+                .flat_map(|module| {
+                    module
+                        .docking_connectors()
+                        .iter()
+                        .map(|connector| (connector.id(), connector.compat_type()))
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            for module in &self.modules {
+                let mut module = module.borrow_mut();
+                for clamp in module.docking_clamps_mut() {
+                    if !clamp.is_empty() {
+                        continue;
+                    }
+                    if let Some((connector_id, _)) = connectors
+                        .iter()
+                        .find(|(_, compat_type)| *compat_type == clamp.compat_type())
+                    {
+                        clamp.dock_by_connector_id(vessel, *connector_id).unwrap();
+                        return Ok(());
+                    }
+                }
+            }
+            return Err(vessel);
+        }
+        for module in &self.modules {
+            for clamp in module.borrow().docking_clamps() {
+                if let Some(connection) = clamp.connection() {
+                    vessel = match connection.vessel.dock_vessel(target, vessel) {
+                        Ok(()) => return Ok(()),
+                        Err(vessel) => vessel,
+                    };
+                }
+            }
+        }
+        Err(vessel)
     }
 
     pub fn traverse<R>(&self, mut f: impl FnMut(VesselIdPathRef, &Vessel) -> R) -> R
@@ -421,6 +494,25 @@ impl Vessel {
                 VesselRequest::AddModule { module } => {
                     self.modules.push(RefCell::new(module));
                 }
+                VesselRequest::Undock => {
+                    if parent_vessel_info.is_some() {
+                        environment_context
+                            .push_docking_request(DockingRequest::Undock { vessel: self.id });
+                    }
+                }
+                VesselRequest::Dock { target } => {
+                    if parent_vessel_info.is_none() {
+                        environment_context.push_docking_request(DockingRequest::Dock {
+                            vessel: self.id,
+                            target,
+                        });
+                    }
+                }
+                VesselRequest::Fly { delta } => {
+                    if parent_vessel_info.is_none() {
+                        self.pos = self.pos + delta;
+                    }
+                }
             }
         }
     }
@@ -453,6 +545,27 @@ impl<'a, 'b> VesselModuleInterface for VesselModuleInterfaceImpl<'a, 'b> {
 
     fn parent_vessel_info(&self) -> Option<&ParentVesselInfo> {
         self.parent_vessel_info
+    }
+
+    fn request_undock(&self) {
+        self.vessel
+            .requests
+            .borrow_mut()
+            .push(VesselRequest::Undock)
+    }
+
+    fn request_dock(&self, target: VesselId) {
+        self.vessel
+            .requests
+            .borrow_mut()
+            .push(VesselRequest::Dock { target })
+    }
+
+    fn request_fly(&self, delta: Vector<Float>) {
+        self.vessel
+            .requests
+            .borrow_mut()
+            .push(VesselRequest::Fly { delta })
     }
 }
 
@@ -553,7 +666,10 @@ impl VesselInternalConsole for Vessel {
                     VesselRequest::MoveToDockedVessel { connector_id, .. } => {
                         todo!()
                     }
-                    VesselRequest::AddModule { .. } => false,
+                    VesselRequest::AddModule { .. }
+                    | VesselRequest::Undock
+                    | VesselRequest::Dock { .. }
+                    | VesselRequest::Fly { .. } => false,
                 }
             })
             .count();
