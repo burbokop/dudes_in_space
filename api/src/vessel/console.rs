@@ -1,18 +1,95 @@
-use crate::module::{Module, ModuleCapability, ModuleId};
-use crate::person::PersonId;
-use std::cell::RefMut;
+use crate::module::{Module, ModuleCapability, ModuleConsole, ModuleId};
+use crate::person::{PersonId, SubordinationTable, VesselPermissions};
+use crate::utils::utils::Float;
+use crate::vessel::{DockingConnectorId, ParentVesselInfo, VesselId};
+use burbomath::Vector;
+use std::cell::{Ref, RefMut};
 use std::collections::BTreeSet;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 /// interface through which a module can interact with a vessel it is contained in
 pub trait VesselModuleInterface {
     fn add_module(&self, module: Box<dyn Module>);
-    fn owner(&self) -> PersonId;
-    fn console(&self) -> &dyn VesselConsole;
+    fn console(&self) -> &dyn VesselInternalConsole;
+    fn parent_vessel_info(&self) -> Option<&ParentVesselInfo>;
+    /// Undock this vessel from its parent. Applied at the end of the environment iteration
+    fn request_undock(&self);
+    /// Dock this vessel to a free compatible clamp of `target`. Applied at the end of the environment iteration
+    fn request_dock(&self, target: VesselId);
+    /// Move this vessel by `delta`. Ignored if the vessel is docked
+    fn request_fly(&self, delta: Vector<Float>);
 }
 
 /// interface through which a person can interact with a vessel
 pub trait VesselConsole {
-    fn modules_with_cap(&self, cap: ModuleCapability) -> Vec<RefMut<Box<dyn Module>>>;
-    fn move_to_module(&self, person: PersonId, id: ModuleId);
+    fn id(&self) -> VesselId;
+    fn owner(&self) -> PersonId;
     fn capabilities(&self) -> BTreeSet<ModuleCapability>;
+    fn primary_capabilities(&self) -> BTreeSet<ModuleCapability>;
+    fn permissions(&self) -> &VesselPermissions;
 }
+
+pub trait VesselInternalConsole: VesselConsole {
+    fn name(&self) -> &str;
+
+    fn modules_with_capability<'a>(&'a self, cap: ModuleCapability) -> Vec<Ref<'a, dyn Module>>;
+    fn modules_with_capability_mut<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<RefMut<'a, dyn Module>>;
+    fn modules_with_primary_capability<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<Ref<'a, dyn Module>>;
+
+    fn modules_with_primary_capability_mut<'a>(
+        &'a self,
+        cap: ModuleCapability,
+    ) -> Vec<RefMut<'a, dyn Module>>;
+
+    fn move_person_to_module(
+        &self,
+        subordination_table: &SubordinationTable,
+        person_id: PersonId,
+        module_id: ModuleId,
+    ) -> Result<(), MoveToModuleError>;
+    fn move_person_to_docked_vessel(
+        &self,
+        subordination_table: &SubordinationTable,
+        this_module: &dyn ModuleConsole,
+        person_id: PersonId,
+        connector_id: DockingConnectorId,
+    ) -> Result<(), MoveToDockedVesselError>;
+
+    fn module_by_id<'a>(&'a self, module_id: ModuleId) -> Option<Ref<'a, dyn Module>>;
+    fn module_by_id_mut<'a>(&'a self, module_id: ModuleId) -> Option<RefMut<'a, dyn Module>>;
+}
+
+#[derive(Debug)]
+pub enum MoveToModuleError {
+    ModuleNotFound,
+    NotEnoughSpace,
+    PermissionDenied,
+}
+
+impl Display for MoveToModuleError {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for MoveToModuleError {}
+
+#[derive(Debug)]
+pub enum MoveToDockedVesselError {
+    NotEnoughSpace,
+}
+
+impl Display for MoveToDockedVesselError {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for MoveToDockedVesselError {}

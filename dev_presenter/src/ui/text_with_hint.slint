@@ -1,0 +1,35 @@
+
+
+
+export component TextWithHint {
+    in-out property <string> text <=> text.text;
+    in-out property <length> font-size <=> text.font-size;
+    in-out property <string> hint-text;
+
+    preferred-width: text.preferred-width;
+    preferred-height: text.preferred-height;
+
+    text := Text {
+        width: parent.width;
+        height: parent.height;
+    }
+
+    hint := Dialog {
+        visible: touch-area.has-hover;
+        x: 20px;
+        y: root.height;
+        preferred-width: hint-text.preferred-width;
+        preferred-height: hint-text.preferred-height;
+        always-on-top: true;
+
+        hint-text := Text {
+            font-size: root.font-size;
+            text: root.hint-text;
+        }
+    }
+
+    touch-area := TouchArea {
+        width: parent.width;
+        height: parent.height;
+    }
+}

@@ -1,0 +1,58 @@
+import { EnvironmentUiModelSink, EnvironmentUiRequest } from "sinks.slint";
+import { VerticalBox } from "std-widgets.slint";
+import { Empty } from "utils.slint";
+
+export component Environment {
+    in property <EnvironmentUiModelSink> sink;
+    out property <EnvironmentUiRequest> request: {
+        requested-view-port-width: canvas.width / 1px,
+        requested-view-port-height: canvas.height / 1px,
+    };
+
+    pure callback pointer-event(int, int, length, length);
+    pure callback scroll-event(length, length, length, length, bool, bool) -> bool;
+
+    canvas := Image {
+        width: parent.width;
+        height: parent.height;
+        colorize: touch.has-hover-changed(touch.has-hover) ? #00000000 : #00000000;
+        image-rendering: pixelated;
+        source: sink.canvas;
+    }
+
+    touch := TouchArea {
+        width: parent.width;
+        height: parent.height;
+
+        pure callback has-hover-changed(bool) -> bool;
+
+        has-hover-changed(x) => {
+            if(!x) {
+                root.pointer-event(3, 0, self.mouse-x, self.mouse-y);
+            }
+            x;
+        }
+
+        pointer-event(event) => {
+            if(event.kind == PointerEventKind.up) {
+                root.pointer-event(0, event.button == PointerEventButton.right ? 1 : 0, self.mouse-x, self.mouse-y);
+            } else if(event.kind == PointerEventKind.down) {
+                root.pointer-event(1, event.button == PointerEventButton.right ? 1 : 0, self.mouse-x, self.mouse-y);
+            } else if(event.kind == PointerEventKind.move) {
+                root.pointer-event(2, event.button == PointerEventButton.right ? 1 : 0, self.mouse-x, self.mouse-y);
+            } else if(event.kind == PointerEventKind.cancel) {
+                root.pointer-event(3, event.button == PointerEventButton.right ? 1 : 0, self.mouse-x, self.mouse-y);
+            }
+        }
+
+        scroll-event(event) => {
+            root.scroll-event(self.mouse-x, self.mouse-y, event.delta-x, event.delta-y, event.modifiers.shift, event.modifiers.control) ? accept : reject
+        }
+
+        moved => {
+            if (self.enabled && self.pressed) {
+                // TODO
+            }
+        }
+    }
+}
