@@ -18,7 +18,7 @@ use dudes_in_space_api::environment::{
     EnvironmentContext, FindBestOffersForItems, FindBestOffersForItemsResult,
 };
 use dudes_in_space_api::finance::{
-    BankRegistry, EnsureContainsError, Money, Wallet, WalletRegistry,
+    BankRegistry, EnsureContainsError, Money, Wallet, WalletRegistry, WithdrawalError,
 };
 use dudes_in_space_api::item::{ItemCount, ItemId, StorageRole};
 use dudes_in_space_api::module::{AdminTradingConsole, ModuleCapability, ModuleConsole};
@@ -535,7 +535,6 @@ impl Objective for ManageProductionStationObjective {
                             ) {
                                 Ok(ObjectiveStatus::InProgress) => Ok(ObjectiveStatus::InProgress),
                                 Ok(ObjectiveStatus::Passive) => todo!(),
-
                                 Ok(ObjectiveStatus::Done(_)) => {
                                     let this_vessel = tie(this_module, this_vessel);
 
@@ -567,13 +566,22 @@ impl Objective for ManageProductionStationObjective {
                                             LURE_MULTIPLIER,
                                         )
                                     {
-                                        this_person
-                                            .ensure_has_money_in_wallet(
-                                                environment_context.bank_registry(),
-                                                environment_context.wallet_registry(),
-                                                money_required,
-                                            )
-                                            .unwrap();
+                                        match this_person.ensure_has_money_in_wallet(
+                                            environment_context.bank_registry(),
+                                            environment_context.wallet_registry(),
+                                            money_required,
+                                        ) {
+                                            Ok(_) => todo!(),
+                                            Err(WithdrawalError::CreditLimitReached {
+                                                bank_owner,
+                                                requested,
+                                                limit,
+                                            }) => todo!(),
+                                            Err(WithdrawalError::InDebt) => {
+                                                logger.err("Can not produce wares: in debt.");
+                                                return Ok(ObjectiveStatus::Passive);
+                                            }
+                                        }
                                     }
 
                                     let mut offer_update_instructions: Vec<OfferUpdateInstruction> = input_needed
