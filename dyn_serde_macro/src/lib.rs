@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #![feature(iter_intersperse)]
 
 mod deserialize_seed;

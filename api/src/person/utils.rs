@@ -1,55 +1,180 @@
-use crate::module::{ConcatModuleCapabilities, ModuleCapability, ModuleConsole};
-use crate::vessel::{DockingClamp, VesselConsole};
-use std::cell::{Ref, RefMut};
+use crate::environment::{
+    EnvironmentContext, PlaceBuyCustomVesselOrder, PlaceBuyCustomVesselOrderResult,
+};
+use crate::module::{ModuleCapability, ModuleId, ModuleStorage};
+use crate::person::{ThisPerson, ThisVessel};
+use crate::trade::{BuyCustomVesselOffer, OfferRef, WeakBuyCustomVesselOrder};
+use crate::utils::request::ReqFuture;
+use crate::vessel::{DockingClamp, DockingConnectorId, VesselId};
+use std::collections::BTreeSet;
 
-fn can_this_vessel_fly(
-    this_module: &mut dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
-) -> bool {
-    let this_vessel_caps = this_vessel
-        .capabilities()
-        .concat(this_module.capabilities());
-    let needed_caps = vec![
-        ModuleCapability::Cockpit,
-        ModuleCapability::Engine,
-        ModuleCapability::Reactor,
-        ModuleCapability::FuelTank,
-    ];
-
-    if needed_caps.iter().all(|cap| this_vessel_caps.contains(cap)) {
-        true
-    } else {
-        false
-    }
+pub fn find_docking_clamp_with_vessel_with_id(
+    docking_clamps: &[DockingClamp],
+    vessel_id: VesselId,
+) -> Option<&DockingClamp> {
+    docking_clamps.iter().find(|clamp| {
+        clamp
+            .connection()
+            .map(|x| x.vessel.id() == vessel_id)
+            .unwrap_or(false)
+    })
 }
 
-fn for_each_docking_clamps_with_vessels_which_can_fly<F>(
-    this_module: &dyn ModuleConsole,
-    this_vessel: &dyn VesselConsole,
-    f: F,
-) where
-    F: FnMut(&DockingClamp),
-{
-    this_vessel
-        .modules_with_cap(ModuleCapability::DockingClamp)
-        .iter()
-        .map(|m| m.docking_clamps().iter())
-        .flatten()
-        .chain(this_module.docking_clamps().iter())
-        .filter_map(|clamp| {
-            clamp.vessel_docked().and_then(|vessel| {
-                let vessel_caps = vessel.capabilities();
+pub fn find_docking_clamp_with_vessel_with_id_mut(
+    docking_clamps: &mut [DockingClamp],
+    vessel_id: VesselId,
+) -> Option<&mut DockingClamp> {
+    docking_clamps.iter_mut().find(|clamp| {
+        clamp
+            .connection()
+            .map(|x| x.vessel.id() == vessel_id)
+            .unwrap_or(false)
+    })
+}
 
-                [
-                    ModuleCapability::Cockpit,
-                    ModuleCapability::Engine,
-                    ModuleCapability::Reactor,
-                    ModuleCapability::FuelTank,
-                ]
-                .iter()
-                .all(|cap| vessel_caps.contains(cap))
-                .then_some(clamp)
-            })
+pub fn find_docking_clamp_with_connector_with_id(
+    docking_clamps: &[DockingClamp],
+    connector_id: DockingConnectorId,
+) -> Option<&DockingClamp> {
+    docking_clamps.iter().find(|clamp| {
+        clamp
+            .connection()
+            .map(|x| x.connector_id == connector_id)
+            .unwrap_or(false)
+    })
+}
+
+pub fn find_docking_clamp_with_connector_with_id_mut(
+    docking_clamps: &mut [DockingClamp],
+    connector_id: DockingConnectorId,
+) -> Option<&mut DockingClamp> {
+    docking_clamps.iter_mut().find(|clamp| {
+        clamp
+            .connection()
+            .map(|x| x.connector_id == connector_id)
+            .unwrap_or(false)
+    })
+}
+
+pub fn find_modules_with_capabilities_in_storages(
+    storages: &[ModuleStorage],
+    needed_capabilities: BTreeSet<ModuleCapability>,
+    needed_primary_capabilities: BTreeSet<ModuleCapability>,
+) -> Option<BTreeSet<ModuleId>> {
+    for storage in storages {
+        let mut needed_capabilities = needed_capabilities.clone();
+        let mut needed_primary_capabilities = needed_primary_capabilities.clone();
+
+        let mut modules: BTreeSet<ModuleId> = Default::default();
+        for module in storage.iter() {
+            let mut got_something: bool = false;
+            for cap in module.capabilities() {
+                if needed_capabilities.contains(cap) {
+                    needed_capabilities.remove(cap);
+                    got_something = true;
+                }
+            }
+
+            for cap in module.primary_capabilities() {
+                if needed_primary_capabilities.contains(cap) {
+                    needed_primary_capabilities.remove(cap);
+                    got_something = true;
+                }
+            }
+
+            if got_something {
+                modules.insert(module.id());
+            }
+        }
+
+        if needed_capabilities.is_empty() && needed_primary_capabilities.is_empty() {
+            return Some(modules);
+        }
+    }
+    None
+}
+
+pub fn are_dockyard_components_suitable(
+    storages: &[ModuleStorage],
+    docking_clamps: &[DockingClamp],
+    needed_capabilities: Vec<ModuleCapability>,
+    needed_primary_capabilities: Vec<ModuleCapability>,
+) -> bool {
+    docking_clamps.len() > 0
+        && docking_clamps.iter().any(|clamp| clamp.is_empty())
+        && storages.iter().any(|storage| {
+            (|| {
+                let mut needed_capabilities = needed_capabilities.clone();
+                for module in storage.iter() {
+                    for cap in module.capabilities() {
+                        if let Some(i) = needed_capabilities.iter().position(|x| *x == *cap) {
+                            needed_capabilities.remove(i);
+                        }
+                    }
+                }
+                needed_capabilities.is_empty()
+            })() && (|| {
+                let mut needed_primary_capabilities = needed_primary_capabilities.clone();
+                for module in storage.iter() {
+                    for cap in module.primary_capabilities() {
+                        if let Some(i) = needed_primary_capabilities.iter().position(|x| *x == *cap)
+                        {
+                            needed_primary_capabilities.remove(i);
+                        }
+                    }
+                }
+                needed_primary_capabilities.is_empty()
+            })()
         })
-        .for_each(f)
+}
+
+pub fn place_buy_vessel_order(
+    buyer: &ThisPerson,
+    this_vessel: ThisVessel,
+    environment_context: &mut EnvironmentContext,
+    offer: OfferRef<BuyCustomVesselOffer>,
+    needed_capabilities: BTreeSet<ModuleCapability>,
+    needed_primary_capabilities: BTreeSet<ModuleCapability>,
+) -> Result<WeakBuyCustomVesselOrder, ReqFuture<PlaceBuyCustomVesselOrderResult>> {
+    if this_vessel.this_module.id() == offer.module_id {
+        return Ok(this_vessel
+            .this_module
+            .trading_console_mut()
+            .unwrap()
+            .place_buy_custom_vessel_order(
+                &mut buyer.finance.wallet_mut(),
+                needed_capabilities,
+                needed_primary_capabilities,
+                1,
+            )
+            .unwrap());
+    }
+
+    if this_vessel.this_vessel.id() == offer.vessel_id {
+        let mut module = this_vessel
+            .this_vessel
+            .modules_with_capability_mut(ModuleCapability::VesselSellingTerminal)
+            .into_iter()
+            .find(|module| module.id() == offer.module_id)
+            .unwrap();
+
+        return Ok(module
+            .trading_console_mut()
+            .unwrap()
+            .place_buy_custom_vessel_order(
+                &mut buyer.finance.wallet_mut(),
+                needed_capabilities,
+                needed_primary_capabilities,
+                1,
+            )
+            .unwrap());
+    }
+
+    Err(PlaceBuyCustomVesselOrder {
+        offer,
+        needed_capabilities,
+        needed_primary_capabilities,
+        buyer_wallet: buyer.finance.wallet().id().clone(),
+    }
+    .push(environment_context.request_storage_mut()))
 }

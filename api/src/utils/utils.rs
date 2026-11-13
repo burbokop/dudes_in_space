@@ -1,5 +1,4 @@
-use crate::utils::math::NoNeg;
-use crate::utils::range::Range;
+use burbomath::{NonNeg, Point, Size, range::Range};
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use std::{
     error::Error,
@@ -9,6 +8,47 @@ use std::{
 };
 
 pub type Float = f64;
+
+/// TODO: replace with macro
+pub(crate) fn noneg_f32(value: f32) -> NonNeg<f32> {
+    assert!(value >= 0.);
+    NonNeg::new(value).unwrap()
+}
+
+/// TODO: replace with macro
+pub(crate) fn noneg_f64(value: f64) -> NonNeg<f64> {
+    assert!(value >= 0.);
+    NonNeg::new(value).unwrap()
+}
+
+/// TODO: replace with macro
+pub fn noneg_float(value: Float) -> NonNeg<Float> {
+    assert!(value >= 0.);
+    NonNeg::new(value).unwrap()
+}
+
+pub trait AsFloat {
+    type Output;
+    fn as_float(self) -> Self::Output;
+}
+
+impl AsFloat for Size<u32> {
+    type Output = Size<Float>;
+
+    fn as_float(self) -> Self::Output {
+        let (w, h) = self.into();
+        (w as Float, h as Float).into()
+    }
+}
+
+impl AsFloat for Point<i32> {
+    type Output = Point<Float>;
+
+    fn as_float(self) -> Self::Output {
+        let (w, h) = self.into();
+        (w as Float, h as Float).into()
+    }
+}
 
 pub(crate) fn normalize<const SIZE: usize>(v: [Float; SIZE]) -> [Float; SIZE] {
     let max = v.iter().cloned().reduce(Float::max).unwrap();
@@ -26,10 +66,10 @@ pub(crate) fn normalize_opt<const SIZE: usize>(v: [Option<Float>; SIZE]) -> [Opt
 }
 
 pub(crate) fn transfer_energy(
-    source: &mut NoNeg<Float>,
-    dst: &mut NoNeg<Float>,
-    mut delta_energy: NoNeg<Float>,
-    capacity: NoNeg<Float>,
+    source: &mut NonNeg<Float>,
+    dst: &mut NonNeg<Float>,
+    mut delta_energy: NonNeg<Float>,
+    capacity: NonNeg<Float>,
 ) -> bool {
     let mut completely_drained: bool = false;
     if *source < delta_energy {
@@ -38,22 +78,22 @@ pub(crate) fn transfer_energy(
     }
 
     if (*dst + delta_energy) > capacity {
-        delta_energy = NoNeg::wrap(capacity - *dst).unwrap();
+        delta_energy = NonNeg::new(capacity - *dst).unwrap();
     }
 
-    *source = NoNeg::wrap(*source - delta_energy).unwrap();
+    *source = NonNeg::new(*source - delta_energy).unwrap();
     *dst += delta_energy;
     completely_drained
 }
 
-pub(crate) fn drain_energy(source: &mut NoNeg<Float>, mut delta_energy: NoNeg<Float>) -> bool {
+pub(crate) fn drain_energy(source: &mut NonNeg<Float>, mut delta_energy: NonNeg<Float>) -> bool {
     let mut completely_drained: bool = false;
     if *source < delta_energy {
         delta_energy = *source;
         completely_drained = true;
     }
 
-    *source = NoNeg::wrap(*source - delta_energy).unwrap();
+    *source = NonNeg::new(*source - delta_energy).unwrap();
     completely_drained
 }
 
@@ -88,7 +128,7 @@ pub(crate) struct RequiredToBeInRangeError<T, R> {
 }
 
 impl<T, R> Display for RequiredToBeInRangeError<T, R> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }

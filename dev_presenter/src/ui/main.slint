@@ -1,0 +1,90 @@
+import { Slider, GroupBox, HorizontalBox, VerticalBox, GridBox, Button } from "std-widgets.slint";
+import { RootUiModelSink, RootUiRequest } from "sinks.slint";
+import { TradeTable } from "trade_table.slint";
+import { Environment } from "environment.slint";
+import { Empty } from "utils.slint";
+
+export component MainWindow inherits Window {
+    in property <RootUiModelSink> sink;
+    out property <RootUiRequest> request: { environment: env.request };
+
+    in property <float> fps;
+    in property <float> tps;
+    in property <float> desired_fps;
+    in property <float> desired_tps;
+
+    pure callback pointer-event(int, int, length, length);
+    pure callback scroll-event(length, length, length, length, bool, bool) -> bool;
+    pure callback key-press-event(string) -> bool;
+    pure callback key-release-event(string) -> bool;
+
+    pure callback inv-color(color) -> color;
+
+    public function init_focus() {
+        focus-scope.focus()
+    }
+
+    title: "Dudes in space dev presenter";
+    preferred-width: 1500px;
+    preferred-height: 800px;
+
+    env := Environment {
+        width: parent.width;
+        height: parent.height;
+        sink: sink.environment;
+
+        pointer-event(a,b,c,d) => { root.pointer-event(a,b,c,d) }
+        scroll-event(a,b,c,d,e,f) => { root.scroll-event(a,b,c,d,e,f) }
+    }
+
+    trade-table := TradeTable {
+        visible: false;
+        width: parent.width;
+        height: parent.height;
+        sink: sink.trade-table;
+    }
+
+    VerticalBox {
+        x: 0;
+        y: 0;
+
+        Text {
+            text: "fps: \{(root.fps * 10).round() / 10} of \{(root.desired_fps * 10).round() / 10}";
+            horizontal-alignment: right;
+        }
+
+        Text {
+            text: "tps: \{(root.tps * 10).round() / 10} of \{(root.desired_tps * 10).round() / 10}";
+            horizontal-alignment: right;
+        }
+
+        Empty {}
+
+        // Text {
+        //     text: "qd: \{root.quality_deterioration}";
+        // }
+    }
+
+    focus-scope := FocusScope {
+        enabled: true;
+
+        key-pressed(event) => {
+            if event.text == Key.F1 {
+                trade-table.visible = !trade-table.visible;
+                return accept;
+            } else if(!trade-table.visible) {
+                return root.key-press-event(event.text) ? accept : reject;
+            } else {
+                reject
+            }
+        }
+
+        key-released(event) => {
+            if(!trade-table.visible) {
+                return root.key-release-event(event.text) ? accept : reject;
+            } else {
+                reject
+            }
+        }
+    }
+}

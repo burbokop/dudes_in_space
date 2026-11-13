@@ -1,0 +1,166 @@
+import { TradeTableUiModelSink, OfferUiModelSink, MoneyUiModelSinkUtils } from "sinks.slint";
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Empty } from "utils.slint";
+import { TextWithHint } from "text_with_hint.slint";
+
+component OfferView {
+    preferred-height: t.preferred-height;
+
+    in property <OfferUiModelSink> offer;
+
+    t := Text {
+        width: parent.width;
+        text: "\{root.offer.vessel-name} -> \{root.offer.min_count}..\{root.offer.max_count} for \{MoneyUiModelSinkUtils.money-to-string(root.offer.price-per-unit)} (op: \{MoneyUiModelSinkUtils.money-list-to-string(root.offer.operational-wallet-content)})";
+        color: root.offer.active ? #000000 : #ac2a2a;
+        font-size: 16pt;
+    }
+}
+
+export component TradeTable {
+    in property <TradeTableUiModelSink> sink;
+
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        background: #8b8b8b60;
+    }
+
+    touch := TouchArea {
+        width: parent.width;
+        height: parent.height;
+
+        pointer-event(event) => {}
+        scroll-event(event) => { accept }
+    }
+
+    VerticalBox {
+        width: parent.width;
+        height: parent.height;
+        padding: 0;
+        spacing: 0;
+
+        HorizontalBox {
+            spacing: -2px;
+            padding: 0;
+            padding-left: 6px;
+            padding-right: 6px;
+
+            Rectangle {
+                background: #8b8b8bd5;
+                border-color: #000000;
+                border-width: 2px;
+                min-width: 0;
+                preferred-width: 0;
+                horizontal-stretch: 0;
+                border-bottom-left-radius: 4px;
+
+                HorizontalBox {
+                    width: parent.width;
+
+                    TextWithHint {
+                        text: "Buy offers";
+                        hint-text: "The ones for buying items from a station";
+                        font-size: 20pt;
+                        z: 100;
+                    }
+                }
+            }
+
+            Rectangle {
+                background: #8b8b8bd5;
+                border-color: #000000;
+                border-width: 2px;
+                min-width: 0;
+                preferred-width: 0;
+                horizontal-stretch: 0;
+                border-bottom-right-radius: 4px;
+
+                HorizontalBox {
+                    width: parent.width;
+
+                    TextWithHint {
+                        text: "Sell offers";
+                        hint-text: "The ones for selling items to a station";
+                        font-size: 20pt;
+                        z: 100;
+                    }
+                }
+            }
+        }
+
+        Flickable {
+            content := VerticalBox {
+                x: 0;
+                y: 0;
+
+                for record[index] in root.sink.records: Rectangle {
+                    background: #8b8b8bb2;
+                    border-radius: 4px;
+
+                    VerticalBox {
+                        padding: 0;
+                        spacing: 0;
+
+                        HorizontalBox {
+                            Text {
+                                text: record.item-id;
+                                font-size: 20pt;
+                            }
+                        }
+
+                        HorizontalBox {
+                            spacing: -2px;
+                            padding: 0;
+
+                            Rectangle {
+                                background: #8b8b8b60;
+                                border-color: #000000;
+                                border-width: 2px;
+                                border-radius: 4px;
+                                min-width: 0;
+                                preferred-width: 0;
+                                horizontal-stretch: 0;
+                                border-top-right-radius: 0;
+                                border-bottom-right-radius: 0;
+
+                                VerticalBox {
+                                    alignment: start;
+
+                                    for offer[index] in record.buy-offers: Rectangle {
+                                        OfferView {
+                                            width: parent.width;
+                                            offer: offer;
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                background: #8b8b8b60;
+                                border-color: #000000;
+                                border-width: 2px;
+                                border-radius: 4px;
+                                min-width: 0;
+                                preferred-width: 0;
+                                horizontal-stretch: 0;
+                                border-top-left-radius: 0;
+                                border-bottom-left-radius: 0;
+
+                                VerticalBox {
+                                    alignment: start;
+
+                                    for offer[index] in record.sell-offers: Rectangle {
+                                        OfferView {
+                                            width: parent.width;
+                                            offer: offer;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
